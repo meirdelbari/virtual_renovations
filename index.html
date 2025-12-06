@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AlgoreitAI-Virtual Renovations</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="styles.css" />
+    <!-- PDF.js for rendering PDF floor plans to images -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="app-header-left">
+          <span class="app-logo-emoji" aria-hidden="true">🤖</span>
+          <span class="app-title">AlgoreitAI-Virtual Renovations</span>
+        </div>
+        <div class="app-header-right">
+          <!-- Placeholder for future user/menu area -->
+          <span class="app-user-greeting">Hi, Meir</span>
+          <span class="app-user-avatar">M</span>
+        </div>
+      </header>
+
+      <!-- Main content shell (operations row + working table) -->
+      <main class="app-main">
+        <!-- Operations buttons row -->
+        <section class="operations-bar" aria-label="Main operations">
+          <button
+            class="op-btn op-btn-primary"
+            type="button"
+            data-role="upload-floor-plans"
+          >
+            Upload Floor Plans
+          </button>
+          <button
+            class="op-btn op-btn-accent"
+            type="button"
+            data-role="upload-photos"
+          >
+            Upload Photos
+          </button>
+          <button
+            class="op-btn"
+            type="button"
+            data-role="room-viewer"
+          >
+            Room
+          </button>
+          <button
+            class="op-btn"
+            type="button"
+            data-role="enhance-photos"
+          >
+            Enhance Quality
+          </button>
+          <button
+            class="op-btn"
+            type="button"
+            data-role="furniture-selector"
+          >
+            Furniture ▾
+          </button>
+          <button
+            class="op-btn"
+            type="button"
+            data-role="renovate-selector"
+          >
+            Renovate ▾
+          </button>
+          <button
+            class="op-btn"
+            type="button"
+            data-role="style-selector"
+          >
+            Style ▾
+          </button>
+          <button
+            class="op-btn op-btn-gemini"
+            type="button"
+            data-role="gemini-ai"
+            title="Process with AlgoreitAI"
+          >
+            ✨ AlgoreitAI
+          </button>
+          <button class="op-btn op-btn-reset" type="button">
+            Reset
+          </button>
+          <button
+            class="op-btn guide-btn"
+            type="button"
+            data-role="guide-me"
+            title="Show usage guide"
+          >
+            Guide Me
+          </button>
+          <input
+            id="floor-plan-file-input"
+            type="file"
+            accept="application/json,application/pdf,image/jpeg,image/png,image/webp,.json,.pdf,.jpg,.jpeg,.png,.webp"
+            style="display: none"
+          />
+          <input
+            id="photo-file-input"
+            type="file"
+            accept="image/*"
+            multiple
+            style="display: none"
+          />
+        </section>
+
+        <!-- Working table area (to be implemented in next steps) -->
+        <section class="app-workspace">
+          <div id="floor-plan-viewer" class="app-placeholder">
+            Click "Upload Floor Plans" and select a JSON or PDF file of a floor
+            plan to view it here.
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="features/uploadFloorPlans.js"></script>
+    <script src="features/uploadPhotos.js"></script>
+    <script src="features/roomViewer.js"></script>
+    <script src="features/enhancePhotos.js"></script>
+    <script src="features/geminiAI.js"></script>
+    <script src="features/styleSelector.js"></script>
+    <script src="features/renovateSelector.js"></script>
+    <script src="features/furnitureSelector.js"></script>
+    <script src="features/resetApp.js"></script>
+    <script src="features/guideMe.js"></script>
+    <script src="main.js"></script>
+  </body>
+  </html>
+
+
