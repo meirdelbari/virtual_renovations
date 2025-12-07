@@ -66,19 +66,11 @@
   }
 
   function mountUserButton() {
-    // Find the header right section
-    const headerRight = document.querySelector(".app-header-right");
-    if (headerRight) {
-      // Clear the dummy "Hi, Meir" text
-      headerRight.innerHTML = "";
-      
-      // Create a container for the user button
-      const userButtonDiv = document.createElement("div");
-      userButtonDiv.id = "user-button";
-      headerRight.appendChild(userButtonDiv);
-
-      // Mount the button
+    const userButtonDiv = document.getElementById("user-button");
+    if (userButtonDiv) {
       clerk.mountUserButton(userButtonDiv);
+    } else {
+      console.error("Auth: Could not find #user-button container");
     }
   }
 
