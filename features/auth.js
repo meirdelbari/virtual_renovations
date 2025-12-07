@@ -97,6 +97,11 @@
         <h2>Welcome to Virtual Renovations</h2>
         <p>Please sign in to continue</p>
         <div id="sign-in-mount"></div>
+        <div class="auth-footer">
+          By signing in, you agree to our 
+          <a href="/terms.html" target="_blank">Terms of Service</a> & 
+          <a href="/terms.html" target="_blank">Privacy Policy</a>
+        </div>
       </div>
     `;
     document.body.appendChild(modal);

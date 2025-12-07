@@ -68,6 +68,23 @@ body.auth-locked > *:not(#auth-modal) {
   margin: 0 0 24px;
 }
 
+.auth-footer {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.auth-footer a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
 #user-button {
   display: flex;
   align-items: center;
