@@ -11,11 +11,14 @@
   let clerk;
 
   async function initAuth() {
+    console.log("Auth: Starting initialization...");
     try {
       // 1. Fetch Clerk Publishable Key from backend
       const response = await fetch("/api/auth-config");
       if (!response.ok) throw new Error("Failed to fetch auth config");
       const { publishableKey } = await response.json();
+
+      console.log("Auth: Key fetched", publishableKey ? "Yes" : "No");
 
       if (!publishableKey) {
         console.warn("Clerk Publishable Key not found. Auth disabled.");
@@ -25,11 +28,13 @@
 
       // 2. Load Clerk JS SDK
       await loadClerkSdk(publishableKey);
+      console.log("Auth: SDK Loaded");
 
       // 3. Initialize Clerk
       if (window.Clerk) {
         clerk = window.Clerk;
         await clerk.load();
+        console.log("Auth: Clerk Loaded. User:", clerk.user ? "Signed In" : "Signed Out");
 
         if (clerk.user) {
           // User is signed in
@@ -61,17 +66,30 @@
   }
 
   function mountUserButton() {
+    // Find the header right section
     const headerRight = document.querySelector(".app-header-right");
     if (headerRight) {
-      headerRight.innerHTML = '<div id="user-button"></div>';
-      clerk.mountUserButton(document.getElementById("user-button"));
+      // Clear the dummy "Hi, Meir" text
+      headerRight.innerHTML = "";
+      
+      // Create a container for the user button
+      const userButtonDiv = document.createElement("div");
+      userButtonDiv.id = "user-button";
+      headerRight.appendChild(userButtonDiv);
+
+      // Mount the button
+      clerk.mountUserButton(userButtonDiv);
     }
   }
 
   function showSignInModal() {
+    console.log("Auth: Showing Sign In Modal");
     // Hide app content
     document.body.classList.add("auth-locked");
     
+    // Check if modal already exists
+    if (document.getElementById("auth-modal")) return;
+
     const modal = document.createElement("div");
     modal.id = "auth-modal";
     modal.className = "auth-modal";
@@ -100,4 +118,3 @@
   window.initAuth = initAuth;
 
 })();
-
