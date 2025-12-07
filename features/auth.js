@@ -111,7 +111,6 @@
     modal.className = "auth-modal";
     modal.innerHTML = `
       <div class="auth-container">
-        <h2>Welcome to Virtual Renovations</h2>
         <div id="sign-in-mount"></div>
         <div class="auth-footer">
           By signing in, you agree to our 
