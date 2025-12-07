@@ -68,7 +68,14 @@
   function mountUserButton() {
     const userButtonDiv = document.getElementById("user-button");
     if (userButtonDiv) {
-      clerk.mountUserButton(userButtonDiv);
+      // Ensure it's empty
+      userButtonDiv.innerHTML = "";
+      try {
+        clerk.mountUserButton(userButtonDiv);
+        console.log("Auth: User button mounted successfully");
+      } catch (e) {
+        console.error("Auth: Failed to mount user button", e);
+      }
     } else {
       console.error("Auth: Could not find #user-button container");
     }

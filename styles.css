@@ -68,6 +68,8 @@ body.auth-locked > *:not(#auth-modal) {
   align-items: center;
   z-index: 1000;
   position: relative;
+  min-width: 32px;
+  min-height: 32px;
 }
 
 #app {
