@@ -22,6 +22,52 @@ body {
   color: var(--color-text-main);
 }
 
+/* Auth Styles */
+body.auth-locked {
+  overflow: hidden;
+}
+
+body.auth-locked > *:not(#auth-modal) {
+  filter: blur(5px);
+  pointer-events: none;
+}
+
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 245, 251, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.auth-container {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-container h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+}
+
+.auth-container p {
+  color: var(--color-text-muted);
+  margin: 0 0 24px;
+}
+
+#user-button {
+  display: flex;
+  align-items: center;
+}
+
 #app {
   min-height: 100vh;
   display: flex;
@@ -926,5 +972,3 @@ body {
     font-size: 18px;
   }
 }
-
-

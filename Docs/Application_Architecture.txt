@@ -1,5 +1,5 @@
-Application Architecture
-------------------------
+Application Architecture (Vercel Deployment)
+----------------------------------------
 
 Floor plans (Option A)
 ----------------------
@@ -51,19 +51,23 @@ Photo upload & room matching
   - the chosen room name (slugified),
   followed by a stable index and file extension.
 
-AI Renovation Services
-----------------------
+AI Renovation Services (Vercel Serverless)
+------------------------------------------
+The backend has been refactored to use Vercel Serverless Functions in the `/api` directory.
+
 1. AlgoreitAI Integration (Primary)
    - Primary engine for "✨ AlgoreitAI" feature.
    - Endpoint: `/api/gemini/process-photo` (Image Generation) and `/api/gemini/analyze-photo` (PDF Analysis).
    - Model: `gemini-2.5-flash-image` (Nano Banana) for renovation; AlgoreitAI Vision (Gemini) for PDF analysis.
    - Flow:
      1. Frontend captures photo + instructions (or style/renovation preset).
-     2. Backend sends multimodal request to AlgoreitAI (Gemini) API.
-     3. AlgoreitAI returns a renovated image.
-  4. Image is saved to "Renovation Photos" gallery.
-   - Authentication: `GOOGLE_GEMINI_API_KEY` in backend `.env`.
+     2. Frontend calls `/api/...` endpoints (proxied to Serverless functions).
+     3. Backend sends multimodal request to AlgoreitAI (Gemini) API.
+     4. AlgoreitAI returns a renovated image.
+     5. Image is saved to "Renovation Photos" gallery.
+   - Authentication: `GOOGLE_GEMINI_API_KEY` in Vercel Environment Variables (or local `.env`).
 
 2. OpenAI Integration (Legacy/Alternative)
    - Endpoint: `/api/renovate-room`
    - Status: Optional backup.
+   - Authentication: `OPENAI_API_KEY` in Vercel Environment Variables (or local `.env`).

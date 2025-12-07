@@ -18,6 +18,12 @@ app.use(
 );
 app.use(express.json({ limit: "20mb" }));
 
+app.get("/api/auth-config", (req, res) => {
+  res.json({
+    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY,
+  });
+});
+
 // Simple landing page so /api/ works
 app.get("/api/", (req, res) => {
   res.type("html").send(`
