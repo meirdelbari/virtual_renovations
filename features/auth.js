@@ -70,8 +70,25 @@
     if (userButtonDiv) {
       // Ensure it's empty
       userButtonDiv.innerHTML = "";
+      
+      // Create greeting element if user has a first name
+      if (clerk.user && clerk.user.firstName) {
+        const greeting = document.createElement("span");
+        greeting.textContent = `Hi, ${clerk.user.firstName}`;
+        greeting.style.marginRight = "12px";
+        greeting.style.fontWeight = "500";
+        greeting.style.fontSize = "14px";
+        greeting.style.color = "#111827"; // var(--color-text-main)
+        
+        // Insert greeting before the button
+        userButtonDiv.appendChild(greeting);
+      }
+
       try {
-        clerk.mountUserButton(userButtonDiv);
+        // Create a wrapper for the actual button to keep it separate
+        const buttonContainer = document.createElement("div");
+        userButtonDiv.appendChild(buttonContainer);
+        clerk.mountUserButton(buttonContainer);
         console.log("Auth: User button mounted successfully");
       } catch (e) {
         console.error("Auth: Failed to mount user button", e);
