@@ -66,6 +66,8 @@ body.auth-locked > *:not(#auth-modal) {
 #user-button {
   display: flex;
   align-items: center;
+  z-index: 1000;
+  position: relative;
 }
 
 #app {
