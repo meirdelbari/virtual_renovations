@@ -62,8 +62,9 @@ body.auth-locked > *:not(#auth-modal) {
   border: none; /* No border */
   box-shadow: none; /* No shadow */
   z-index: 10000;
-  max-width: 320px;
+  max-width: 100%; /* Allow it to be wider */
   text-align: center;
+  white-space: nowrap; /* Force one line */
 }
 
 .auth-container {
