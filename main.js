@@ -1,6 +1,11 @@
 // Entry point: wire up independent feature modules using globals.
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Initialize Auth (Clerk) - Priority 1
+  if (window.initAuth) {
+    window.initAuth();
+  }
+
   if (window.initUploadFloorPlans) {
     window.initUploadFloorPlans();
   }
