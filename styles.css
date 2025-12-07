@@ -39,23 +39,27 @@ body.auth-locked > *:not(#auth-modal) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(245, 245, 251, 0.85);
+  background: rgba(245, 245, 251, 0.95);
   backdrop-filter: blur(8px);
+  padding: 20px;
 }
 
 .auth-container {
-  background: white;
-  padding: 40px;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
+  background: transparent; /* Let Clerk handle the card background */
+  padding: 0;
+  box-shadow: none; /* Let Clerk handle shadow */
   text-align: center;
-  width: 100%;
-  max-width: 400px;
+  width: auto;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .auth-container h2 {
   margin: 0 0 10px;
   font-size: 24px;
+  color: var(--color-text-main);
 }
 
 .auth-container p {
