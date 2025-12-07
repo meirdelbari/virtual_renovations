@@ -112,7 +112,6 @@
     modal.innerHTML = `
       <div class="auth-container">
         <h2>Welcome to Virtual Renovations</h2>
-        <p>Please sign in to continue</p>
         <div id="sign-in-mount"></div>
         <div class="auth-footer">
           By signing in, you agree to our 
