@@ -126,6 +126,12 @@
     clerk.mountSignIn(document.getElementById("sign-in-mount"), {
       afterSignInUrl: "/",
       afterSignUpUrl: "/",
+      appearance: {
+        elements: {
+          footerActionLink: { color: "#5b46ff" },
+          card: { boxShadow: "none", background: "transparent" }
+        }
+      }
     });
   }
 
