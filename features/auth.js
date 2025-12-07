@@ -41,8 +41,8 @@
           mountUserButton();
           showApp();
         } else {
-          // User is not signed in
-          showSignInModal();
+          // User is not signed in - Show Landing Page
+          showLandingPage();
         }
       }
     } catch (error) {
@@ -63,6 +63,21 @@
       script.onerror = reject;
       document.head.appendChild(script);
     });
+  }
+
+  function showLandingPage() {
+    console.log("Auth: Showing Landing Page");
+    const landing = document.getElementById("landing-page");
+    const app = document.getElementById("app");
+    
+    if (landing) landing.style.display = "flex";
+    if (app) app.style.display = "none";
+    
+    // Bind Start Button
+    const startBtn = document.getElementById("landing-start-btn");
+    if (startBtn) {
+      startBtn.onclick = showSignInModal;
+    }
   }
 
   function mountUserButton() {
@@ -100,6 +115,11 @@
 
   function showSignInModal() {
     console.log("Auth: Showing Sign In Modal");
+    
+    // Hide landing page when opening modal
+    const landing = document.getElementById("landing-page");
+    if (landing) landing.style.display = "none";
+
     // Hide app content
     document.body.classList.add("auth-locked");
     
@@ -135,6 +155,13 @@
     document.body.classList.remove("auth-locked");
     const modal = document.getElementById("auth-modal");
     if (modal) modal.remove();
+    
+    // Hide landing page, Show App
+    const landing = document.getElementById("landing-page");
+    const app = document.getElementById("app");
+    
+    if (landing) landing.style.display = "none";
+    if (app) app.style.display = "flex"; // or block depending on your layout, usually flex for #app
   }
 
   // Expose init function

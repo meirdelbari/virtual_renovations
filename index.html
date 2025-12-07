@@ -5,6 +5,7 @@
     <title>AlgoreitAI-Virtual Renovations</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="landing.css" />
     <!-- PDF.js for rendering PDF floor plans to images -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
@@ -12,7 +13,55 @@
     </script>
   </head>
   <body>
-    <div id="app">
+    <!-- Landing Page (Initially visible if not authenticated) -->
+    <div id="landing-page" class="landing-page" style="display: none;">
+      <div class="landing-header">
+        <span class="landing-emoji">🤖</span>
+        <h1>AlgoreitAI — Real Estate Reno & Staging</h1>
+      </div>
+      
+      <div class="landing-grid">
+        <div class="landing-card">
+          <div class="landing-icon">🎨</div>
+          <div class="landing-content">
+            <h3>Visualize Renovations</h3>
+            <p>Instantly see the potential of any property with AI-powered redesigns.</p>
+          </div>
+        </div>
+        <div class="landing-card">
+          <div class="landing-icon">🛋️</div>
+          <div class="landing-content">
+            <h3>Virtual Staging</h3>
+            <p>Furnish empty rooms virtually to attract more buyers and increase value.</p>
+          </div>
+        </div>
+        <div class="landing-card">
+          <div class="landing-icon">📏</div>
+          <div class="landing-content">
+            <h3>Floor Plan Analysis</h3>
+            <p>Extract precise measurements and layouts from images automatically.</p>
+          </div>
+        </div>
+        <div class="landing-card">
+          <div class="landing-icon">⏱️</div>
+          <div class="landing-content">
+            <h3>Save Time & Money</h3>
+            <p>Make faster decisions with instant cost estimates and design options.</p>
+          </div>
+        </div>
+      </div>
+
+      <button id="landing-start-btn" class="landing-start-btn">
+        🚀 START
+      </button>
+
+      <div class="landing-footer">
+        <span class="beta-badge">β version</span>
+        <span class="feedback-text">We would love feedback AlgoreitAI@gmail.com</span>
+      </div>
+    </div>
+
+    <div id="app" style="display: none;">
       <!-- Header -->
       <header class="app-header">
         <div class="app-header-left">
