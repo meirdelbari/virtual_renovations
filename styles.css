@@ -46,44 +46,37 @@ body.auth-locked > *:not(#auth-modal) {
   overflow-y: auto;
 }
 
+.auth-footer {
+  position: absolute;
+  bottom: -80px; /* Push it below the main card */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  min-width: 300px;
+  font-size: 13px;
+  color: var(--color-text-main);
+  line-height: 1.5;
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-subtle);
+  z-index: 10000;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  text-align: center;
+}
+
 .auth-container {
-  background: transparent; /* Let Clerk handle the card background */
+  position: relative; /* Establish context for absolute footer */
+  background: transparent;
   padding: 0;
-  box-shadow: none; /* Let Clerk handle shadow */
+  box-shadow: none;
   text-align: center;
   width: auto;
   max-width: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: -30px; /* Move it up noticeably */
-}
-
-.auth-container h2 {
-  margin: 0 0 10px;
-  font-size: 24px;
-  color: var(--color-text-main);
-}
-
-.auth-container p {
-  color: var(--color-text-muted);
-  margin: 0 0 24px;
-}
-
-.auth-footer {
-  margin-top: 20px;
-  font-size: 13px;
-  color: var(--color-text-main);
-  line-height: 1.5;
-  background: #ffffff;
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border-subtle);
-  z-index: 10000; /* Maximum visibility */
-  position: relative;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  max-width: 350px;
-  text-align: center;
+  margin-top: -30px;
 }
 
 .auth-footer a {
