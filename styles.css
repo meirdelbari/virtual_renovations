@@ -54,6 +54,7 @@ body.auth-locked > *:not(#auth-modal) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: -10px; /* Move it up slightly */
 }
 
 .auth-container h2 {
