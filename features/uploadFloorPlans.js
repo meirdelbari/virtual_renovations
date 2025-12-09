@@ -168,7 +168,7 @@
       Do not include any markdown formatting or explanation, just the raw JSON string.
     `;
 
-    const response = await fetch("http://localhost:4000/api/gemini/analyze-photo", {
+    const response = await fetch("/api/gemini/analyze-photo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

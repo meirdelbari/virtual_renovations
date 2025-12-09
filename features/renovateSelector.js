@@ -517,7 +517,7 @@
 
     // Try backend AI renovation first
     try {
-      const response = await fetch("http://localhost:4000/api/renovate-room", {
+      const response = await fetch("/api/renovate-room", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

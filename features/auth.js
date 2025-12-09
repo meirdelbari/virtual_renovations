@@ -14,7 +14,10 @@
     console.log("Auth: Starting initialization...");
     try {
       // 1. Fetch Clerk Publishable Key from backend
-      const response = await fetch("http://localhost:4000/api/auth-config");
+      // In production, use the current origin since frontend and backend are on the same domain
+      const API_BASE_URL = window.location.hostname === 'localhost' ? '' : '';
+      const response = await fetch(`${API_BASE_URL}/api/auth-config`);
+      
       if (!response.ok) throw new Error("Failed to fetch auth config");
       const { publishableKey } = await response.json();
 
@@ -33,7 +36,15 @@
       // 3. Initialize Clerk
       if (window.Clerk) {
         clerk = window.Clerk;
-        await clerk.load();
+        try {
+          await clerk.load({
+            publishableKey: publishableKey // Explicitly pass key to load
+          });
+        } catch (err) {
+           console.warn("Clerk load error (retrying without key param):", err);
+           await clerk.load(); 
+        }
+        
         console.log("Auth: Clerk Loaded. User:", clerk.user ? "Signed In" : "Signed Out");
 
         if (clerk.user) {
@@ -53,6 +64,7 @@
   }
 
   function loadClerkSdk(key) {
+    if (window.Clerk) return Promise.resolve(); // Already loaded
     return new Promise((resolve, reject) => {
       const script = document.createElement("script");
       script.src = "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js";

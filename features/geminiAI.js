@@ -6,7 +6,8 @@
 // - Uses Google Imagen 3 for image-to-image transformations
 
 (function () {
-  const BACKEND_URL = "http://localhost:4000";
+  // Use relative path for production compatibility
+  const BACKEND_URL = "";
   const RENOVATION_TASKS = {
     // Room - Floor
     "room_floor_hardwood": "Replace the main room flooring with premium hardwood planks",
