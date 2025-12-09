@@ -24,6 +24,8 @@
     "Master Bedroom",
     "Guest Room",
     "Entrance",
+    "Home Exterior",
+    "Garden",
     "Other"
   ];
 
@@ -36,9 +38,9 @@
   function initUploadPhotos() {
     const uploadButton = document.querySelector('[data-role="upload-photos"]');
     const fileInput = document.getElementById("photo-file-input");
-    const floorPlanViewer = document.getElementById("floor-plan-viewer");
+    const floorPlanViewer = document.getElementById("floor-plan-viewer"); // Optional now
 
-    if (!uploadButton || !fileInput || !floorPlanViewer) {
+    if (!uploadButton || !fileInput) {
       console.warn(
         "[UploadPhotos] Missing DOM elements; feature will not initialize."
       );
@@ -54,46 +56,56 @@
 
     function ensureGalleryExists() {
         const workspace = document.querySelector(".app-workspace");
+        const viewer = document.getElementById("floor-plan-viewer");
+        
+        // Robustly ensure photos-container exists in the correct position (after viewer, before table)
+        let photosContainer = document.getElementById("photos-container");
+        if (!photosContainer && workspace) {
+            photosContainer = document.createElement("div");
+            photosContainer.id = "photos-container";
+            
+            // Insert strictly after floor-plan-viewer
+            if (viewer && viewer.parentNode === workspace) {
+                viewer.insertAdjacentElement('afterend', photosContainer);
+            } else {
+                // If viewer is missing or weird, prepend to ensure it's above potential bottom elements
+                workspace.prepend(photosContainer);
+            }
+        }
+        
         let gallery = document.getElementById("photo-gallery");
         
-        if (!gallery && workspace) {
+        if (!gallery && photosContainer) {
             // Hide floor plan placeholder if it's the default empty one
-            const viewer = document.getElementById("floor-plan-viewer");
             if (viewer && viewer.classList.contains("app-placeholder")) {
                 viewer.style.display = "none";
             }
 
-            // Create Working Area (Option B Only)
-            // Only if floor plan viewer is hidden/placeholder (using same viewer reference)
-            const isOptionB = viewer && viewer.classList.contains("app-placeholder") && viewer.style.display === "none";
-            if (isOptionB) {
-                window.isOptionBActive = true;
-            }
+            // Always activate "Option B" mode
+            window.isOptionBActive = true;
             
-            if (isOptionB && !document.getElementById("photo-working-area")) {
+            if (!document.getElementById("photo-working-area")) {
                 const workingArea = document.createElement("div");
                 workingArea.id = "photo-working-area";
                 workingArea.className = "photo-working-area";
                 workingArea.style.marginBottom = "30px";
-                workingArea.style.display = "none"; // Hidden until photo selected
-                workspace.appendChild(workingArea);
+                workingArea.style.display = "none"; 
+                photosContainer.appendChild(workingArea);
             }
 
-            // Create Processed Gallery (Middle Row) - Only for Option B
-            if (isOptionB && !document.getElementById("processed-gallery")) {
+            if (!document.getElementById("processed-gallery")) {
                 const processedGallery = document.createElement("div");
                 processedGallery.id = "processed-gallery";
                 processedGallery.className = "photo-gallery";
                 processedGallery.style.marginBottom = "20px";
-                processedGallery.style.display = "none"; // Revealed once a renovation exists
-                workspace.appendChild(processedGallery);
+                processedGallery.style.display = "none"; 
+                photosContainer.appendChild(processedGallery);
             }
 
-            // Create Original Gallery (Bottom Row)
             gallery = document.createElement("div");
             gallery.id = "photo-gallery";
             gallery.className = "photo-gallery";
-            workspace.appendChild(gallery);
+            photosContainer.appendChild(gallery);
         }
         return gallery;
     }
@@ -241,7 +253,7 @@
       let container = document.getElementById("processed-gallery");
       if (!container) {
           const workspace = document.querySelector(".app-workspace");
-          const floorPlanViewer = document.getElementById("floor-plan-viewer");
+          const photosContainer = document.getElementById("photos-container") || workspace;
           const rawGallery = document.getElementById("photo-gallery");
           
           container = document.createElement("div");
@@ -250,26 +262,11 @@
           container.style.marginBottom = "20px";
           container.style.display = "none"; 
 
-          // OPTION A CHECK: Floor Plan Viewer exists and is NOT hidden/placeholder
-          const isOptionA = floorPlanViewer && (floorPlanViewer.style.display !== "none" && !floorPlanViewer.classList.contains("app-placeholder"));
-
-          if (isOptionA) {
-              // Insert BEFORE the raw photo gallery inside the viewer
-              if (rawGallery && floorPlanViewer.contains(rawGallery)) {
-                  // Use parentNode to ensure we are inserting into the correct parent container
-                  rawGallery.parentNode.insertBefore(container, rawGallery);
-              } else {
-                  // Fallback
-                  floorPlanViewer.appendChild(container);
-              }
+          // Always insert before raw gallery in workspace
+          if (rawGallery && photosContainer.contains(rawGallery)) {
+              rawGallery.parentNode.insertBefore(container, rawGallery);
           } else {
-              // OPTION B: Workspace
-              // Insert before raw gallery if possible, or just append
-              if (rawGallery && workspace.contains(rawGallery)) {
-                  rawGallery.parentNode.insertBefore(container, rawGallery);
-              } else {
-                  workspace.appendChild(container);
-              }
+              photosContainer.appendChild(container);
           }
       }
 
@@ -515,7 +512,7 @@
         } else {
              // Option B: Static Room Types
              selectHtml = `<select class="photo-card-select" onchange="window.assignPhotoToRoomType(${item.id}, this.value)" onclick="event.stopPropagation()">
-                <option value="" disabled ${!item.roomType ? "selected" : ""}>Select Room...</option>
+                <option value="" disabled ${!item.roomType ? "selected" : ""}>Match Photo-Room</option>
                 ${ROOM_TYPES.map(type => 
                     `<option value="${type}" ${type === item.roomType ? "selected" : ""}>${type}</option>`
                 ).join("")}
@@ -608,9 +605,14 @@
   function buildPhotoName(baseSlug, roomName, index, originalName) {
     const extMatch = (originalName || "").match(/\.[a-zA-Z0-9]+$/);
     const ext = extMatch ? extMatch[0].toLowerCase() : "";
-
     const indexStr = String(index).padStart(2, "0");
-    const roomSlug = roomName ? slugify(roomName) : "unassigned";
+
+    // If roomName is missing, simply use "photo"
+    if (!roomName) {
+        return `photo_${indexStr}${ext}`;
+    }
+    
+    const roomSlug = slugify(roomName);
     return `${baseSlug}_${roomSlug}_photo_${indexStr}${ext}`;
   }
 

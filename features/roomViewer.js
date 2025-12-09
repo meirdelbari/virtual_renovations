@@ -14,35 +14,30 @@
 
   function initRoomViewer() {
     const button = document.querySelector('[data-role="room-viewer"]');
-    const viewer = document.getElementById("floor-plan-viewer");
+    const viewer = document.getElementById("floor-plan-viewer"); // Optional
 
-    if (!button || !viewer) {
+    if (!button) {
       console.warn(
         "[RoomViewer] Missing DOM elements; feature will not initialize."
       );
       return;
     }
 
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
       const ctx = getFloorPlanContext();
       const photos = getPhotoMatches();
 
-      // Option B Support
-      if (window.isOptionBActive) {
+      // If no floor plan rooms, use Option B (Photo List) behavior
+      // Also fallback to Option B if viewer is missing (Quarantined mode)
+      if (!ctx.rooms || !ctx.rooms.length || !viewer) {
           if (!photos.length) {
             alert("No photos uploaded yet. Please upload photos first.");
             return;
           }
           // Show list of photos/rooms to open in Working Area
-          openOptionBRoomList(photos);
+          openOptionBRoomList(photos, button);
           return;
-      }
-
-      if (!ctx.rooms || !ctx.rooms.length) {
-        alert(
-          "Room selection works with JSON floor plans that include room names and positions. Please upload such a floor plan first."
-        );
-        return;
       }
 
       if (!photos.length) {
@@ -59,17 +54,31 @@
   window.initRoomViewer = initRoomViewer;
 
   // New: Option B specific list
-  function openOptionBRoomList(photos) {
+  function openOptionBRoomList(photos, button) {
     closeRoomList(); // ensure only one panel
 
     const panel = document.createElement("div");
     panel.id = "room-selector-panel";
     panel.className = "room-selector-panel";
     panel.style.zIndex = "2000";
-    panel.style.position = "fixed";
-    panel.style.top = "20%";
-    panel.style.left = "50%";
-    panel.style.transform = "translateX(-50%)";
+    panel.style.position = "absolute";
+    
+    // Calculate position relative to the button
+    if (button) {
+        const rect = button.getBoundingClientRect();
+        const scrollX = window.scrollX || window.pageXOffset;
+        const scrollY = window.scrollY || window.pageYOffset;
+        
+        panel.style.left = `${rect.left + scrollX}px`;
+        panel.style.top = `${rect.bottom + scrollY + 8}px`;
+        panel.style.transform = "none";
+    } else {
+        // Fallback if no button provided
+        panel.style.position = "fixed";
+        panel.style.top = "20%";
+        panel.style.left = "50%";
+        panel.style.transform = "translateX(-50%)";
+    }
 
     const itemsHtml = photos
       .map(
@@ -98,6 +107,18 @@
     `;
 
     document.body.appendChild(panel);
+
+    // Add click outside to close
+    const clickHandler = (event) => {
+        if (!panel.contains(event.target) && (!button || !button.contains(event.target))) {
+            closeRoomList();
+            document.removeEventListener("click", clickHandler);
+        }
+    };
+    // Delay adding the event listener slightly to avoid immediate triggering
+    setTimeout(() => {
+        document.addEventListener("click", clickHandler);
+    }, 10);
 
     panel
       .querySelector(".room-selector-close")

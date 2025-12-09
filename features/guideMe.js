@@ -20,35 +20,38 @@
       <header class="guide-modal-header">
         <div>
           <h2>Need a walkthrough?</h2>
-          <p>Two ways to start—pick the flow that matches how you want to work.</p>
+          <p>Learn what each button does, then pick a flow to start.</p>
         </div>
         <button type="button" class="guide-close-btn" aria-label="Close">&times;</button>
       </header>
+      
       <section class="guide-section">
-        <h3>Option A: Floor Plan First</h3>
-        <ol>
-          <li><strong>Upload Floor Plans</strong> (JSON for rooms, PDF/image for reference).</li>
-          <li>The viewer loads rooms into the context so every photo can be matched.</li>
-          <li><strong>Upload Photos</strong> and assign each one to a room using the selector.</li>
-          <li>Use <em>Room</em> button to navigate, or click photos in the gallery.</li>
-          <li>Use <strong>Enhance Quality</strong> to improve photo resolution.</li>
-          <li>Use <strong>Furniture ▾</strong> to Remove (empty room) or Stage (add furniture) based on the selected Style.</li>
-          <li>Use <strong>Renovate ▾</strong> and <strong>Style ▾</strong> to design finishes, then click <strong>✨ AlgoreitAI</strong>.</li>
-        </ol>
-        <p class="guide-tip">Best when you already have a measured plan and want every image tied to a room.</p>
+        <h3>Button Overview</h3>
+        <ul class="guide-button-list">
+          <li><strong>Upload Photos:</strong> Import your home photos (Rooms, kitchen, Bath, Exterior, Garden...etc).</li>
+          <li><strong>Match Photo-Room ▾</strong> (Feature at the bottom of each uploaded photo): Helps AlgoreitAI adapt and generate the best design for you.</li>
+          <li><strong>Room:</strong> Select a photo from the gallery to open it in the Working Area.</li>
+          <li><strong>Enhance Quality:</strong> Sharpen and upscale your photos.</li>
+          <li><strong>Renovate ▾:</strong> Select renovation tasks like updating floors, walls, or exterior.</li>
+          <li><strong>Furniture ▾:</strong> Choose to remove existing furniture or stage with new items.</li>
+          <li><strong>Style ▾:</strong> Pick the design style for your renovation (e.g., Modern, Scandinavian).</li>
+          <li><strong>✨ AlgoreitAI:</strong> The magic button! Click this to generate your new design.</li>
+          <li><strong>Reset:</strong> Clear everything and start over.</li>
+        </ul>
       </section>
+
       <section class="guide-section">
-        <h3>Option B: Photos Only</h3>
+        <h3>How to Renovate & Stage</h3>
         <ol>
-          <li>Skip the floor plan and click <strong>Upload Photos</strong>.</li>
-          <li>Assign a Room Type (e.g., "Living Room") to each photo in the gallery.</li>
+          <li><strong>Upload Photos</strong> and match each one to a room type (e.g., "Living Room") using the selector at the uploaded photos bottom.</li>
           <li>Click <strong>Room</strong> to select which photo to edit in the Working Area.</li>
+          <li>Use <strong>Enhance Quality</strong> to improve photo resolution if needed.</li>
+          <li>Use <strong>Renovate ▾</strong> to update floors, walls, exterior, or garden.</li>
           <li>Use <strong>Furniture ▾</strong> to clear the room or stage it with new furniture.</li>
-          <li>Use <strong>Renovate ▾</strong> to update floors, walls, or kitchens.</li>
-          <li>Click <strong>✨ AlgoreitAI</strong> to generate results.</li>
+          <li>Use <strong>Style ▾</strong> to choose the design aesthetic (e.g., Modern, Farmhouse).</li>
+          <li>Click <strong>✨ AlgoreitAI</strong> to generate your renovation (after selecting Renovate/Furniture and Style options).</li>
           <li>All results appear in the "Renovation Photos" row—click them to chain more edits!</li>
         </ol>
-        <p class="guide-tip">Perfect for quick mockups when you only have photographs.</p>
       </section>
       <section class="guide-section">
         <h3>Pro Tips</h3>

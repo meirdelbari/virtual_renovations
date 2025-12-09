@@ -32,13 +32,14 @@
       return;
     }
 
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
       const existing = document.getElementById("style-selector-panel");
       if (existing) {
         existing.parentNode.removeChild(existing);
         return;
       }
-      openPanel(button, operationsBar);
+      openPanel(button, document.body);
     });
 
     document.addEventListener("click", (event) => {
@@ -61,6 +62,12 @@
     const panel = document.createElement("div");
     panel.id = "style-selector-panel";
     panel.className = "style-selector-panel";
+
+    // Override class styles for dropdown behavior
+    panel.style.position = "absolute";
+    panel.style.minWidth = "200px";
+    panel.style.zIndex = "2000";
+    panel.style.right = "auto";
 
     const itemsHtml = STYLES.map((style) => {
       const isActive = window.currentStyleContext.id === style.id;
@@ -85,6 +92,14 @@
     `;
 
     container.appendChild(panel);
+
+    // Calculate position relative to document body
+    const rect = button.getBoundingClientRect();
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+
+    panel.style.left = `${rect.left + scrollX}px`;
+    panel.style.top = `${rect.bottom + scrollY + 8}px`;
 
     panel.querySelectorAll(".style-selector-item").forEach((btn) => {
       btn.addEventListener("click", () => {

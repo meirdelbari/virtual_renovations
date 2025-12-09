@@ -6,7 +6,7 @@
 // - Uses Google Imagen 3 for image-to-image transformations
 
 (function () {
-  const BACKEND_URL = "";
+  const BACKEND_URL = "http://localhost:4000";
   const RENOVATION_TASKS = {
     // Room - Floor
     "room_floor_hardwood": "Replace the main room flooring with premium hardwood planks",
@@ -54,6 +54,18 @@
     "kitchen_floor_laminate": "Install laminate flooring across the kitchen",
     "kitchen_walls_painting": "Repaint the kitchen walls",
     "kitchen_ceiling_painting": "Repaint the kitchen ceiling",
+    // Exterior
+    "exterior_walls_painting": "Repaint the exterior walls",
+    "exterior_windows_painting": "Repaint the exterior window frames",
+    "exterior_windows_replace": "Replace the exterior windows with new modern frames",
+    "exterior_doors_painting": "Repaint the exterior doors",
+    "exterior_doors_replace": "Replace the exterior doors with new secure ones",
+    "exterior_roof_painting": "Repaint the roof",
+    "exterior_roof_replace": "Replace the roof shingles or tiles",
+    "exterior_garden_clear": "Remove all gardening and show bare land",
+    "exterior_garden_gardening": "Landscape the garden with new plants and features",
+    "exterior_structure_replace": "Renovate the exterior structure",
+
     // Furniture
     "furniture_clear_remove": "Remove all furniture and decor from the room, revealing the empty floor and walls",
     "furniture_stage_room": "Virtually stage the room with furniture and decor matching the selected style",
@@ -411,14 +423,15 @@ CRITICAL CONSTRAINTS:
 4. Ensure lighting and shadows on the new furniture match the room's original lighting.`;
     }
 
-    return `You are an expert interior designer.
-TASK: ${renovationText} so it matches a ${styleText} design style.
-STYLE DETAILS: Ensure any new materials strictly follow the ${styleText} aesthetic (colors, textures, finishes).
-CRITICAL CONSTRAINTS:
-1. Modify ONLY the element described in the task; leave all other finishes, furniture, and decor untouched.
-2. Do NOT change the room layout, camera angle, or perspective.
-3. Preserve existing windows, doors, and lighting unless they are explicitly part of the task.
-4. Maintain photorealism and the original lighting/shadows.`;
+    return `You are an expert interior designer specialized in renovation.
+Task: ${renovationText} so it matches a ${styleText} design style.
+Style Details: Ensure any new materials strictly follow the ${styleText} aesthetic (colors, textures, finishes).
+Critical Constraints (STRICT ADHERENCE REQUIRED):
+1. MODIFICATION SCOPE: Change ONLY the specific element mentioned in the Task (e.g., if task is "paint walls", DO NOT change the floor, ceiling, furniture, or windows).
+2. PRESERVATION: ALL other elements (furniture, flooring, ceiling, lighting, windows, doors, decor, exterior landscape) must remain EXACTLY as they are in the original photo.
+3. INTEGRITY: Do NOT change the room layout, camera angle, perspective, or structural lines.
+4. LIGHTING: Maintain the exact original lighting, shadows, and time of day.
+5. PHOTOREALISM: The result must look like a real photo of the same room with only the specified change.`;
   }
 
   function buildMetadata() {

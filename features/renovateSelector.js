@@ -169,6 +169,55 @@
         },
       ],
     },
+    {
+      label: "Exterior",
+      groups: [
+        {
+          label: "Walls",
+          id: "exterior_walls",
+          options: [{ id: "painting", label: "Painting" }],
+        },
+        {
+          label: "Windows",
+          id: "exterior_windows",
+          options: [
+            { id: "painting", label: "Painting" },
+            { id: "replace", label: "Replace" },
+          ],
+        },
+        {
+          label: "Doors",
+          id: "exterior_doors",
+          options: [
+            { id: "painting", label: "Painting" },
+            { id: "replace", label: "Replace" },
+          ],
+        },
+        {
+          label: "Roof",
+          id: "exterior_roof",
+          options: [
+            { id: "painting", label: "Painting" },
+            { id: "replace", label: "Replace" },
+          ],
+        },
+        {
+          label: "Garden",
+          id: "exterior_garden",
+          options: [
+            { id: "clear", label: "Clear" },
+            { id: "gardening", label: "Gardening" },
+          ],
+        },
+        {
+          label: "Structure",
+          id: "exterior_structure",
+          options: [
+            { id: "replace", label: "Replace" },
+          ],
+        },
+      ],
+    },
   ];
 
   function initRenovateSelector() {
@@ -182,13 +231,14 @@
       return;
     }
 
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
       const existing = document.getElementById("renovate-selector-panel");
       if (existing) {
         existing.parentNode.removeChild(existing);
         return;
       }
-      openPanel(button, operationsBar);
+      openPanel(button, document.body);
     });
 
     document.addEventListener("click", (event) => {
@@ -207,10 +257,27 @@
     panel.id = "renovate-selector-panel";
     panel.className = "renovate-selector-panel";
     
-    // Adjust styling for nested menus
-    panel.style.minWidth = "200px";
+    // Override class styles for dropdown behavior
+    panel.style.position = "absolute";
+    panel.style.minWidth = "220px";
+    panel.style.zIndex = "2000"; // Ensure it's on top of everything
+    panel.style.right = "auto"; // Unset right from class
 
     let itemsHtml = "";
+
+    // Add Remove Furniture option at the top
+    itemsHtml += `
+      <div class="renovate-category">
+        <button
+          type="button"
+          class="renovate-option-item"
+          data-renovation-id="furniture_clear_remove"
+          style="width: 100%; text-align: left; padding: 10px 12px; font-weight: 600; background: #fff; border: none; border-bottom: 1px solid #e5e7eb; color: #dc2626; cursor: pointer; display: flex; align-items: center; gap: 8px;"
+        >
+          <span>🧹</span> Remove Furniture
+        </button>
+      </div>
+    `;
     
     RENOVATIONS.forEach((category, index) => {
         const categoryId = `renovate-cat-${index}`;
@@ -284,6 +351,14 @@
     `;
 
     container.appendChild(panel);
+
+    // Calculate position relative to document body
+    const rect = button.getBoundingClientRect();
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+
+    panel.style.left = `${rect.left + scrollX}px`;
+    panel.style.top = `${rect.bottom + scrollY + 8}px`;
 
     panel.querySelectorAll(".renovate-category-toggle").forEach((toggle) => {
       toggle.addEventListener("click", () => {
@@ -442,7 +517,7 @@
 
     // Try backend AI renovation first
     try {
-      const response = await fetch("/api/renovate-room", {
+      const response = await fetch("http://localhost:4000/api/renovate-room", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

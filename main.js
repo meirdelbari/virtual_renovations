@@ -6,9 +6,12 @@ document.addEventListener("DOMContentLoaded", function () {
     window.initAuth();
   }
 
+  /* QUARANTINED: Upload Floor Plans feature
   if (window.initUploadFloorPlans) {
     window.initUploadFloorPlans();
   }
+  */
+  
   if (window.initUploadPhotos) {
     window.initUploadPhotos();
   }

@@ -30,12 +30,6 @@
     }
 
     uploadButton.addEventListener("click", () => {
-      if (isOptionBLocked(viewer)) {
-        alert(
-          "The photo-only workspace (Option B) is active. Please click Reset to return to the standard layout before uploading a floor plan."
-        );
-        return;
-      }
       fileInput.click();
     });
 
@@ -66,15 +60,6 @@
     });
   }
 
-  function isOptionBLocked(viewer) {
-    if (window.isOptionBActive) return true;
-    if (!viewer) return false;
-    const workingAreaExists = !!document.getElementById("photo-working-area");
-    const viewerHidden =
-      viewer.classList.contains("app-placeholder") &&
-      viewer.style.display === "none";
-    return workingAreaExists && viewerHidden;
-  }
 
   window.initUploadFloorPlans = initUploadFloorPlans;
 
@@ -91,6 +76,7 @@
     const rawTitle = file.name || "Floor plan";
 
     container.setAttribute("data-floor-plan-name", rawTitle);
+    container.style.display = "block"; // Ensure visible
     window.currentFloorPlanContext = {
       title: rawTitle,
       rooms: [], // rooms cannot be inferred from a generic PDF/Image
@@ -182,7 +168,7 @@
       Do not include any markdown formatting or explanation, just the raw JSON string.
     `;
 
-    const response = await fetch("/api/gemini/analyze-photo", {
+    const response = await fetch("http://localhost:4000/api/gemini/analyze-photo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -245,6 +231,7 @@
     const units = normalizedPlan.units || "units";
 
     container.setAttribute("data-floor-plan-name", title);
+    container.style.display = "block"; // Ensure visible
     window.currentFloorPlanContext = {
       title,
       rooms: (Array.isArray(normalizedPlan.rooms) ? normalizedPlan.rooms : []).map(
@@ -326,16 +313,6 @@
       })
       .join("");
 
-    const photosPlaceholderHtml = `
-      <div id="photo-gallery" class="photo-gallery photo-gallery-empty">
-        <div class="app-placeholder">
-          After the floor plan is loaded, click "Upload Photos" to attach
-          photos and match them to rooms. Photo names will follow the room
-          names from this floor plan.
-        </div>
-      </div>
-    `;
-
     const tableHtml = `
       <table class="floor-plan-table">
         <thead>
@@ -353,9 +330,31 @@
       </table>
     `;
 
-    container.innerHTML =
-      headerHtml + layoutHtml + photosPlaceholderHtml + tableHtml;
-    enableMeasurementEditing(container);
+    container.innerHTML = headerHtml + layoutHtml;
+    
+    // Render table to separate container at the bottom
+    let tableContainer = document.getElementById("measurements-table-container");
+    
+    // Robust fallback: create container at the very bottom if missing
+    if (!tableContainer) {
+        const workspace = document.querySelector(".app-workspace");
+        if (workspace) {
+            tableContainer = document.createElement("div");
+            tableContainer.id = "measurements-table-container";
+            workspace.appendChild(tableContainer); // Appends to end -> Bottom
+        }
+    }
+
+    if (tableContainer) {
+        tableContainer.innerHTML = tableHtml;
+        tableContainer.style.display = "block";
+        tableContainer.style.marginTop = "20px";
+        enableMeasurementEditing(tableContainer);
+    } else {
+        // Extreme fallback
+        container.insertAdjacentHTML("beforeend", tableHtml);
+        enableMeasurementEditing(container);
+    }
   }
 
   function createFloorPlanLayout(plan) {

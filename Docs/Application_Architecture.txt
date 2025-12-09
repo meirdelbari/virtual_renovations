@@ -3,6 +3,7 @@ Application Architecture (Vercel Deployment)
 
 Floor plans (Option A)
 ----------------------
+(QUARANTINED/DISABLED: This feature is currently hidden in the UI but the code remains in the codebase for future reactivation)
 - Floor plans may be uploaded as JSON (structured data) or PDF (visual reference only).
 - When a JSON floor plan is loaded, expose its room list and metadata through a shared context object (`window.currentFloorPlanContext`) so other features (e.g., photo upload) can use the same source of truth.
 - PDF floor plans are auto-cropped to remove whitespace and maximize visibility.
@@ -46,10 +47,9 @@ Photo upload & room matching
 ----------------------------
 - The "Upload Photos" feature works with both Option A (matched to rooms) and Option B (standalone).
 - Each uploaded photo should be matchable to a room name from the current floor plan via the UI (e.g., a room selector per photo).
-- The application-generated photo name should clearly include both:
-  - a floor-plan identifier (e.g., slugified floor-plan title), and
-  - the chosen room name (slugified),
-  followed by a stable index and file extension.
+- **Naming Convention**:
+  - Unassigned photos are named simply `photo_01.jpg`, `photo_02.jpg`.
+  - Photos assigned to a room update to `[floor_plan]_[room_name]_photo_[index].jpg`.
 
 AI Renovation Services (Vercel Serverless)
 ------------------------------------------

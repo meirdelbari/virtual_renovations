@@ -14,7 +14,7 @@
     console.log("Auth: Starting initialization...");
     try {
       // 1. Fetch Clerk Publishable Key from backend
-      const response = await fetch("/api/auth-config");
+      const response = await fetch("http://localhost:4000/api/auth-config");
       if (!response.ok) throw new Error("Failed to fetch auth config");
       const { publishableKey } = await response.json();
 
@@ -47,8 +47,8 @@
       }
     } catch (error) {
       console.error("Auth initialization failed:", error);
-      // Fallback to showing app in case of error, or show error screen
-      showApp();
+      // Fallback: show Landing Page, but "Start" will just open app (offline mode)
+      showLandingPage();
     }
   }
 
@@ -114,6 +114,16 @@
   }
 
   function showSignInModal() {
+    // If clerk is not initialized (e.g. backend down), fallback to showApp directly
+    if (!clerk) {
+      console.warn("Auth: Clerk not initialized, bypassing auth.");
+      // Fallback: just show the app if auth failed
+      if (confirm("Authentication service is unavailable. Proceed in offline mode?")) {
+        showApp();
+      }
+      return;
+    }
+
     console.log("Auth: Showing Sign In Modal");
     
     // Hide landing page when opening modal
