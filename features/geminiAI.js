@@ -184,8 +184,8 @@
     }
 
     try {
-      // Convert photo URL to data URL
-      const imageDataUrl = await convertToDataUrl(match.url);
+      // Optimize image for Vercel (Smart Compression)
+      const imageDataUrl = await prepareImageForUpload(match.url);
 
       // Get metadata from current context
       const meta = buildMetadata();
@@ -447,6 +447,92 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
     };
   }
 
+  // --- Smart Compression Helper ---
+  
+  async function prepareImageForUpload(url) {
+    try {
+      // 1. Get the blob to check size
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const sizeMB = blob.size / (1024 * 1024);
+      
+      console.log(`[GeminiAI] Original image size: ${sizeMB.toFixed(2)} MB`);
+
+      // Vercel Limit: 4.5MB Body Size.
+      // Base64 overhead: ~33%.
+      // Max safe binary size: ~3.2MB.
+      // We set a safe threshold of 3MB to be sure.
+      const MAX_SAFE_MB = 3.0;
+
+      if (sizeMB <= MAX_SAFE_MB) {
+          console.log("[GeminiAI] Image is within safe limits. Sending original.");
+          return blobToDataUrl(blob);
+      }
+
+      console.log("[GeminiAI] Image too large. Optimizing...");
+      return compressImage(blob);
+    } catch (e) {
+      console.warn("[GeminiAI] Optimization failed, falling back to original:", e);
+      // Fallback
+      return convertToDataUrl(url);
+    }
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function compressImage(blob) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(blob);
+      
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        
+        let width = img.width;
+        let height = img.height;
+        const MAX_DIMENSION = 2048; // Standard 2K resolution for Real Estate
+
+        // Resize if needed
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+            if (width > height) {
+                height = Math.round((height * MAX_DIMENSION) / width);
+                width = MAX_DIMENSION;
+            } else {
+                width = Math.round((width * MAX_DIMENSION) / height);
+                height = MAX_DIMENSION;
+            }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Export as JPEG with 85% quality
+        // This usually reduces file size drastically (often < 1MB) without visible loss
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        
+        // Log new size
+        const head = "data:image/jpeg;base64,";
+        const sizeInBytes = Math.round((dataUrl.length - head.length) * 3 / 4);
+        console.log(`[GeminiAI] Optimized size: ${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`);
+        
+        resolve(dataUrl);
+      };
+      
+      img.onerror = (err) => reject(new Error("Failed to load image for compression"));
+      img.src = url;
+    });
+  }
+
   async function convertToDataUrl(url) {
     // If already a data URL, return as-is
     if (url.startsWith("data:")) {
@@ -457,12 +543,7 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
     const response = await fetch(url);
     const blob = await response.blob();
 
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+    return blobToDataUrl(blob);
   }
 
   function sleep(ms) {
