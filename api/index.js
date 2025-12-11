@@ -248,12 +248,12 @@ app.post("/api/gemini/analyze-photo", async (req, res) => {
   }
 });
 
+// Serve static files from the root directory (Local + Vercel Monolith Support)
+const path = require("path");
+app.use(express.static(path.join(__dirname, "..")));
+
 // For local development
 if (require.main === module) {
-  const path = require("path");
-  // Serve static files from the root directory
-  app.use(express.static(path.join(__dirname, "..")));
-  
   app.listen(PORT, () => {
     console.log(`Virtual Renovations backend listening on http://localhost:${PORT}`);
   });
