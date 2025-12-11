@@ -363,17 +363,21 @@
         }
 
         function preloadImage(src) {
-          const img = new Image();
-          img.src = src;
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = src;
+          });
         }
 
         function preloadNext() {
           const nextIdx = (currentIndex + 1) % galleryPairs.length;
-          preloadImage(galleryPairs[nextIdx].before);
-          preloadImage(galleryPairs[nextIdx].after);
+          preloadImage(galleryPairs[nextIdx].before).catch(() => {});
+          preloadImage(galleryPairs[nextIdx].after).catch(() => {});
         }
 
-        function loadPair(index) {
+        async function loadPair(index) {
           const pair = galleryPairs[index];
           
           // Fade Out
@@ -381,29 +385,40 @@
           imgAfter.style.opacity = '0';
           
           setTimeout(() => {
-            // Swap
-            imgBefore.src = pair.before;
-            imgAfter.src = pair.after;
-            
-            // Reset
-            withNoTransition(() => {
-              setSliderPos(0);
-              if (range) range.value = 0;
-            });
-            
-            // Fade In
-            setTimeout(() => {
-              imgBefore.style.opacity = '1';
-              imgAfter.style.opacity = '1';
-              
-              // Animate
-              if(!isInteracting) {
+            // Preload both images before swapping to avoid flicker
+            Promise.all([preloadImage(pair.before), preloadImage(pair.after)])
+              .catch(() => []) // ignore preload errors; still attempt swap
+              .then(() => {
+                // Swap
+                imgBefore.src = pair.before;
+                imgAfter.src = pair.after;
+                
+                // Reset
+                withNoTransition(() => {
+                  setSliderPos(0);
+                  if (range) range.value = 0;
+                });
+                
+                // Fade In
                 setTimeout(() => {
-                  setSliderPos(100);
-                  if (range) range.value = 100;
-                }, 900); 
-              }
-            }, 100);
+                  imgBefore.style.opacity = '1';
+                  imgAfter.style.opacity = '1';
+                  
+                  // Animate
+                  if(!isInteracting) {
+                    // Custom per-index delays for heavier images
+                    const customDelays = {
+                      3: 1300, // 4_before
+                      5: 1800  // 6_before (slower)
+                    };
+                    const revealDelay = customDelays[index] || 900;
+                    setTimeout(() => {
+                      setSliderPos(100);
+                      if (range) range.value = 100;
+                    }, revealDelay); 
+                  }
+                }, 120);
+              });
           }, 500);
         }
 
@@ -411,16 +426,24 @@
         loadPair(0);
         preloadNext();
 
-        // Main Loop
-        setInterval(() => {
-          if (isInteracting) return;
-          if (galleryPairs.length <= 1) return; // Don't cycle if only 1 pair
+        // Main Loop with per-pair dwell (keep pair 6 visible longer)
+        function scheduleNextCycle() {
+          const baseDelay = 3000;
+          const dwell = currentIndex === 5 ? 4500 : baseDelay; // pair 6 (index 5) lingers longer
 
-          currentIndex = (currentIndex + 1) % galleryPairs.length;
-          loadPair(currentIndex);
-          preloadNext();
-          
-        }, 3000);
+          setTimeout(() => {
+            if (isInteracting) return scheduleNextCycle();
+            if (galleryPairs.length <= 1) return; // Don't cycle if only 1 pair
+
+            currentIndex = (currentIndex + 1) % galleryPairs.length;
+            loadPair(currentIndex);
+            preloadNext();
+
+            scheduleNextCycle();
+          }, dwell);
+        }
+
+        scheduleNextCycle();
       }
 
       // Nav Start Button Logic

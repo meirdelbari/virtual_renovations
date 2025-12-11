@@ -280,9 +280,14 @@
           helpMsg = "\nTip: The photo is too large even after compression.";
       }
 
-      alert(
-        `AlgoreitAI Error:\n${error.message}\n${helpMsg}`
-      );
+      const parts = [
+        "AlgoreitAI refused to process this request:",
+        error.message
+      ];
+      if (helpMsg) {
+        parts.push(helpMsg.trim());
+      }
+      alert(parts.join("\n"));
     } finally {
       if (button) {
         button.disabled = false;
