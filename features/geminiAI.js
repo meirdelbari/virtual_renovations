@@ -205,7 +205,18 @@
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const mainError = errorData.error || `HTTP ${response.status}`;
+        const details = errorData.details ? `\nDetails: ${errorData.details}` : "";
+        
+        // Handle specific Vercel/Server errors
+        if (response.status === 504) {
+             throw new Error("Server Timeout (504). The AI took too long to respond. Vercel limits requests to 10-60 seconds.");
+        }
+        if (response.status === 413) {
+             throw new Error("File Too Large (413). The image is still too big for the server.");
+        }
+        
+        throw new Error(`${mainError}${details}`);
       }
 
       const result = await response.json();
@@ -261,13 +272,16 @@
       console.log("✓ Photo processed and gallery updated.");
     } catch (error) {
       console.error("[GeminiAI] Processing failed", error);
+      
+      let helpMsg = "";
+      if (error.message.includes("504")) {
+          helpMsg = "\nTip: Try a smaller photo or simpler instruction.";
+      } else if (error.message.includes("413")) {
+          helpMsg = "\nTip: The photo is too large even after compression.";
+      }
+
       alert(
-        "Failed to process photo with AlgoreitAI.\n\n" +
-        "Error: " + error.message + "\n\n" +
-        "Please check:\n" +
-        "- Backend server is running (http://localhost:4000)\n" +
-        "- GOOGLE_GEMINI_API_KEY is configured in backend/.env\n" +
-        "- Your AlgoreitAI API key is valid (get one at https://ai.google.dev/)"
+        `AlgoreitAI Error:\n${error.message}\n${helpMsg}`
       );
     } finally {
       if (button) {
