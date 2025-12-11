@@ -1,0 +1,67 @@
+AlgoreitAI (Nano Banana) Integration Log
+=======================================
+Date: November 29, 2025
+
+Summary
+-------
+Successfully integrated AlgoreitAI, built on Google's "Nano Banana" (Gemini 2.5 Flash Image) model, for AI-powered room renovations. The application now supports sending room photos with natural language instructions to Google's state-of-the-art image generation model.
+
+Update: December 5, 2025 - Furniture Module
+-------------------------------------------
+Added specialized prompting logic for the new "Furniture" feature to handle contradictory constraints better than the generic renovation prompt.
+
+1. Furniture Removal (`furniture_clear_remove`):
+   - Prompt explicitly instructs AI to *ignore* the selected style and purely reveal the original room shell.
+   - Focuses on inpainting floors/walls with original materials.
+
+2. Virtual Staging (`furniture_stage_room`):
+   - Prompt injects context about the room type (e.g., "as a bedroom") derived from user tags.
+   - Focuses on adding furniture that matches the selected style while preserving structural elements.
+
+Technical Implementation
+----------------------
+
+1. Backend Integration (backend/geminiClient.js)
+   - Created a dedicated client for the AlgoreitAI (Google Gemini) API.
+   - Implemented the `processImageWithAlgoreitAI` function.
+   - Configured to use the `gemini-2.5-flash-image` model.
+   - Authentication via `GOOGLE_GEMINI_API_KEY` environment variable.
+
+2. API Issue Resolution
+   - Problem: Initially attempted to use `imagen-3.0-generate-001` endpoint which returned "Model not found" or "Invalid payload".
+   - Diagnosis: The search results revealed that "Nano Banana" is the internal/brand name for `gemini-2.5-flash-image`.
+   - Solution: 
+     1. Switched model ID from `imagen-3.0...` to `gemini-2.5-flash-image`.
+     2. Updated the JSON payload structure to match AlgoreitAI's multimodal format:
+        ```json
+        {
+          "contents": [{
+            "parts": [
+              { "text": "instructions..." },
+              { "inline_data": { "mime_type": "image/png", "data": "base64..." } }
+            ]
+          }]
+        }
+        ```
+     3. Verified successful response handling for `inlineData` image content.
+
+3. Frontend Integration (features/geminiAI.js)
+   - Added "✨ AlgoreitAI" button to the UI.
+   - Implemented a modal dialog for collecting user instructions.
+   - Added auto-prompt generation based on existing Style/Renovation selectors.
+   - Handles image conversion to base64 and automatic download of results.
+
+4. Configuration
+   - Backend port: 4000
+   - Health check endpoint: `/health` (verifies AlgoreitAI configuration).
+   - Environment: Requires `GOOGLE_GEMINI_API_KEY` in `backend/.env`.
+
+Endpoints Added
+--------------
+- POST /api/gemini/process-photo: Main endpoint for image transformation.
+- POST /api/gemini/analyze-photo: Endpoint for vision analysis (optional usage).
+
+Resources
+---------
+- Official Docs: https://ai.google.dev/gemini-api/docs/image-generation
+- Integration Guide: GEMINI_INTEGRATION.md (in project root)
