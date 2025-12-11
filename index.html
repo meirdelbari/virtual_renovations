@@ -64,8 +64,7 @@
                     <span class="label-overlay" id="label-after">After</span>
                   </div>
 
-                  <!-- Range Input for Manual Override -->
-                  <input type="range" min="0" max="100" value="0" class="slider-range" id="slider-range">
+                  <!-- Range Input REMOVED to disable manual sliding -->
                 </div>
               </div>
               
@@ -324,14 +323,36 @@
         
         // Manual Interaction
         if(range) {
+          // Mouse/Touch Down: Disable transition for instant response
+          range.addEventListener('mousedown', () => {
+             slider.classList.add('is-dragging');
+             isInteracting = true;
+             clearTimeout(interactionTimeout);
+          });
+          range.addEventListener('touchstart', () => {
+             slider.classList.add('is-dragging');
+             isInteracting = true;
+             clearTimeout(interactionTimeout);
+          });
+
+          // Mouse/Touch Up: Re-enable transition for smooth automation
+          range.addEventListener('mouseup', () => {
+             slider.classList.remove('is-dragging');
+             // Keep "isInteracting" true for a bit so automation doesn't jump in instantly
+             interactionTimeout = setTimeout(() => { isInteracting = false; }, 8000);
+          });
+          range.addEventListener('touchend', () => {
+             slider.classList.remove('is-dragging');
+             interactionTimeout = setTimeout(() => { isInteracting = false; }, 8000);
+          });
+
           range.addEventListener('input', (e) => {
             const value = parseFloat(e.target.value);
             setSliderPos(value);
+            
+            // Just in case (drag events should handle it, but for safety)
             isInteracting = true;
             clearTimeout(interactionTimeout);
-            interactionTimeout = setTimeout(() => {
-              isInteracting = false;
-            }, 8000); // Pause automation for 8s after interaction
           });
         }
         
