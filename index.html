@@ -404,7 +404,7 @@
                   imgBefore.style.opacity = '1';
                   imgAfter.style.opacity = '1';
                   
-                  // Animate
+                  // Animate (per production timing)
                   if(!isInteracting) {
                     // Custom per-index delays for heavier images
                     const customDelays = {
@@ -426,7 +426,7 @@
         loadPair(0);
         preloadNext();
 
-        // Main Loop with per-pair dwell (keep pair 6 visible longer)
+        // Main Loop with per-pair dwell (production)
         function scheduleNextCycle() {
           const baseDelay = 3000;
           const dwell = currentIndex === 5 ? 4500 : baseDelay; // pair 6 (index 5) lingers longer
