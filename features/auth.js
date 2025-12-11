@@ -12,7 +12,25 @@
 
   async function initAuth() {
     console.log("Auth: Starting initialization...");
+
+    // Local development guard: Clerk custom domain blocks localhost (CORS/404)
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    if (isLocalhost) {
+      console.warn("Auth: Localhost detected, skipping Clerk to avoid CORS issues.");
+      showLandingPage({ offlineMode: true });
+      return;
+    }
+
     try {
+      // When opened directly from the file system, skip auth fetch to avoid CORS errors.
+      if (window.location.protocol === "file:") {
+        console.warn("Auth: Running from file://, skipping auth and showing landing page.");
+        showLandingPage();
+        return;
+      }
+
       // 1. Fetch Clerk Publishable Key from backend
       // In production, use the current origin since frontend and backend are on the same domain
       const API_BASE_URL = window.location.hostname === 'localhost' ? '' : '';
@@ -59,7 +77,7 @@
     } catch (error) {
       console.error("Auth initialization failed:", error);
       // Fallback: show Landing Page, but "Start" will just open app (offline mode)
-      showLandingPage();
+      showLandingPage({ offlineMode: true });
     }
   }
 
@@ -77,7 +95,8 @@
     });
   }
 
-  function showLandingPage() {
+  function showLandingPage(options = {}) {
+    const { offlineMode = false } = options;
     console.log("Auth: Showing Landing Page");
     const landing = document.getElementById("landing-page");
     const app = document.getElementById("app");
@@ -88,7 +107,13 @@
     // Bind Start Button
     const startBtn = document.getElementById("landing-start-btn");
     if (startBtn) {
-      startBtn.onclick = showSignInModal;
+      startBtn.onclick = offlineMode ? showApp : showSignInModal;
+    }
+
+    // Keep nav CTA in sync with offline/online mode
+    const navStartBtn = document.getElementById("nav-start-btn");
+    if (navStartBtn) {
+      navStartBtn.onclick = offlineMode ? showApp : showSignInModal;
     }
   }
 

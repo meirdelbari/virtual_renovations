@@ -8,4 +8,5 @@ floor_plans/
 segmentation/__pycache__/
 segmentation/yolov8n-seg.pt
 *.log
+Backups/
 
