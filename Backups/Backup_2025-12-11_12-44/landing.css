@@ -1,0 +1,450 @@
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --text-dark: #1f2937;
+  --text-light: #6b7280;
+  --bg-light: #f9fafb;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text-dark);
+  line-height: 1.5;
+  background: white;
+}
+
+/* Header / Hero */
+.hero-header {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.brand-logo {
+  height: 42px;
+  width: auto;
+}
+
+.brand-text {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-title {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  letter-spacing: -1px;
+}
+
+.highlight-blue {
+  color: #2563eb;
+}
+
+.hero-subtitle {
+  font-size: 20px;
+  color: var(--text-light);
+  max-width: 600px;
+  margin: 0 auto 40px;
+}
+
+.hero-cta-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.primary-btn {
+  background: var(--primary);
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 16px 32px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+
+.primary-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 20px;
+}
+
+.trial-text {
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+/* Steps Section */
+.steps-section {
+  background: var(--bg-light);
+  padding: 80px 20px;
+  margin-top: 40px;
+}
+
+.section-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 60px;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+}
+
+.step-card {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  transition: transform 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.step-card:hover {
+  transform: translateY(-5px);
+}
+
+.step-number {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 80px;
+  font-weight: 900;
+  color: #f3f4f6;
+  z-index: 0;
+}
+
+.step-icon {
+  font-size: 40px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.step-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.step-desc {
+  color: var(--text-light);
+  font-size: 15px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Features Grid */
+.features-section {
+  padding: 80px 20px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 40px;
+}
+
+.feature-item {
+  display: flex;
+  gap: 20px;
+}
+
+.feature-icon-box {
+  width: 50px;
+  height: 50px;
+  background: #eff6ff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.feature-content h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.feature-content p {
+  color: var(--text-light);
+  font-size: 15px;
+}
+
+/* Footer */
+.landing-footer {
+  border-top: 1px solid #e5e7eb;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+.footer-links {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.footer-links a {
+  color: var(--text-light);
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: var(--primary);
+}
+
+/* Gallery Display */
+.gallery-display {
+  margin: 40px auto 0;
+  max-width: 900px;
+  position: relative;
+}
+
+.gallery-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.gallery-image-wrapper {
+  position: relative;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  background: #f3f4f6;
+}
+
+.gallery-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.5s ease;
+}
+
+.gallery-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  padding: 30px 20px 20px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.gallery-info h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.gallery-info p {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.gallery-badge {
+  background: white;
+  color: var(--text-dark);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 36px;
+  }
+  
+  .step-number {
+    font-size: 60px;
+  }
+}
+
+/* ----- NEW SLIDER STYLES ----- */
+
+/* Container for comparison */
+.comparison-slider {
+  width: 100%;
+  padding-top: 60%; /* Wider aspect ratio for single view */
+  position: relative;
+  background: #e5e7eb;
+}
+
+.comparison-image-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* No overflow hidden here if we want handle to pop out? 
+     Actually handle should stay inside. 
+     We need overflow hidden to clip images if they exceed. */
+  overflow: hidden;
+}
+
+.img-before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.5s ease-in-out;
+  z-index: 1;
+}
+
+  /* Updated for clip-path approach */
+.img-after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 2;
+  /* Changed easing to standard ease-in-out for smoother flow */
+  transition: opacity 0.5s ease-in-out, clip-path 2.5s ease-in-out;
+  will-change: clip-path;
+  /* Default hidden (revealed 0%) */
+  clip-path: inset(0 100% 0 0);
+}
+
+.slider-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: white;
+  z-index: 20;
+  transform: translateX(-50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  left: 0%;
+  will-change: left;
+  /* Match the duration and easing of the image */
+  transition: left 2.5s ease-in-out;
+}
+
+.slider-button {
+  width: 48px;
+  height: 48px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.slider-range {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: ew-resize;
+  z-index: 30;
+  margin: 0;
+}
+
+/* Labels overlay */
+.slider-labels {
+  position: absolute;
+  bottom: 24px;
+  left: 24px; /* Fixed position container */
+  z-index: 25;
+  pointer-events: none;
+}
+
+.label-overlay {
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+  display: none; /* Hidden by default */
+}
+
+.label-visible {
+  display: inline-block;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- FIX FOR SMOOTH SLIDER --- */
+/* When user is dragging, remove the slow transition so it tracks 1:1 */
+.is-dragging .img-after,
+.is-dragging .slider-handle {
+  transition: none !important;
+}

@@ -50,8 +50,8 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Ask for commit message
-set /p CommitMessage="Enter a description for this update (e.g. 'Updated styles'): "
+:: Automatically set commit message with timestamp
+set "CommitMessage=Auto Update %TIMESTAMP%"
 
 :: Git Commands
 cd /d "%SOURCE_DIR%"
