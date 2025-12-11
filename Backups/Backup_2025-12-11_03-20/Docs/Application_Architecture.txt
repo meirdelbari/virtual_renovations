@@ -1,0 +1,73 @@
+Application Architecture (Vercel Deployment)
+----------------------------------------
+
+Floor plans (Option A)
+----------------------
+(QUARANTINED/DISABLED: This feature is currently hidden in the UI but the code remains in the codebase for future reactivation)
+- Floor plans may be uploaded as JSON (structured data) or PDF (visual reference only).
+- When a JSON floor plan is loaded, expose its room list and metadata through a shared context object (`window.currentFloorPlanContext`) so other features (e.g., photo upload) can use the same source of truth.
+- PDF floor plans are auto-cropped to remove whitespace and maximize visibility.
+- **Unified Gallery Behavior**: Option A now adopts the "Two-Row Gallery" structure from Option B for photo management.
+  - Renovation photos are displayed in a new row *above* the raw photos within the floor plan viewer.
+  - Raw photos remain preserved in their original row.
+
+No Floor Plan Mode (Option B)
+-----------------------------
+- Users can bypass floor plan upload and go directly to "Upload Photos".
+- In this mode:
+  - The main workspace becomes a "Working Area" displaying the active photo.
+  - "Renovation Photos" appear in a middle row gallery.
+  - "Raw Photos" appear in a bottom row gallery.
+  - Clicking a photo in any gallery loads it into the top Working Area.
+- **Enhanced Room Selection**:
+  - Users can assign standard room types (e.g., "Living Room", "Bedroom") to photos via a dropdown on each photo card.
+  - Photos of the same type are automatically numbered (e.g., "Bedroom 1", "Bedroom 2").
+  - The "Room" button now displays a list of these uploaded photos/rooms for navigation.
+
+Universal Photo Renovation Logic
+--------------------------------
+- Renovations are **non-destructive**. 
+- When a photo is processed by AI:
+  1. The original "Raw Photo" remains untouched.
+  2. The result is added as a new item to the "Renovation Photos" list.
+  3. The "Renovation Photos" gallery is rendered/updated (appearing above the raw gallery).
+- In Option A: The Renovation Gallery is inserted dynamically inside the floor plan viewer.
+- In Option B: The Renovation Gallery is part of the main workspace layout.
+
+Furniture & Staging Module
+--------------------------
+- A dedicated "Furniture" dropdown button provides specialized interior design tasks.
+- **Remove**: Clears all furniture and decor from a room to reveal the bare shell.
+  - Uses a specialized AI prompt that instructs the model to ignore style changes and focus solely on inpainting the empty space with original materials.
+- **Stage**: Virtually stages an empty room with furniture.
+  - Uses the selected "Style" (e.g., Modern, Minimalist) to determine furniture aesthetics.
+  - Automatically detects the room type (from Option B tags or Option A room names) to place appropriate items (beds for bedrooms, sofas for living rooms).
+
+Photo upload & room matching
+----------------------------
+- The "Upload Photos" feature works with both Option A (matched to rooms) and Option B (standalone).
+- Each uploaded photo should be matchable to a room name from the current floor plan via the UI (e.g., a room selector per photo).
+- **Naming Convention**:
+  - Unassigned photos are named simply `photo_01.jpg`, `photo_02.jpg`.
+  - Photos assigned to a room update to `[floor_plan]_[room_name]_photo_[index].jpg`.
+
+AI Renovation Services (Vercel Serverless)
+------------------------------------------
+The backend has been refactored to use Vercel Serverless Functions in the `/api` directory.
+
+1. AlgoreitAI Integration (Primary)
+   - Primary engine for "✨ AlgoreitAI" feature.
+   - Endpoint: `/api/gemini/process-photo` (Image Generation) and `/api/gemini/analyze-photo` (PDF Analysis).
+   - Model: `gemini-2.5-flash-image` (Nano Banana) for renovation; AlgoreitAI Vision (Gemini) for PDF analysis.
+   - Flow:
+     1. Frontend captures photo + instructions (or style/renovation preset).
+     2. Frontend calls `/api/...` endpoints (proxied to Serverless functions).
+     3. Backend sends multimodal request to AlgoreitAI (Gemini) API.
+     4. AlgoreitAI returns a renovated image.
+     5. Image is saved to "Renovation Photos" gallery.
+   - Authentication: `GOOGLE_GEMINI_API_KEY` in Vercel Environment Variables (or local `.env`).
+
+2. OpenAI Integration (Legacy/Alternative)
+   - Endpoint: `/api/renovate-room`
+   - Status: Optional backup.
+   - Authentication: `OPENAI_API_KEY` in Vercel Environment Variables (or local `.env`).
