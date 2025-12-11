@@ -305,6 +305,18 @@
         const labelBefore = document.getElementById('label-before');
         const labelAfter = document.getElementById('label-after');
 
+        function withNoTransition(fn) {
+          const prevHandle = handle.style.transition;
+          const prevAfter = imgAfter.style.transition;
+          handle.style.transition = 'none';
+          imgAfter.style.transition = 'none';
+          fn();
+          // force reflow so the transition reset sticks
+          void slider.offsetHeight;
+          handle.style.transition = prevHandle;
+          imgAfter.style.transition = prevAfter;
+        }
+
         // 1. Discover Images
         const localPairs = await findLocalImages();
         
@@ -374,8 +386,10 @@
             imgAfter.src = pair.after;
             
             // Reset
-            setSliderPos(0);
-            range.value = 0;
+            withNoTransition(() => {
+              setSliderPos(0);
+              if (range) range.value = 0;
+            });
             
             // Fade In
             setTimeout(() => {
@@ -386,7 +400,7 @@
               if(!isInteracting) {
                 setTimeout(() => {
                   setSliderPos(100);
-                  range.value = 100;
+                  if (range) range.value = 100;
                 }, 900); 
               }
             }, 100);

@@ -404,6 +404,12 @@ body {
   clip-path: inset(0 100% 0 0);
 }
 
+/* Disable animation during reset to avoid visible jumps */
+.is-resetting .img-after,
+.is-resetting .slider-handle {
+  transition: none !important;
+}
+
 .slider-handle {
   position: absolute;
   top: 0;
