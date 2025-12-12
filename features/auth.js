@@ -13,6 +13,16 @@
   async function initAuth() {
     console.log("Auth: Starting initialization...");
 
+    // If we just reset and want to skip landing once, do it immediately
+    try {
+      const skipLanding = sessionStorage.getItem("skipLandingOnce");
+      if (skipLanding) {
+        sessionStorage.removeItem("skipLandingOnce");
+        showApp();
+        return;
+      }
+    } catch (_) {}
+
     // API base helper (supports file:// fallback to http://localhost:4000)
     function getApiUrl(path) {
       if (typeof window.getApiUrl === "function") {

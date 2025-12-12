@@ -114,6 +114,9 @@
 
         // Explicitly set global ID for other modules
         window.currentStyleId = style.id;
+        if (window.setFlowLock) {
+          window.setFlowLock(null);
+        }
 
         updateButtonLabel(button);
         panel.parentNode.removeChild(panel);

@@ -409,6 +409,14 @@
 
         // Update global state
         window.currentRenovationId = renovationId;
+        if (window.setFlowLock) {
+          // Garden clear does not require Style; allow direct processing
+          if (renovationId === "exterior_garden_clear") {
+            window.setFlowLock(null);
+          } else {
+            window.setFlowLock("renovate");
+          }
+        }
         
         // Visual feedback
         const geminiBtn = document.querySelector('[data-role="gemini-ai"]');

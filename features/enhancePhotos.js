@@ -16,6 +16,7 @@
     }
 
     button.addEventListener("click", async () => {
+      window.enhanceSelected = true;
       const matches = Array.isArray(window.currentPhotoMatches)
         ? window.currentPhotoMatches
         : [];

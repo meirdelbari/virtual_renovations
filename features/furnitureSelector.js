@@ -120,6 +120,13 @@
           window.currentRenovationId = "furniture_clear_remove";
       } else if (furnitureId === "stage") {
           window.currentRenovationId = "furniture_stage_room";
+          if (window.setFlowLock) {
+            window.setFlowLock("stage");
+          }
+      } else {
+          if (window.setFlowLock) {
+            window.setFlowLock(null);
+          }
       }
 
       // Visual feedback on the Gemini button

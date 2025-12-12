@@ -90,6 +90,7 @@
 
   function initGeminiAI() {
     const button = document.querySelector('[data-role="gemini-ai"]');
+    const tweakButton = document.querySelector('[data-role="gemini-tweak"]');
     if (!button) {
       console.warn(
         "[GeminiAI] Button not found; feature will not initialize."
@@ -100,6 +101,15 @@
     button.addEventListener("click", async () => {
       await handleGeminiProcess();
     });
+
+    if (tweakButton) {
+      tweakButton.addEventListener("click", async () => {
+        window.customPromptPending = true;
+        const quickInstructions = await promptForTweak();
+        if (!quickInstructions) return;
+        await handleGeminiProcess(quickInstructions);
+      });
+    }
   }
 
   window.initGeminiAI = initGeminiAI;
@@ -111,9 +121,34 @@
     await handleGeminiProcess(customInstructions);
   };
 
+  function isPhotoRelated(instructions) {
+    if (!instructions || typeof instructions !== "string") return false;
+    const text = instructions.toLowerCase();
+    const keywords = [
+      "photo",
+      "room",
+      "image",
+      "picture",
+      "wall",
+      "floor",
+      "ceiling",
+      "kitchen",
+      "bath",
+      "garden",
+      "exterior",
+      "interior",
+      "counter",
+      "furniture",
+      "window",
+      "door"
+    ];
+    return keywords.some((word) => text.includes(word));
+  }
+
   async function handleGeminiProcess(customInstructions = null) {
     console.log("[GeminiAI] handleGeminiProcess started. Custom instructions:", customInstructions);
     const button = document.querySelector('[data-role="gemini-ai"]');
+    const isCustomDirect = !!customInstructions;
     
     // Ensure we have the latest matches
     const matches = Array.isArray(window.currentPhotoMatches)
@@ -171,14 +206,34 @@
 
     let instructions = customInstructions;
 
-    // If no custom instructions provided, prompt user via modal
+    // If no custom instructions provided, try an automatic suggestion; if none, fall back to modal
     if (!instructions) {
-      console.log("[GeminiAI] Prompting for instructions via modal...");
-      instructions = await promptForInstructions();
-      if (!instructions) {
-        console.log("[GeminiAI] User cancelled modal.");
-        return; // User cancelled
+      instructions = getSuggestedInstructions();
+      if (instructions) {
+        console.log("[GeminiAI] Using auto-suggested instructions (no modal).");
+      } else {
+        console.log("[GeminiAI] Prompting for instructions via modal...");
+        instructions = await promptForInstructions();
+        if (!instructions) {
+          console.log("[GeminiAI] User cancelled modal.");
+          return; // User cancelled
+        }
       }
+    }
+    if (!isPhotoRelated(instructions)) {
+      alert("Requests must describe a change to the current photo. Please update your instructions.");
+      return;
+    }
+
+    // If this came from the Custom button, append strict guardrails to avoid unintended edits
+    if (isCustomDirect) {
+      instructions = `${instructions}
+
+CRITICAL CONSTRAINTS:
+1. Change ONLY what was requested in this prompt.
+2. Preserve all other elements: furniture, flooring, ceiling, walls, windows, doors, landscape, lighting, camera angle, and perspective.
+3. Do NOT add or remove objects beyond the requested change.
+4. Keep lighting, shadows, and style consistent with the original photo.`;
     }
     
     console.log("[GeminiAI] Instructions prepared:", instructions);
@@ -282,24 +337,15 @@
     } catch (error) {
       console.error("[GeminiAI] Processing failed", error);
       
-      let helpMsg = "";
-      if (error.message.includes("504")) {
-          helpMsg = "\nTip: Try a smaller photo or simpler instruction.";
-      } else if (error.message.includes("413")) {
-          helpMsg = "\nTip: The photo is too large even after compression.";
-      }
+      const sanitizedMessage = String(error && error.message ? error.message : error)
+        .replace(/Google\s*Gemini/gi, "AlgoreitAI")
+        .replace(/Gemini/gi, "AlgoreitAI")
+        .replace(/Google\s*/gi, "");
 
-      const parts = ["AlgoreitAI refused to process this request:", error.message];
-      if (window.location.protocol === "file:") {
-        parts.push(
-          "",
-          "Local tip: don't open index.html directly.",
-          "Run `npm start` and open http://localhost:4000 instead."
-        );
-      }
-      if (helpMsg) {
-        parts.push(helpMsg.trim());
-      }
+      const parts = [
+        "AlgoreitAI refused to process this request:",
+        sanitizedMessage
+      ];
       alert(parts.join("\n"));
     } finally {
       if (button) {
@@ -328,6 +374,24 @@
       });
       document.body.appendChild(modal);
     });
+  }
+
+  async function promptForTweak() {
+    return new Promise((resolve) => {
+      const modal = createTweakModal((instructions) => {
+        resolve(instructions);
+      });
+      document.body.appendChild(modal);
+    });
+  }
+
+  function getSuggestedInstructions() {
+    const currentStyle = window.currentStyleId || null;
+    const currentRenovation = window.currentRenovationId || null;
+    if (currentStyle || currentRenovation) {
+      return buildInstructionsFromSelections(currentStyle, currentRenovation);
+    }
+    return null;
   }
 
   function createInstructionsModal(suggestion, callback) {
@@ -401,6 +465,84 @@
     });
 
     // Focus textarea
+    setTimeout(() => textarea.focus(), 100);
+
+    return overlay;
+  }
+
+  function createTweakModal(callback) {
+    const overlay = document.createElement("div");
+    overlay.className = "gemini-modal-overlay";
+
+    const modal = document.createElement("div");
+    modal.className = "gemini-modal";
+
+    modal.innerHTML = `
+      <div class="gemini-modal-header">
+        <h2>Quick Tweak</h2>
+        <button class="gemini-modal-close" type="button">&times;</button>
+      </div>
+      <div class="gemini-modal-body">
+        <p class="gemini-modal-description">
+          Tell AlgoreitAi what  would you like do with this photo.
+        </p>
+        <textarea
+          class="gemini-instructions-input"
+          placeholder="Tell AlgoreitAi what  would you like do..."
+          rows="4"
+        ></textarea>
+        <div class="gemini-modal-hint">
+          Keep it photo-specific (e.g., repaint walls, swap countertop).
+        </div>
+      </div>
+      <div class="gemini-modal-footer">
+        <button class="gemini-btn-cancel" type="button">Cancel</button>
+        <button class="gemini-btn-submit" type="button">Send Tweak</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+
+    const textarea = modal.querySelector(".gemini-instructions-input");
+    const submitBtn = modal.querySelector(".gemini-btn-submit");
+    const cancelBtn = modal.querySelector(".gemini-btn-cancel");
+    const closeBtn = modal.querySelector(".gemini-modal-close");
+
+    const cleanup = () => {
+      document.body.removeChild(overlay);
+    };
+
+    submitBtn.addEventListener("click", () => {
+      const instructions = textarea.value.trim();
+      if (!instructions) {
+        alert("Please tell AlgoreitAI what to change in this photo.");
+        return;
+      }
+      if (!isPhotoRelated(instructions)) {
+        alert("Requests must relate to the current photo. Please describe a change in this image.");
+        return;
+      }
+      cleanup();
+      callback(instructions);
+    });
+
+    cancelBtn.addEventListener("click", () => {
+      cleanup();
+      callback(null);
+    });
+
+    closeBtn.addEventListener("click", () => {
+      cleanup();
+      callback(null);
+    });
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        cleanup();
+        callback(null);
+      }
+    });
+
     setTimeout(() => textarea.focus(), 100);
 
     return overlay;

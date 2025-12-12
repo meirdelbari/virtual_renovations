@@ -128,9 +128,13 @@
       );
     } catch (error) {
       console.error("[GeminiAI] Processing failed", error);
+      const sanitizedMessage = String(error && error.message ? error.message : error)
+        .replace(/Google\s*Gemini/gi, "AlgoreitAI")
+        .replace(/Gemini/gi, "AlgoreitAI")
+        .replace(/Google\s*/gi, "");
       alert(
         "Failed to process photo with AlgoreitAI.\n\n" +
-        "Error: " + error.message + "\n\n" +
+        "Error: " + sanitizedMessage + "\n\n" +
         "Please check:\n" +
         "- Backend server is running (http://localhost:4000)\n" +
         "- GOOGLE_GEMINI_API_KEY is configured in backend/.env\n" +

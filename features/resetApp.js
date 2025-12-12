@@ -10,21 +10,24 @@
     }
 
     resetButton.addEventListener("click", () => {
-        // Optional: Add confirmation if there is unsaved work, 
-        // but for now we simply reload as requested to get to initial position.
-        // Check if any photos or floor plans are loaded to decide on confirmation?
+        const photoGallery = document.getElementById("photo-gallery");
         const hasContent = 
             (window.uploadedPhotos && window.uploadedPhotos.length > 0) || 
             (window.currentFloorPlanContext && window.currentFloorPlanContext.title) ||
-            document.getElementById("photo-gallery").children.length > 0;
+            (photoGallery && photoGallery.children && photoGallery.children.length > 0);
 
-        if (hasContent) {
-            if (confirm("Reset application? All uploaded floor plans and photos will be lost.")) {
-                window.location.reload();
-            }
-        } else {
-             window.location.reload();
-        }
+        const proceed =
+            !hasContent || confirm("Reset application? All uploaded floor plans and photos will be lost.");
+
+        if (!proceed) return;
+
+        // Flag to skip landing once after reload
+        try {
+            sessionStorage.setItem("skipLandingOnce", "1");
+        } catch (_) {}
+
+        // Full reload to clear all state, but we'll auto-enter the app on load
+        window.location.reload();
     });
   }
 

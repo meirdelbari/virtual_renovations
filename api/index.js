@@ -136,9 +136,9 @@ function buildPrompt(styleId, renovationId) {
   return `You are a virtual renovations designer. Based on the input room photo, in a ${styleText} interior design style, ${renovationText}. Keep the overall camera angle and composition; only update materials and finishes.`;
 }
 
-// Google Gemini AI endpoints
+  // AlgoreitAI endpoints
 
-// Process a photo with Google Gemini (image generation)
+// Process a photo (image generation)
 app.post("/api/gemini/process-photo", async (req, res) => {
   const { imageDataUrl, instructions, meta } = req.body || {};
 
@@ -155,11 +155,11 @@ app.post("/api/gemini/process-photo", async (req, res) => {
     });
   }
 
-  // Check if Gemini is configured
+  // Check if AlgoreitAI backend is configured
   const config = geminiClient.checkConfiguration();
   if (!config.configured) {
     return res.status(500).json({
-      error: "GOOGLE_GEMINI_API_KEY is not configured on the server. Get your key at https://ai.google.dev/",
+      error: "AlgoreitAI API key is not configured on the server.",
     });
   }
 
@@ -175,7 +175,7 @@ app.post("/api/gemini/process-photo", async (req, res) => {
 
     const imageBase64 = base64Match[1];
 
-    // Send to Google Gemini
+    // Send to provider
     const result = await geminiClient.processImageWithGemini({
       imageBase64,
       instructions,
@@ -184,7 +184,7 @@ app.post("/api/gemini/process-photo", async (req, res) => {
 
     if (!result.imageBase64) {
       return res.status(500).json({
-        error: "Gemini did not return a processed image",
+        error: "AlgoreitAI did not return a processed image",
       });
     }
 
@@ -192,18 +192,23 @@ app.post("/api/gemini/process-photo", async (req, res) => {
     const outDataUrl = `data:image/png;base64,${result.imageBase64}`;
     res.json({
       imageDataUrl: outDataUrl,
-      provider: "Google Gemini Imagen 3",
+      provider: "AlgoreitAI",
     });
   } catch (error) {
     console.error("Error in /api/gemini/process-photo:", error);
+    const rawDetails = error.message || String(error);
+    const scrubbedDetails = rawDetails
+      .replace(/Google\s*Gemini/gi, "AlgoreitAI")
+      .replace(/Gemini/gi, "AlgoreitAI")
+      .replace(/Google\s*/gi, "");
     res.status(502).json({
-      error: "Failed to process photo with Google Gemini",
-      details: error.message || String(error),
+      error: "Failed to process photo with AlgoreitAI",
+      details: scrubbedDetails,
     });
   }
 });
 
-// Analyze image with Gemini Vision (alternative endpoint)
+// Analyze image (alternative endpoint)
 app.post("/api/gemini/analyze-photo", async (req, res) => {
   const { imageDataUrl, instructions } = req.body || {};
 
@@ -216,7 +221,7 @@ app.post("/api/gemini/analyze-photo", async (req, res) => {
   const config = geminiClient.checkConfiguration();
   if (!config.configured) {
     return res.status(500).json({
-      error: "GOOGLE_GEMINI_API_KEY is not configured on the server",
+      error: "AlgoreitAI API key is not configured on the server",
     });
   }
 
@@ -237,13 +242,18 @@ app.post("/api/gemini/analyze-photo", async (req, res) => {
 
     res.json({
       analysis: result.analysis,
-      provider: "Google Gemini Vision",
+      provider: "AlgoreitAI",
     });
   } catch (error) {
     console.error("Error in /api/gemini/analyze-photo:", error);
+    const rawDetails = error.message || String(error);
+    const scrubbedDetails = rawDetails
+      .replace(/Google\s*Gemini/gi, "AlgoreitAI")
+      .replace(/Gemini/gi, "AlgoreitAI")
+      .replace(/Google\s*/gi, "");
     res.status(502).json({
-      error: "Failed to analyze photo with Gemini",
-      details: error.message || String(error),
+      error: "Failed to analyze photo with AlgoreitAI",
+      details: scrubbedDetails,
     });
   }
 });
