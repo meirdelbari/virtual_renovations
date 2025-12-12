@@ -114,6 +114,10 @@
 
   function handleFurnitureSelection(furnitureId) {
       console.log("[FurnitureSelector] Selected:", furnitureId);
+      const selected = FURNITURE_OPTIONS.find((opt) => opt.id === furnitureId);
+      window.currentFurnitureSelection = selected
+        ? { id: selected.id, label: selected.label }
+        : null;
       
       // Update global state
       if (furnitureId === "remove") {
@@ -127,6 +131,12 @@
           if (window.setFlowLock) {
             window.setFlowLock(null);
           }
+      }
+
+      if (window.updateSelectionSummary) {
+        window.updateSelectionSummary({
+          furniture: selected ? selected.label : null,
+        });
       }
 
       // Visual feedback on the Gemini button

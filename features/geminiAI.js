@@ -86,6 +86,7 @@
     "paint": "Repaint the walls",
     "kitchen": "Renovate the kitchen finishes and fixtures",
     "bathroom": "Renovate the bathroom finishes and fixtures",
+    "enhance_quality": "Enhance the photo quality: improve clarity, sharpness, lighting, and color balance while preserving the original scene",
   };
 
   function initGeminiAI() {
@@ -149,6 +150,19 @@
     console.log("[GeminiAI] handleGeminiProcess started. Custom instructions:", customInstructions);
     const button = document.querySelector('[data-role="gemini-ai"]');
     const isCustomDirect = !!customInstructions;
+    const summaryEl = document.getElementById("selection-summary");
+    const hideSummary = () => {
+      if (summaryEl) summaryEl.classList.add("is-hidden");
+    };
+    const showSummary = () => {
+      if (typeof window.renderSelectionSummary === "function") {
+        window.renderSelectionSummary();
+      } else if (summaryEl) {
+        summaryEl.classList.remove("is-hidden");
+      }
+    };
+
+    hideSummary();
     
     // Ensure we have the latest matches
     const matches = Array.isArray(window.currentPhotoMatches)
@@ -181,6 +195,7 @@
       alert(
         "There are no uploaded photos to process. Use 'Upload Photos' first."
       );
+      showSummary();
       return;
     }
 
@@ -189,6 +204,7 @@
       alert(
         "Please select a room first by clicking the 'Room' button and choosing a photo to renovate."
       );
+      showSummary();
       return;
     }
 
@@ -216,12 +232,14 @@
         instructions = await promptForInstructions();
         if (!instructions) {
           console.log("[GeminiAI] User cancelled modal.");
+          showSummary();
           return; // User cancelled
         }
       }
     }
     if (!isPhotoRelated(instructions)) {
       alert("Requests must describe a change to the current photo. Please update your instructions.");
+      showSummary();
       return;
     }
 
@@ -353,6 +371,8 @@ CRITICAL CONSTRAINTS:
         button.textContent = originalText || "✨ AlgoreitAI";
       }
       hideGeminiThinkingIndicator(thinkingIndicator);
+      showSummary();
+      window.selectionSummaryResetOnNextSelection = true;
     }
   }
 

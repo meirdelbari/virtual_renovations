@@ -16,7 +16,6 @@
     }
 
     button.addEventListener("click", async () => {
-      window.enhanceSelected = true;
       const matches = Array.isArray(window.currentPhotoMatches)
         ? window.currentPhotoMatches
         : [];
@@ -36,60 +35,28 @@
         return;
       }
 
-      const match =
-        matches.find((m) => m.id === last.photoId) || {
-          id: last.photoId,
-          url: last.url,
-          originalName: last.originalName || "",
-        };
+      // Selection-only behavior; processing will occur when the user clicks AlgoreitAI
+      window.enhanceSelected = true;
+      window.currentRenovationId = "enhance_quality";
+      if (window.setFlowLock) {
+        window.setFlowLock(null); // No style required for enhance
+      }
+      if (window.updateSelectionSummary) {
+        window.updateSelectionSummary({ enhance: "Enhance Quality" });
+      } else {
+        const summary = document.getElementById("selection-summary");
+        if (summary) summary.classList.remove("is-hidden");
+      }
 
-      button.disabled = true;
-      button.textContent = "Enhancing...";
-
-      try {
-        const originalUrl = match.url;
-        const enhancedUrl = await enhanceImage(originalUrl);
-
-        // Ask the Upload Photos feature (if available) to update gallery
-        if (typeof window.updatePhotoUrlForGallery === "function") {
-          window.updatePhotoUrlForGallery(match.id, enhancedUrl);
-        }
-
-        // Update any room overlays or working-area previews that are showing this photo
-        refreshRoomPhotoOverlays(originalUrl, enhancedUrl);
-        updateWorkingAreaPhoto(match.id, originalUrl, enhancedUrl);
-
-        // Keep global focus pointer in sync so the next enhancement uses the new URL
-        updateFocusedPhotoUrl(match.id, enhancedUrl);
-
-        // Surface a dedicated renovated copy in the Renovation Photos row (Option A & B)
-        if (typeof window.addProcessedPhotoToGallery === "function") {
-          window.addProcessedPhotoToGallery(
-            match.id,
-            enhancedUrl,
-            "Enhanced",
-            "Enhanced Quality"
-          );
-        }
-
-        // Trigger a download so the user can save to Enhanched_Photos folder
-        // const downloadName = buildEnhancedFileName(
-        //   match.originalName,
-        //   match.id
-        // );
-        // triggerDownload(enhancedUrl, downloadName);
-
-        alert(
-          "Photo enhancement complete for the selected room. You can download it using the download button on the photo."
-        );
-      } catch (error) {
-        console.error("[EnhancePhotos] Enhancement failed", error);
-        alert(
-          "Something went wrong while enhancing photos. Please try again with a smaller number of images."
-        );
-      } finally {
-        button.disabled = false;
-        button.textContent = "Enhance Quality";
+      // Nudge AlgoreitAI button for visibility
+      const geminiBtn = document.querySelector('[data-role="gemini-ai"]');
+      if (geminiBtn) {
+        geminiBtn.classList.add("pulse-animation");
+        geminiBtn.textContent = "✨ Click to Process";
+        setTimeout(() => {
+          geminiBtn.classList.remove("pulse-animation");
+          geminiBtn.textContent = "✨ AlgoreitAI";
+        }, 3000);
       }
     });
   }

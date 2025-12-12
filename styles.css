@@ -175,6 +175,52 @@ body.auth-locked > *:not(#auth-modal) {
   margin-bottom: 18px;
 }
 
+.selection-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: var(--shadow-soft);
+}
+
+.selection-summary.is-hidden {
+  display: none;
+}
+
+.selection-summary-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.selection-summary-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.selection-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e9f8ee;
+  border: 1px solid #b9e6c7;
+  font-size: 12px;
+  color: #1b4332;
+}
+
+.selection-chip.is-hidden {
+  display: none;
+}
+
 .op-btn {
   position: relative;
   display: inline-flex;

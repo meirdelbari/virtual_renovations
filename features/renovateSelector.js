@@ -282,6 +282,7 @@
           type="button"
           class="renovate-option-item"
           data-renovation-id="furniture_clear_remove"
+          data-renovation-label="Remove Furniture"
           style="width: 100%; text-align: left; padding: 10px 12px; font-weight: 600; background: #fff; border: none; border-bottom: 1px solid #e5e7eb; color: #dc2626; cursor: pointer; display: flex; align-items: center; gap: 8px;"
         >
           <span>🧹</span> Remove Furniture
@@ -301,6 +302,7 @@
                     type="button"
                     class="renovate-option-item"
                     data-renovation-id="${group.id}_${option.id}"
+                    data-renovation-label="${escapeHtml(option.label)}"
                     style="padding-left: 32px;"
                   >
                     ${escapeHtml(option.label)}
@@ -394,6 +396,11 @@
       btn.addEventListener("click", async (e) => {
         // Try multiple ways to get the ID to be safe
         const renovationId = btn.dataset.renovationId || btn.getAttribute("data-renovation-id");
+        const renovationLabel =
+          btn.dataset.renovationLabel ||
+          btn.getAttribute("data-renovation-label") ||
+          btn.textContent.trim() ||
+          renovationId;
         
         console.log("[RenovateSelector] Clicked option. ID:", renovationId);
         
@@ -408,10 +415,22 @@
         }
 
         // Update global state
+        window.currentRenovationSelection = {
+          id: renovationId,
+          label: renovationLabel,
+        };
+
+        if (window.updateSelectionSummary) {
+          window.updateSelectionSummary({ renovation: renovationLabel });
+        }
+
         window.currentRenovationId = renovationId;
         if (window.setFlowLock) {
-          // Garden clear does not require Style; allow direct processing
-          if (renovationId === "exterior_garden_clear") {
+          // Garden clear and Remove Furniture do not require Style; allow direct processing
+          if (
+            renovationId === "exterior_garden_clear" ||
+            renovationId === "furniture_clear_remove"
+          ) {
             window.setFlowLock(null);
           } else {
             window.setFlowLock("renovate");

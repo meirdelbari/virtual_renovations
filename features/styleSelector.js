@@ -118,6 +118,10 @@
           window.setFlowLock(null);
         }
 
+        if (window.updateSelectionSummary) {
+          window.updateSelectionSummary({ style: style.label });
+        }
+
         updateButtonLabel(button);
         panel.parentNode.removeChild(panel);
         

@@ -11,6 +11,84 @@ window.setFlowLock = function (type) {
   window.flowLock = { active: true, type, requiresStyleAck: true };
 };
 
+// Shared summary row state and renderer
+const selectionSummaryState = {
+  renovation: null,
+  furniture: null,
+  style:
+    (window.currentStyleContext && window.currentStyleContext.label) || null,
+  enhance: null,
+};
+window.selectionSummaryResetOnNextSelection = false;
+
+function renderSelectionSummary() {
+  const container = document.getElementById("selection-summary");
+  if (!container) return;
+
+  const chips = [
+    ["renovation", "Renovation"],
+    ["furniture", "Furniture"],
+    ["style", "Style"],
+    ["enhance", "Enhance"],
+  ];
+
+  let hasValue = false;
+
+  chips.forEach(([key, label]) => {
+    const chip = container.querySelector(`[data-summary="${key}"]`);
+    if (!chip) return;
+
+    const value = selectionSummaryState[key];
+    if (value) {
+      chip.textContent = `${label}: ${value}`;
+      chip.classList.remove("is-hidden");
+      hasValue = true;
+    } else {
+      chip.textContent = "";
+      chip.classList.add("is-hidden");
+    }
+  });
+
+  container.classList.toggle("is-hidden", !hasValue);
+}
+
+window.updateSelectionSummary = function (partial) {
+  if (partial && typeof partial === "object") {
+    if (window.selectionSummaryResetOnNextSelection) {
+      selectionSummaryState.renovation = null;
+      selectionSummaryState.furniture = null;
+      selectionSummaryState.style = null;
+      selectionSummaryState.enhance = null;
+      window.selectionSummaryResetOnNextSelection = false;
+    }
+    if ("renovation" in partial) {
+      selectionSummaryState.renovation = partial.renovation || null;
+    }
+    if ("furniture" in partial) {
+      selectionSummaryState.furniture = partial.furniture || null;
+    }
+    if ("style" in partial) {
+      selectionSummaryState.style = partial.style || null;
+    }
+    if ("enhance" in partial) {
+      selectionSummaryState.enhance = partial.enhance || null;
+    }
+  }
+  renderSelectionSummary();
+};
+
+function initSelectionSummaryRow() {
+  // Sync any pre-existing style selection (if set before render)
+  if (
+    window.currentStyleContext &&
+    window.currentStyleContext.label &&
+    !selectionSummaryState.style
+  ) {
+    selectionSummaryState.style = window.currentStyleContext.label;
+  }
+  renderSelectionSummary();
+}
+
 function initOpsGuard() {
   const operationsBar = document.querySelector(".operations-bar");
   if (!operationsBar) return;
@@ -34,16 +112,25 @@ function initOpsGuard() {
       }
 
       // Rule 4: AlgoreitAI cannot be first
-      if (
-        role === "gemini-ai" &&
-        !window.currentRenovationId &&
-        !window.enhanceSelected &&
-        !window.customPromptPending
-      ) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        alert(" Please select Renovation, Furniture ,  Enhance Quilty or Custom");
-        return;
+      if (role === "gemini-ai") {
+        const lock = window.flowLock && window.flowLock.active ? window.flowLock : null;
+        const needsStyle =
+          lock &&
+          lock.requiresStyleAck &&
+          (!window.currentStyleContext || !window.currentStyleContext.id);
+        if (
+          (!window.currentRenovationId && !window.enhanceSelected && !window.customPromptPending) ||
+          needsStyle
+        ) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          alert(
+            needsStyle
+              ? " Please select Style and then apply AlgoreitAI "
+              : " Please select Renovation, Furniture ,  Enhance Quilty or Custom"
+          );
+          return;
+        }
       }
 
       if (!lock) return;
@@ -108,6 +195,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   initOpsGuard();
+  initSelectionSummaryRow();
   console.info("AlgoreitAI Virtual Renovations app loaded.");
 });
 
