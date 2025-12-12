@@ -9,6 +9,7 @@
 
 (function () {
   let clerk;
+  let authListenerCleanup = null;
 
   async function initAuth() {
     console.log("Auth: Starting initialization...");
@@ -83,6 +84,9 @@
         
         console.log("Auth: Clerk Loaded. User:", clerk.user ? "Signed In" : "Signed Out");
 
+        // Always re-bind listeners so we react to sign-in/up redirect states
+        bindClerkAuthListener();
+
         if (clerk.user) {
           // User is signed in
           mountUserButton();
@@ -114,6 +118,14 @@
   }
 
   function showLandingPage(options = {}) {
+    // If Clerk already has an authenticated user (e.g., after sign-up redirect),
+    // jump straight into the app instead of flashing the landing page.
+    if (clerk && clerk.user) {
+      mountUserButton();
+      showApp();
+      return;
+    }
+
     const { offlineMode = false } = options;
     console.log("Auth: Showing Landing Page");
     const landing = document.getElementById("landing-page");
@@ -133,6 +145,27 @@
     if (navStartBtn) {
       navStartBtn.onclick = offlineMode ? showApp : showSignInModal;
     }
+  }
+
+  function bindClerkAuthListener() {
+    if (!clerk || typeof clerk.addListener !== "function") return;
+
+    // Clean up previous listener if any to avoid double-calls
+    if (authListenerCleanup) {
+      try {
+        authListenerCleanup();
+      } catch (_) {}
+      authListenerCleanup = null;
+    }
+
+    authListenerCleanup = clerk.addListener(({ user }) => {
+      if (user) {
+        mountUserButton();
+        showApp();
+      } else {
+        showLandingPage();
+      }
+    });
   }
 
   function mountUserButton() {
