@@ -6,8 +6,17 @@
 // - Uses Google Imagen 3 for image-to-image transformations
 
 (function () {
-  // Use relative path for production compatibility
-  const BACKEND_URL = "";
+  // API base helper:
+  // - When opened via file://, relative "/api/..." becomes "file:///api/..." and fails.
+  // - The backend serves both UI and API locally on http://localhost:4000
+  function getApiUrl(path) {
+    if (typeof window.getApiUrl === "function") {
+      return window.getApiUrl(path);
+    }
+    const base = window.location.protocol === "file:" ? "http://localhost:4000" : "";
+    const p = String(path || "");
+    return base + (p.startsWith("/") ? p : "/" + p);
+  }
   const RENOVATION_TASKS = {
     // Room - Floor
     "room_floor_hardwood": "Replace the main room flooring with premium hardwood planks",
@@ -191,7 +200,7 @@
       const meta = buildMetadata();
 
       // Send to backend
-      const response = await fetch(`${BACKEND_URL}/api/gemini/process-photo`, {
+      const response = await fetch(getApiUrl("/api/gemini/process-photo"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -280,10 +289,14 @@
           helpMsg = "\nTip: The photo is too large even after compression.";
       }
 
-      const parts = [
-        "AlgoreitAI refused to process this request:",
-        error.message
-      ];
+      const parts = ["AlgoreitAI refused to process this request:", error.message];
+      if (window.location.protocol === "file:") {
+        parts.push(
+          "",
+          "Local tip: don't open index.html directly.",
+          "Run `npm start` and open http://localhost:4000 instead."
+        );
+      }
       if (helpMsg) {
         parts.push(helpMsg.trim());
       }

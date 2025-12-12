@@ -13,6 +13,16 @@
   async function initAuth() {
     console.log("Auth: Starting initialization...");
 
+    // API base helper (supports file:// fallback to http://localhost:4000)
+    function getApiUrl(path) {
+      if (typeof window.getApiUrl === "function") {
+        return window.getApiUrl(path);
+      }
+      const base = window.location.protocol === "file:" ? "http://localhost:4000" : "";
+      const p = String(path || "");
+      return base + (p.startsWith("/") ? p : "/" + p);
+    }
+
     // Local development guard: Clerk custom domain blocks localhost (CORS/404)
     const isLocalhost =
       window.location.hostname === "localhost" ||
@@ -32,9 +42,7 @@
       }
 
       // 1. Fetch Clerk Publishable Key from backend
-      // In production, use the current origin since frontend and backend are on the same domain
-      const API_BASE_URL = window.location.hostname === 'localhost' ? '' : '';
-      const response = await fetch(`${API_BASE_URL}/api/auth-config`);
+      const response = await fetch(getApiUrl("/api/auth-config"));
       
       if (!response.ok) throw new Error("Failed to fetch auth config");
       const { publishableKey } = await response.json();

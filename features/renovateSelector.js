@@ -5,6 +5,16 @@
 // - Downloads the renovated image so the user can save it locally.
 
 (function () {
+  // API base helper (supports file:// fallback to http://localhost:4000)
+  function getApiUrl(path) {
+    if (typeof window.getApiUrl === "function") {
+      return window.getApiUrl(path);
+    }
+    const base = window.location.protocol === "file:" ? "http://localhost:4000" : "";
+    const p = String(path || "");
+    return base + (p.startsWith("/") ? p : "/" + p);
+  }
+
   const RENOVATIONS = [
     {
       label: "Room",
@@ -517,7 +527,7 @@
 
     // Try backend AI renovation first
     try {
-      const response = await fetch("/api/renovate-room", {
+      const response = await fetch(getApiUrl("/api/renovate-room"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -15,6 +15,51 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
+    <script>
+      // ==========================================================
+      // API BASE URL (Local + Production)
+      // ==========================================================
+      // Why: If you open this app via file://, relative requests like "/api/..."
+      // become "file:///api/..." and the browser blocks them. The backend already
+      // exists in this repo and serves both the UI and API on http://localhost:4000.
+      //
+      // Override options (optional):
+      // - localStorage.setItem("VR_API_BASE_URL", "http://localhost:4000")
+      // - Add "?apiBase=http://localhost:4000" to the URL (when not file://)
+      (function () {
+        function getQueryParam(name) {
+          try {
+            const params = new URLSearchParams(window.location.search || "");
+            const v = params.get(name);
+            return v && String(v).trim() ? String(v).trim() : null;
+          } catch (_) {
+            return null;
+          }
+        }
+
+        const queryOverride = getQueryParam("apiBase");
+        const storageOverride = (function () {
+          try {
+            const v = window.localStorage.getItem("VR_API_BASE_URL");
+            return v && String(v).trim() ? String(v).trim() : null;
+          } catch (_) {
+            return null;
+          }
+        })();
+
+        const isFile = window.location.protocol === "file:";
+        const defaultBase = isFile ? "http://localhost:4000" : "";
+        window.VR_API_BASE_URL = queryOverride || storageOverride || defaultBase;
+        window.getApiUrl = function (path) {
+          const p = String(path || "");
+          const normalized = p.startsWith("/") ? p : "/" + p;
+          return String(window.VR_API_BASE_URL || "") + normalized;
+        };
+      })();
+    </script>
+
+    <div id="file-protocol-warning" style="display: none;"></div>
+
     <!-- Landing Page -->
     <div id="landing-page" class="landing-page" style="display: none;">
       
@@ -208,6 +253,33 @@
     <script src="features/guideMe.js"></script>
     <script src="features/auth.js"></script>
     <script src="main.js"></script>
+    
+    <script>
+      // Show a friendly warning when opened via file://
+      (function () {
+        if (window.location.protocol !== "file:") return;
+        const el = document.getElementById("file-protocol-warning");
+        if (!el) return;
+
+        el.innerHTML = `
+          <div class="file-warning-card">
+            <div class="file-warning-title">Local mode detected (file://)</div>
+            <div class="file-warning-text">
+              AlgoreitAI needs the backend to run on <code>http://localhost:4000</code>.
+              <br/>
+              <strong>Fix:</strong> run <code>npm start</code> in this project folder, then open
+              <a href="http://localhost:4000" target="_blank" rel="noreferrer">http://localhost:4000</a>.
+            </div>
+            <div class="file-warning-text" dir="rtl" style="margin-top: 10px;">
+              <strong>שימו לב:</strong> פתחת את האפליקציה דרך <code>file://</code>.
+              כדי ש-AlgoreitAI יעבוד צריך להריץ שרת מקומי.
+              הרץ <code>npm start</code> ואז פתח <code>http://localhost:4000</code>.
+            </div>
+          </div>
+        `;
+        el.style.display = "block";
+      })();
+    </script>
     
     <script>
       // ==========================================

@@ -10,6 +10,16 @@
   window.currentFloorPlanMeasurements =
     window.currentFloorPlanMeasurements || null;
 
+  // API base helper (supports file:// fallback to http://localhost:4000)
+  function getApiUrl(path) {
+    if (typeof window.getApiUrl === "function") {
+      return window.getApiUrl(path);
+    }
+    const base = window.location.protocol === "file:" ? "http://localhost:4000" : "";
+    const p = String(path || "");
+    return base + (p.startsWith("/") ? p : "/" + p);
+  }
+
   let currentVisualUrl = null;
   let editablePlanData = null;
   let lastLayoutMode = null;
@@ -168,7 +178,7 @@
       Do not include any markdown formatting or explanation, just the raw JSON string.
     `;
 
-    const response = await fetch("/api/gemini/analyze-photo", {
+    const response = await fetch(getApiUrl("/api/gemini/analyze-photo"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

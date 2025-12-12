@@ -6,7 +6,17 @@
 // - Uses Google Imagen 3 for image-to-image transformations
 
 (function () {
-  const BACKEND_URL = "";
+  // API base helper:
+  // - When opened via file://, relative "/api/..." becomes "file:///api/..." and fails.
+  // - The backend serves both UI and API locally on http://localhost:4000
+  function getApiUrl(path) {
+    if (typeof window.getApiUrl === "function") {
+      return window.getApiUrl(path);
+    }
+    const base = window.location.protocol === "file:" ? "http://localhost:4000" : "";
+    const p = String(path || "");
+    return base + (p.startsWith("/") ? p : "/" + p);
+  }
 
   function initGeminiAI() {
     const button = document.querySelector('[data-role="gemini-ai"]');
@@ -75,7 +85,7 @@
       const meta = buildMetadata();
 
       // Send to backend
-      const response = await fetch(`${BACKEND_URL}/api/gemini/process-photo`, {
+      const response = await fetch(getApiUrl("/api/gemini/process-photo"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

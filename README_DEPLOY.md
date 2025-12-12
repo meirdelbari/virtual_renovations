@@ -55,10 +55,12 @@ To run the application locally:
     GOOGLE_GEMINI_API_KEY=your_key_here
     ```
 3.  Start the server:
-    ```bash
-    npm start
-    ```
-4.  Open `http://localhost:4000` in your browser.
+    - **Windows (recommended):** double-click `Docs/run_virtual_renovations.bat` (it will install deps if needed, start the backend, and open `http://localhost:4000`).
+    - **Any OS (manual):**
+      ```bash
+      npm start
+      ```
+4.  Open `http://localhost:4000` in your browser (avoid `file://index.html` because `/api/...` will fail).
 
 ## Project Structure
 

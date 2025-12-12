@@ -20,12 +20,15 @@ PORT=4000
 ```
 
 ### 3. Start the Server
+**Windows (recommended):**
+Double-click `Docs/run_virtual_renovations.bat` — it will install deps (if needed), start the backend, and open `http://localhost:4000`.
+
+**Any OS (manual):**
 ```bash
-cd backend
+cd C:\Users\Meir\virtual_renovations   # or your cloned path
 npm start
 ```
-
-Then open `index.html` in your browser!
+Then open `http://localhost:4000` (do **not** use `file://index.html`, APIs will fail).
 
 ---
 

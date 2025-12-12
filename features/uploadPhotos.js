@@ -552,12 +552,6 @@
         ${itemsHtml}
       </div>
     `;
-    
-    // Expose helper
-    window.openInWorkingArea = function(id) {
-        const item = photoItems.find(p => p.id === id);
-        if (item) openInWorkingArea(item);
-    };
   }
 
   // Public helper to update room assignment (Option A - by ID)
