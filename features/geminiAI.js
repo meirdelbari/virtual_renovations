@@ -373,6 +373,10 @@ CRITICAL CONSTRAINTS:
       hideGeminiThinkingIndicator(thinkingIndicator);
       showSummary();
       window.selectionSummaryResetOnNextSelection = true;
+      if (window.currentRenovationId === "enhance_quality") {
+        window.enhanceSelected = false;
+        window.currentRenovationId = null;
+      }
     }
   }
 
