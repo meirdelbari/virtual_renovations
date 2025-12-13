@@ -101,14 +101,6 @@ function initOpsGuard() {
       const role = btn.getAttribute("data-role") || "";
       // Allow Reset at any time
       if (btn.classList.contains("op-btn-reset")) return;
-      const enhanceActive =
-        window.enhanceSelected && window.currentRenovationId === "enhance_quality";
-      if (enhanceActive && role !== "gemini-ai") {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        alert("Please select AlgoreitAI to process the Enhance Quality request.");
-        return;
-      }
       const lock = window.flowLock && window.flowLock.active ? window.flowLock : null;
 
       // Rule 3: Style cannot be first

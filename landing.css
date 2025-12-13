@@ -577,6 +577,27 @@ body {
   text-decoration: underline;
 }
 
+.feedback-banner {
+  width: 100%;
+  padding: 14px 20px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--text-gray);
+  background: #f3f4f6;
+  border-top: 1px solid #e5e7eb;
+  box-sizing: border-box;
+}
+
+.feedback-banner a {
+  color: var(--text-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.feedback-banner a:hover {
+  text-decoration: underline;
+}
+
 /* Mobile Responsive */
 @media (max-width: 1024px) {
   .hero-content h1 { font-size: 42px; }
