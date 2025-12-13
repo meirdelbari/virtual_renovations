@@ -554,7 +554,7 @@ body {
   max-width: 1200px;
   padding: 40px 20px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   border-top: 1px solid #e5e7eb;
   margin-top: auto;
@@ -566,6 +566,8 @@ body {
   gap: 24px;
   color: var(--text-gray);
   font-size: 16px; /* Increased from 14px */
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .footer-links a {
@@ -577,24 +579,17 @@ body {
   text-decoration: underline;
 }
 
-.feedback-banner {
-  width: 100%;
-  padding: 14px 20px;
-  text-align: center;
-  font-size: 15px;
+.footer-feedback {
   color: var(--text-gray);
-  background: #f3f4f6;
-  border-top: 1px solid #e5e7eb;
-  box-sizing: border-box;
 }
 
-.feedback-banner a {
+.footer-feedback a {
   color: var(--text-dark);
   font-weight: 600;
   text-decoration: none;
 }
 
-.feedback-banner a:hover {
+.footer-feedback a:hover {
   text-decoration: underline;
 }
 
