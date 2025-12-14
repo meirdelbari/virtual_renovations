@@ -13,6 +13,8 @@
     </script>
     <!-- Google Fonts for a more professional look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- i18n (runtime translations) -->
+    <script src="js/i18n.js"></script>
   </head>
   <body>
     <script>
@@ -58,6 +60,66 @@
       })();
     </script>
 
+    <script>
+      // ==========================================================
+      // i18n init + language selector wiring
+      // ==========================================================
+      (function () {
+        async function init() {
+          if (!window.i18n || typeof window.i18n.initI18n !== "function") return;
+          await window.i18n.initI18n({ fallbackLocale: "en" });
+          // keep <title> translated
+          try {
+            document.title = window.t("app.title");
+          } catch (_) {}
+
+          function localeToSelectValue(localeCode) {
+            const code = String(localeCode || "").toLowerCase();
+            if (code === "he") return "Hebrew";
+            return "English";
+          }
+
+          function bindSelect(id) {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            // set current
+            try {
+              const code = window.i18n.getLocale();
+              sel.value = localeToSelectValue(code);
+              sel.setAttribute("data-locale", code);
+            } catch (_) {}
+            sel.addEventListener("change", async () => {
+              await window.i18n.setLocale(sel.value);
+              try {
+                document.title = window.t("app.title");
+              } catch (_) {}
+              try {
+                sel.setAttribute("data-locale", window.i18n.getLocale());
+              } catch (_) {}
+              // keep any duplicate selectors in sync
+              try {
+                const other = id === "lang-select" ? document.getElementById("lang-select-app") : document.getElementById("lang-select");
+                if (other) {
+                  other.value = sel.value;
+                  other.setAttribute("data-locale", window.i18n.getLocale());
+                }
+              } catch (_) {}
+            });
+          }
+
+          bindSelect("lang-select");
+          bindSelect("lang-select-app");
+        }
+
+        // run ASAP but after DOM is available for selects
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init);
+        } else {
+          init();
+        }
+      })();
+    </script>
+
     <div id="file-protocol-warning" style="display: none;"></div>
 
     <!-- Landing Page -->
@@ -67,10 +129,14 @@
       <nav class="landing-nav">
         <div class="nav-logo">
           <span class="nav-emoji">🤖</span>
-          <span class="nav-title">AlgoreitAI</span>
+          <span class="nav-title" data-i18n="app.brand">AlgoreitAI</span>
         </div>
         <div class="nav-links">
-          <button id="nav-start-btn" class="nav-cta">Start Free</button>
+          <select id="lang-select" class="nav-lang" aria-label="Language">
+            <option value="English" data-i18n="lang.english">English</option>
+            <option value="Hebrew" data-i18n="lang.hebrew">Hebrew</option>
+          </select>
+          <button id="nav-start-btn" class="nav-cta" data-i18n="landing.startFree">Start Free</button>
         </div>
       </nav>
 
@@ -83,9 +149,9 @@
               <span style="display: block;">AI Home Design</span>
               <span style="display: block; font-size: 10px; opacity: 0.9;">Technology</span>
             </div>
-            <h1>Redesign & Stage Your Home<br>in Seconds with AI</h1>
+            <h1 data-i18n="landing.heroTitle" data-i18n-html="true">Redesign & Stage Your Home<br>in Seconds with AI</h1>
           </div>
-          <p class="hero-subtitle">
+          <p class="hero-subtitle" data-i18n="landing.heroSubtitle" data-i18n-html="true">
             <span class="highlight-text">AlgoreitAI’s unique power</span> is generating "wow" designs that keep it real. We don't just create theoretical magazine photos—we suggest stunning transformations that preserve your home's layout and can be practically executed.
           </p>
           <div class="gallery-display">
@@ -105,8 +171,8 @@
                   
                   <!-- Labels -->
                   <div class="slider-labels">
-                    <span class="label-overlay" id="label-before">Before</span>
-                    <span class="label-overlay" id="label-after">After</span>
+                    <span class="label-overlay" id="label-before" data-i18n="landing.before">Before</span>
+                    <span class="label-overlay" id="label-after" data-i18n="landing.after">After</span>
                   </div>
 
                   <!-- Range Input for Manual Override -->
@@ -120,10 +186,10 @@
 
           <div class="hero-cta-group">
             <button id="landing-start-btn" class="primary-btn">
-              Generate Your Design 
+              <span data-i18n="landing.generateYourDesign">Generate Your Design</span>
               <span class="btn-icon">→</span>
             </button>
-            <p class="trial-text">No credit card required · Free beta access</p>
+            <p class="trial-text" data-i18n="landing.trialText">No credit card required · Free beta access</p>
           </div>
         </div>
       </header>
@@ -131,14 +197,14 @@
       <!-- How It Works -->
       <section class="steps-section">
         <div class="section-header">
-          <h2>How It Works</h2>
-          <p>Professional results in 3 simple steps</p>
+          <h2 data-i18n="landing.howItWorksTitle">How It Works</h2>
+          <p data-i18n="landing.howItWorksSubtitle">Professional results in 3 simple steps</p>
         </div>
         <div class="steps-grid">
           <div class="step-card">
             <div class="step-icon">📸</div>
-            <h3>1. Upload Photo</h3>
-            <p>Take a picture of your room, house, or garden.</p>
+            <h3 data-i18n="landing.step1Title">1. Upload Photo</h3>
+            <p data-i18n="landing.step1Text">Take a picture of your room, house, or garden.</p>
           </div>
           
           <!-- Arrow 1 -->
@@ -151,8 +217,8 @@
 
           <div class="step-card">
             <div class="step-icon">✨</div>
-            <h3>2. Choose Style</h3>
-            <p>Select from Modern, Minimalist, Industrial, and 30+ more.</p>
+            <h3 data-i18n="landing.step2Title">2. Choose Style</h3>
+            <p data-i18n="landing.step2Text">Select from Modern, Minimalist, Industrial, and 30+ more.</p>
           </div>
 
           <!-- Arrow 2 -->
@@ -165,8 +231,8 @@
 
           <div class="step-card">
             <div class="step-icon">🚀</div>
-            <h3>3. Generate</h3>
-            <p>Get unlimited realistic variations in seconds.</p>
+            <h3 data-i18n="landing.step3Title">3. Generate</h3>
+            <p data-i18n="landing.step3Text">Get unlimited realistic variations in seconds.</p>
           </div>
         </div>
       </section>
@@ -174,23 +240,23 @@
       <!-- Use Cases Grid -->
       <section id="features" class="features-section">
         <div class="section-header">
-          <h2>Why Choose AlgoreitAI?</h2>
+          <h2 data-i18n="landing.whyChoose">Why Choose AlgoreitAI?</h2>
         </div>
         <div class="features-grid">
           <div class="feature-card">
             <div class="feature-icon">🧠</div>
-            <h3>State-of-the-Art AI Made Simple</h3>
-            <p>We harness the world's most advanced AI technology but hide the complexity. You get a simple, intuitive tool that delivers professional-grade results for your home instantly.</p>
+            <h3 data-i18n="landing.feature1Title">State-of-the-Art AI Made Simple</h3>
+            <p data-i18n="landing.feature1Text">We harness the world's most advanced AI technology but hide the complexity. You get a simple, intuitive tool that delivers professional-grade results for your home instantly.</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">🏠</div>
-            <h3>Real & Reliable Designs</h3>
-            <p>Unlike other tools that hallucinate impossible structures, our AI respects your home's actual layout. The results are realistic, practical, and truly achievable.</p>
+            <h3 data-i18n="landing.feature2Title">Real & Reliable Designs</h3>
+            <p data-i18n="landing.feature2Text">Unlike other tools that hallucinate impossible structures, our AI respects your home's actual layout. The results are realistic, practical, and truly achievable.</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">🎨</div>
-            <h3>Endless Style Possibilities</h3>
-            <p>Explore unlimited renovation and staging styles. From Scandinavian to Industrial, easily visualize thousands of potential futures for your space in seconds.</p>
+            <h3 data-i18n="landing.feature3Title">Endless Style Possibilities</h3>
+            <p data-i18n="landing.feature3Text">Explore unlimited renovation and staging styles. From Scandinavian to Industrial, easily visualize thousands of potential futures for your space in seconds.</p>
           </div>
         </div>
       </section>
@@ -198,8 +264,8 @@
       <div class="landing-footer">
         <div class="footer-links">
           <span>© 2025 AlgoreitAI</span>
-          <a href="#">Terms</a>
-          <a href="#">Privacy</a>
+          <a href="#" data-i18n="landing.footerTerms">Terms</a>
+          <a href="#" data-i18n="landing.footerPrivacy">Privacy</a>
           <span class="footer-feedback">
             Beta Version — We would love feedbacks — <a href="mailto:algoreitai@gmail.com">algoreitai@gmail.com</a>
           </span>
@@ -213,9 +279,13 @@
       <header class="app-header">
         <div class="app-header-left">
           <span class="app-logo-emoji" aria-hidden="true">🤖</span>
-          <span class="app-title">AlgoreitAI-Virtual Renovations</span>
+          <span class="app-title" data-i18n="app.appTitle">AlgoreitAI-Virtual Renovations</span>
         </div>
         <div class="app-header-right">
+          <select id="lang-select-app" class="app-lang" aria-label="Language">
+            <option value="English" data-i18n="lang.english">English</option>
+            <option value="Hebrew" data-i18n="lang.hebrew">Hebrew</option>
+          </select>
           <div id="user-button"></div>
         </div>
       </header>
@@ -223,21 +293,21 @@
       <!-- Main content -->
       <main class="app-main">
         <section class="operations-bar" aria-label="Main operations">
-          <button class="op-btn op-btn-accent" type="button" data-role="upload-photos">Upload Photos</button>
-          <button class="op-btn" type="button" data-role="room-viewer">Room</button>
-          <button class="op-btn" type="button" data-role="enhance-photos">Enhance Quality</button>
-          <button class="op-btn" type="button" data-role="renovate-selector">Renovate ▾</button>
-          <button class="op-btn" type="button" data-role="furniture-selector">Furniture ▾</button>
-          <button class="op-btn" type="button" data-role="style-selector">Style ▾</button>
-          <button class="op-btn op-btn-gemini" type="button" data-role="gemini-ai" title="Process with AlgoreitAI">✨ AlgoreitAI</button>
-          <button class="op-btn" type="button" data-role="gemini-tweak" title="Send a quick custom request">Custom</button>
-          <button class="op-btn op-btn-reset" type="button">Reset</button>
-          <button class="op-btn guide-btn" type="button" data-role="guide-me" title="Show usage guide">Guide Me</button>
+          <button class="op-btn op-btn-accent" type="button" data-role="upload-photos" data-i18n="ops.uploadPhotos">Upload Photos</button>
+          <button class="op-btn" type="button" data-role="room-viewer" data-i18n="ops.room">Room</button>
+          <button class="op-btn" type="button" data-role="enhance-photos" data-i18n="ops.enhance">Enhance Quality</button>
+          <button class="op-btn" type="button" data-role="renovate-selector" data-i18n="ops.renovate">Renovate ▾</button>
+          <button class="op-btn" type="button" data-role="furniture-selector" data-i18n="ops.furniture">Furniture ▾</button>
+          <button class="op-btn" type="button" data-role="style-selector" data-i18n="ops.style">Style ▾</button>
+          <button class="op-btn op-btn-gemini" type="button" data-role="gemini-ai" title="Process with AlgoreitAI" data-i18n="ops.algoreit">✨ AlgoreitAI</button>
+          <button class="op-btn" type="button" data-role="gemini-tweak" title="Send a quick custom request" data-i18n="ops.custom">Custom</button>
+          <button class="op-btn op-btn-reset" type="button" data-i18n="ops.reset">Reset</button>
+          <button class="op-btn guide-btn" type="button" data-role="guide-me" title="Show usage guide" data-i18n="ops.guide">Guide Me</button>
           <input id="photo-file-input" type="file" accept="image/*" multiple style="display: none" />
         </section>
 
         <div id="selection-summary" class="selection-summary is-hidden" aria-live="polite">
-          <div class="selection-summary-label">Selections</div>
+          <div class="selection-summary-label" data-i18n="summary.label">Selections</div>
           <div class="selection-summary-chips">
             <div class="selection-chip" data-summary="renovation"></div>
             <div class="selection-chip" data-summary="furniture"></div>
@@ -273,22 +343,37 @@
         const el = document.getElementById("file-protocol-warning");
         if (!el) return;
 
-        el.innerHTML = `
-          <div class="file-warning-card">
-            <div class="file-warning-title">Local mode detected (file://)</div>
-            <div class="file-warning-text">
-              AlgoreitAI needs the backend to run on <code>http://localhost:4000</code>.
-              <br/>
-              <strong>Fix:</strong> run <code>npm start</code> in this project folder, then open
-              <a href="http://localhost:4000" target="_blank" rel="noreferrer">http://localhost:4000</a>.
+        // In file:// mode, fetching locales may be blocked. Use i18n if available,
+        // otherwise fall back to the original bilingual message.
+        const title = (window.t && window.t("fileMode.title")) || "";
+        const body = (window.t && window.t("fileMode.text")) || "";
+        const looksLikeKey = (s) => typeof s === "string" && s.includes(".") && !s.includes(" ");
+
+        if (title && body && !looksLikeKey(title) && !looksLikeKey(body)) {
+          el.innerHTML = `
+            <div class="file-warning-card">
+              <div class="file-warning-title">${title}</div>
+              <div class="file-warning-text">${body}</div>
             </div>
-            <div class="file-warning-text" dir="rtl" style="margin-top: 10px;">
-              <strong>שימו לב:</strong> פתחת את האפליקציה דרך <code>file://</code>.
-              כדי ש-AlgoreitAI יעבוד צריך להריץ שרת מקומי.
-              הרץ <code>npm start</code> ואז פתח <code>http://localhost:4000</code>.
+          `;
+        } else {
+          el.innerHTML = `
+            <div class="file-warning-card">
+              <div class="file-warning-title">Local mode detected (file://)</div>
+              <div class="file-warning-text">
+                AlgoreitAI needs the backend to run on <code>http://localhost:4000</code>.
+                <br/>
+                <strong>Fix:</strong> run <code>npm start</code> in this project folder, then open
+                <a href="http://localhost:4000" target="_blank" rel="noreferrer">http://localhost:4000</a>.
+              </div>
+              <div class="file-warning-text" dir="rtl" style="margin-top: 10px;">
+                <strong>שימו לב:</strong> פתחת את האפליקציה דרך <code>file://</code>.
+                כדי ש-AlgoreitAI יעבוד צריך להריץ שרת מקומי.
+                הרץ <code>npm start</code> ואז פתח <code>http://localhost:4000</code>.
+              </div>
             </div>
-          </div>
-        `;
+          `;
+        }
         el.style.display = "block";
       })();
     </script>

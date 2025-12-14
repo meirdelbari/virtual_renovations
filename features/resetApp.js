@@ -2,6 +2,13 @@
 // - Reloads the page to return to the initial state
 
 (function () {
+  function tr(key, vars, fallback) {
+    try {
+      if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+    } catch (_) {}
+    return fallback || key;
+  }
+
   function initResetApp() {
     const resetButton = document.querySelector(".op-btn-reset");
     if (!resetButton) {
@@ -17,7 +24,7 @@
             (photoGallery && photoGallery.children && photoGallery.children.length > 0);
 
         const proceed =
-            !hasContent || confirm("Reset application? All uploaded floor plans and photos will be lost.");
+            !hasContent || confirm(tr("alerts.resetConfirm", null, "Reset application? All uploaded floor plans and photos will be lost."));
 
         if (!proceed) return;
 

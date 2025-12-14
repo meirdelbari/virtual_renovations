@@ -6,6 +6,13 @@
 //   it (e.g., into C:\Users\Meir\virtual_renovations\Enhanched_Photos).
 
 (function () {
+  function tr(key, vars, fallback) {
+    try {
+      if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+    } catch (_) {}
+    return fallback || key;
+  }
+
   function initEnhancePhotos() {
     const button = document.querySelector('[data-role="enhance-photos"]');
     if (!button) {
@@ -23,14 +30,14 @@
 
       if (!matches.length) {
         alert(
-          "There are no uploaded photos to enhance. Use 'Upload Photos' first."
+          tr("alerts.enhanceNoPhotos", null, "There are no uploaded photos to enhance. Use 'Upload Photos' first.")
         );
         return;
       }
 
       if (!last || !last.photoId) {
         alert(
-          "Enhance Quality works on the last room photo you viewed. First click 'Room', choose a room, then try again."
+          tr("alerts.enhanceSelectRoom", null, "Enhance Quality works on the last room photo you viewed. First click 'Room', choose a room, then try again.")
         );
         return;
       }
@@ -42,7 +49,7 @@
         window.setFlowLock(null); // No style required for enhance
       }
       if (window.updateSelectionSummary) {
-        window.updateSelectionSummary({ enhance: "Enhance Quality" });
+        window.updateSelectionSummary({ enhance: tr("ops.enhance", null, "Enhance Quality") });
       } else {
         const summary = document.getElementById("selection-summary");
         if (summary) summary.classList.remove("is-hidden");
@@ -52,10 +59,10 @@
       const geminiBtn = document.querySelector('[data-role="gemini-ai"]');
       if (geminiBtn) {
         geminiBtn.classList.add("pulse-animation");
-        geminiBtn.textContent = "✨ Click to Process";
+        geminiBtn.textContent = tr("ops.clickToProcess", null, "✨ Click to Process");
         setTimeout(() => {
           geminiBtn.classList.remove("pulse-animation");
-          geminiBtn.textContent = "✨ AlgoreitAI";
+          geminiBtn.textContent = tr("ops.algoreit", null, "✨ AlgoreitAI");
         }, 3000);
       }
     });

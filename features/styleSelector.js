@@ -4,6 +4,13 @@
 // - Updates the button label to show the active style.
 
 (function () {
+  function tr(key, vars, fallback) {
+    try {
+      if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+    } catch (_) {}
+    return fallback || key;
+  }
+
   const STYLES = [
     { id: "modern", label: "Modern" },
     { id: "contemporary", label: "Contemporary" },
@@ -71,20 +78,21 @@
 
     const itemsHtml = STYLES.map((style) => {
       const isActive = window.currentStyleContext.id === style.id;
+      const label = tr(`styles.${style.id}`, null, style.label);
       return `
         <button
           type="button"
           class="style-selector-item${isActive ? " style-selector-item-active" : ""}"
           data-style-id="${style.id}"
         >
-          ${escapeHtml(style.label)}
+          ${escapeHtml(label)}
         </button>
       `;
     }).join("");
 
     panel.innerHTML = `
       <div class="style-selector-header">
-        <div class="style-selector-title">Choose style</div>
+        <div class="style-selector-title">${escapeHtml(tr("style.title", null, "Choose style"))}</div>
       </div>
       <div class="style-selector-body">
         ${itemsHtml}
@@ -132,8 +140,8 @@
   }
 
   function updateButtonLabel(button) {
-    // Always keep the button label static as per user request
-      button.textContent = "Style ▾";
+    // Keep label translated (index.html also sets it, but some flows call this)
+    button.textContent = tr("ops.style", null, "Style ▾");
   }
 
   function escapeHtml(str) {

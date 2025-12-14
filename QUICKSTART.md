@@ -63,6 +63,48 @@ See `GEMINI_INTEGRATION.md` for:
 
 ---
 
+## 🌍 Translations (English / Hebrew)
+
+This app supports runtime translations (no separate app versions).
+
+### How to switch language
+- Open the app at `http://localhost:4000` (not `file://...`)
+- Use the language dropdown (🇺🇸 / 🇮🇱) in:
+  - the landing page navbar, and
+  - the app header (top-right)
+
+**Note:** language choice is saved in browser storage under `VR_LOCALE`.
+
+### Where translations live
+- `locales/english.json`
+- `locales/hebrew.json`
+
+Edit these files to change wording. The corrected text is kept in your repo and deployed with the app.
+
+### What is translated (important namespaces)
+- **Top buttons**: `ops.*` (Upload, Room, Enhance, Renovate, Furniture, Style, Reset, Guide…)
+- **Dropdown contents**:
+  - `styles.*` (Style list)
+  - `renovate.*` (Renovate menu: titles/categories/groups/options)
+  - `furniture.*` (Furniture menu)
+  - `roomTypes.*` (Match Photo-Room selector)
+- **Guide modal**: `guide.*` (all text inside “Guide Me”)
+- **Alerts & messages**: `alerts.*`
+
+### Add a new language (example: Spanish)
+1. Create `locales/spanish.json` (copy from `locales/english.json`).
+2. Add a new `<option value="es">…</option>` to the language selects in `index.html`:
+   - `#lang-select` (landing)
+   - `#lang-select-app` (app header)
+3. Optional: if the language is RTL, add it to the RTL list in `js/i18n.js`.
+
+### File:// limitation
+Translations are loaded via `fetch("locales/<lang>.json")`, so they work best when served from the local server:
+- ✅ `http://localhost:4000`
+- ❌ `file://...`
+
+---
+
 ## 🔧 Files Changed:
 
 **Backend:**

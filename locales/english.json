@@ -1,0 +1,273 @@
+{
+  "app": {
+    "brand": "AlgoreitAI",
+    "title": "AlgoreitAI - Virtual Renovations",
+    "appTitle": "AlgoreitAI-Virtual Renovations"
+  },
+  "lang": {
+    "english": "🇺🇸 English",
+    "hebrew": "🇮🇱 Hebrew",
+    "select": "Language"
+  },
+  "landing": {
+    "startFree": "Start Free",
+    "heroTitle": "Redesign & Stage Your Home<br>in Seconds with AI",
+    "heroSubtitle": "<span class=\"highlight-text\">AlgoreitAI’s unique power</span> is generating \"wow\" designs that keep it real. We don't just create theoretical magazine photos—we suggest stunning transformations that preserve your home's layout and can be practically executed.",
+    "generateYourDesign": "Generate Your Design",
+    "trialText": "No credit card required · Free beta access",
+    "howItWorksTitle": "How It Works",
+    "howItWorksSubtitle": "Professional results in 3 simple steps",
+    "step1Title": "1. Upload Photo",
+    "step1Text": "Take a picture of your room, house, or garden.",
+    "step2Title": "2. Choose Style",
+    "step2Text": "Select from Modern, Minimalist, Industrial, and 30+ more.",
+    "step3Title": "3. Generate",
+    "step3Text": "Get unlimited realistic variations in seconds.",
+    "whyChoose": "Why Choose AlgoreitAI?",
+    "feature1Title": "State-of-the-Art AI Made Simple",
+    "feature1Text": "We harness the world's most advanced AI technology but hide the complexity. You get a simple, intuitive tool that delivers professional-grade results for your home instantly.",
+    "feature2Title": "Real & Reliable Designs",
+    "feature2Text": "Unlike other tools that hallucinate impossible structures, our AI respects your home's actual layout. The results are realistic, practical, and truly achievable.",
+    "feature3Title": "Endless Style Possibilities",
+    "feature3Text": "Explore unlimited renovation and staging styles. From Scandinavian to Industrial, easily visualize thousands of potential futures for your space in seconds.",
+    "footerTerms": "Terms",
+    "footerPrivacy": "Privacy",
+    "before": "Before",
+    "after": "After"
+  },
+  "ops": {
+    "uploadPhotos": "Upload Photos",
+    "room": "Room",
+    "enhance": "Enhance Quality",
+    "renovate": "Renovate ▾",
+    "furniture": "Furniture ▾",
+    "style": "Style ▾",
+    "algoreit": "✨ AlgoreitAI",
+    "clickToProcess": "✨ Click to Process",
+    "custom": "Custom",
+    "reset": "Reset",
+    "guide": "Guide Me"
+  },
+  "summary": {
+    "label": "Selections",
+    "renovation": "Renovation",
+    "furniture": "Furniture",
+    "style": "Style",
+    "enhance": "Enhance"
+  },
+  "fileMode": {
+    "title": "Local mode detected (file://)",
+    "text": "AlgoreitAI needs the backend to run on <code>http://localhost:4000</code>.<br/><strong>Fix:</strong> run <code>npm start</code> in this project folder, then open <a href=\"http://localhost:4000\" target=\"_blank\" rel=\"noreferrer\">http://localhost:4000</a>."
+  },
+  "alerts": {
+    "selectRenovationOrFurniture": "Please select Renovation or Furniture",
+    "selectStyleThenAlgoreit": "Please select Style and then apply AlgoreitAI",
+    "selectSomethingFirst": "Please select Renovation, Furniture, Enhance Quality or Custom",
+    "completeStageFlow": "Please select Style and apply AlgoreitAI",
+    "completeRenovationFlow": "Please complete Renovation by select Style and apply AlgoreitAI",
+    "noPhotosUploadedYet": "No photos uploaded yet. Please upload photos first.",
+    "noPhotosMatchedYet": "No photos are matched yet. Upload and match photos to rooms before using the Room button.",
+    "noRoomsHavePhotos": "No rooms currently have photos assigned. Use the Upload Photos feature to match photos to rooms.",
+    "roomHasNoPhoto": "This room does not have a photo matched yet.",
+    "resetConfirm": "Reset application? All uploaded floor plans and photos will be lost.",
+    "enhanceNoPhotos": "There are no uploaded photos to enhance. Use 'Upload Photos' first.",
+    "enhanceSelectRoom": "Enhance Quality works on the last room photo you viewed. First click 'Room', choose a room, then try again.",
+    "noPhotosToProcess": "There are no uploaded photos to process. Use 'Upload Photos' first.",
+    "selectRoomFirst": "Please select a room first by clicking the 'Room' button and choosing a photo to renovate.",
+    "requestMustBePhotoRelated": "Requests must describe a change to the current photo. Please update your instructions.",
+    "provideInstructions": "Please provide instructions before submitting.",
+    "tweakEmpty": "Please tell AlgoreitAI what to change in this photo.",
+    "tweakNotRelated": "Requests must relate to the current photo. Please describe a change in this image.",
+    "saveFolderNotSupported": "Your browser does not support saving directly to folders. Please use the Download buttons instead.",
+    "noRenovationsToSave": "There are no renovation photos to save yet.",
+    "folderAccessFailed": "Could not access that folder. Please try again.",
+    "needFolderWrite": "Please allow write access to that folder in order to save photos.",
+    "savingFailed": "Saving photos failed. Please ensure the folder is still accessible."
+  },
+  "roomViewer": {
+    "selectRoomToEdit": "Select Room to Edit",
+    "showRoomPhoto": "Show room photo"
+  },
+  "style": {
+    "title": "Choose style"
+  },
+  "styles": {
+    "modern": "Modern",
+    "contemporary": "Contemporary",
+    "farmhouse": "Farmhouse",
+    "coastal": "Coastal",
+    "minimalist": "Minimalist",
+    "scandinavian": "Scandinavian",
+    "bohemian": "Boho (Bohemian)",
+    "industrial": "Industrial",
+    "mid_century_modern": "Mid-Century Modern",
+    "traditional": "Traditional",
+    "transitional": "Transitional"
+  },
+  "furniture": {
+    "title": "Furniture Actions",
+    "options": {
+      "remove": {
+        "label": "Remove",
+        "desc": "Clear all furniture and decor"
+      },
+      "stage": {
+        "label": "Stage",
+        "desc": "Furnish empty room based on style"
+      }
+    }
+  },
+  "renovate": {
+    "title": "Apply renovation",
+    "removeFurniture": "Remove Furniture",
+    "categories": {
+      "room": "Room",
+      "bathroom": "Bathroom",
+      "kitchen": "Kitchen",
+      "exterior": "Exterior"
+    },
+    "groups": {
+      "room_floor": "Floor",
+      "room_walls": "Walls",
+      "room_ceiling": "Ceiling",
+      "room_windows": "Windows",
+      "room_doors": "Doors",
+      "room_lighting": "Lighting",
+      "room_frameheads": "Frameheads",
+      "bathroom_floor": "Floor",
+      "bathroom_walls": "Walls",
+      "bathroom_ceiling": "Ceiling",
+      "bathroom_sink": "Sink",
+      "bathroom_bath": "Bath",
+      "bathroom_toilet": "Toilet",
+      "bathroom_windows": "Windows",
+      "bathroom_door": "Door",
+      "kitchen_cabinets": "Cabinets",
+      "kitchen_countertop": "Countertop",
+      "kitchen_backsplash": "Backsplash",
+      "kitchen_floor": "Floor",
+      "kitchen_walls": "Walls",
+      "kitchen_ceiling": "Ceiling",
+      "exterior_walls": "Walls",
+      "exterior_windows": "Windows",
+      "exterior_doors": "Doors",
+      "exterior_roof": "Roof",
+      "exterior_garden": "Garden",
+      "exterior_structure": "Structure"
+    },
+    "options": {
+      "hardwood": "Hardwood",
+      "laminate": "Laminate",
+      "ceramics": "Ceramics",
+      "tiles": "Tiles",
+      "vinyl": "Vinyl",
+      "carpet": "Carpet",
+      "painting": "Painting",
+      "aluminum": "Aluminum",
+      "replace": "Replace",
+      "add": "Add",
+      "clear": "Clear",
+      "gardening": "Gardening"
+    }
+  },
+  "roomTypes": {
+    "living_room": "Living Room",
+    "bedroom": "Bedroom",
+    "kitchen": "Kitchen",
+    "bathroom": "Bathroom",
+    "dining_room": "Dining Room",
+    "office": "Office",
+    "hallway": "Hallway",
+    "balcony": "Balcony",
+    "kids_room": "Kids Room",
+    "master_bedroom": "Master Bedroom",
+    "guest_room": "Guest Room",
+    "entrance": "Entrance",
+    "home_exterior": "Home Exterior",
+    "garden": "Garden",
+    "other": "Other"
+  },
+  "gemini": {
+    "processingBtn": "Processing with AlgoreitAI...",
+    "thinking": "Processing…",
+    "modal": {
+      "title": "AlgoreitAI Processing",
+      "desc": "Describe what you want AlgoreitAI to do with this photo. Be specific about materials, colors, styles, or transformations.",
+      "placeholder": "Example: Replace the floor with light oak hardwood, repaint walls in warm beige, and update lighting fixtures to modern brass style...",
+      "prefilled": "✓ Pre-filled based on your style and renovation selections.",
+      "tip": "Tip: Use your Style and Renovate selections first for auto-suggestions.",
+      "cancel": "Cancel",
+      "submit": "Send to AlgoreitAI"
+    },
+    "tweak": {
+      "title": "Quick Tweak",
+      "desc": "Tell AlgoreitAI what you would like to do with this photo.",
+      "placeholder": "Tell AlgoreitAI what you would like to do...",
+      "hint": "Keep it photo-specific (e.g., repaint walls, swap countertop).",
+      "cancel": "Cancel",
+      "submit": "Send Tweak"
+    }
+  },
+  "upload": {
+    "rawTitle": "Raw Photos",
+    "rawSubtitleClick": "Click a photo to open in Working Area",
+    "rawSubtitleCount": "{{count}} photo{{plural}} uploaded",
+    "empty": "No photos uploaded yet. Click \"Upload Photos\" to add images linked to the current floor plan.",
+    "workingAreaTitle": "Working Area - {{name}}",
+    "workingAreaReady": "Ready to Renovate",
+    "matchPhotoRoom": "Match Photo-Room",
+    "deletePhoto": "Delete photo",
+    "deleteRenovation": "Delete renovation",
+    "downloadPhoto": "Download photo",
+    "renovationsTitle": "✨ Renovation Photos",
+    "renovationsSubtitle": "Click to view in Working Area",
+    "downloadRenovations": "💾 Download Renovation Photos"
+  },
+  "guide": {
+    "title": "Need a walkthrough?",
+    "subtitle": "Learn what each button does, then pick a flow to start.",
+    "overview": "Button Overview",
+    "howTo": "How to Renovate & Stage",
+    "tips": "Pro Tips",
+    "close": "Got it",
+    "desc": {
+      "upload": "Import your home photos (Rooms, kitchen, Bath, Exterior, Garden...etc).",
+      "match": "(Feature at the bottom of each uploaded photo): Helps AlgoreitAI adapt and generate the best design for you.",
+      "room": "Select a photo from the gallery to open it in the Working Area.",
+      "enhance": "Sharpen and upscale your photos.",
+      "renovate": "Select renovation tasks like updating floors, walls, or exterior.",
+      "furniture": "Choose to remove existing furniture or stage with new items.",
+      "style": "Pick the design style for your renovation (e.g., Modern, Scandinavian).",
+      "magic": "The magic button! Click this to generate your new design.",
+      "reset": "Clear everything and start over."
+    },
+    "steps": {
+      "1": "Upload Photos and match each one to a room type (e.g., \"Living Room\") using the selector at the uploaded photos bottom.",
+      "2": "Click Room to select which photo to edit in the Working Area.",
+      "3": "Use Enhance Quality to improve photo resolution if needed.",
+      "4": "Use Renovate ▾ to update floors, walls, exterior, or garden.",
+      "5": "Use Furniture ▾ to clear the room or stage it with new furniture.",
+      "6": "Use Style ▾ to choose the design aesthetic (e.g., Modern, Farmhouse).",
+      "7": "Click ✨ AlgoreitAI to generate your renovation (after selecting Renovate/Furniture and Style options).",
+      "8": "All results appear in the \"Renovation Photos\" row—click them to chain more edits!"
+    },
+    "tipsList": {
+      "1": "Furniture First: Try removing furniture first to get a clean slate, then stage or renovate.",
+      "2": "Chaining: Every result is a new starting point. Click a result in the \"Renovation Photos\" row to keep editing it.",
+      "3": "Room Types: Assigning the correct room type (e.g., \"Bedroom\") ensures the AI stages it with the right furniture (beds vs sofas)."
+    },
+    "btn": {
+      "upload": "Upload Photos",
+      "match": "Match Photo-Room ▾",
+      "room": "Room",
+      "enhance": "Enhance Quality",
+      "renovate": "Renovate ▾",
+      "furniture": "Furniture ▾",
+      "style": "Style ▾",
+      "magic": "✨ AlgoreitAI",
+      "reset": "Reset"
+    }
+  }
+}
+
+

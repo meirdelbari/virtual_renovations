@@ -136,7 +136,7 @@ function buildPrompt(styleId, renovationId) {
   return `You are a virtual renovations designer. Based on the input room photo, in a ${styleText} interior design style, ${renovationText}. Keep the overall camera angle and composition; only update materials and finishes.`;
 }
 
-  // AlgoreitAI endpoints
+// AlgoreitAI endpoints (powered by Gemini backend)
 
 // Process a photo (image generation)
 app.post("/api/gemini/process-photo", async (req, res) => {
@@ -197,10 +197,7 @@ app.post("/api/gemini/process-photo", async (req, res) => {
   } catch (error) {
     console.error("Error in /api/gemini/process-photo:", error);
     const rawDetails = error.message || String(error);
-    const scrubbedDetails = rawDetails
-      .replace(/Google\s*Gemini/gi, "AlgoreitAI")
-      .replace(/Gemini/gi, "AlgoreitAI")
-      .replace(/Google\s*/gi, "");
+    const scrubbedDetails = rawDetails.replace(/Gemini/gi, "AlgoreitAI");
     res.status(502).json({
       error: "Failed to process photo with AlgoreitAI",
       details: scrubbedDetails,
@@ -247,10 +244,7 @@ app.post("/api/gemini/analyze-photo", async (req, res) => {
   } catch (error) {
     console.error("Error in /api/gemini/analyze-photo:", error);
     const rawDetails = error.message || String(error);
-    const scrubbedDetails = rawDetails
-      .replace(/Google\s*Gemini/gi, "AlgoreitAI")
-      .replace(/Gemini/gi, "AlgoreitAI")
-      .replace(/Google\s*/gi, "");
+    const scrubbedDetails = rawDetails.replace(/Gemini/gi, "AlgoreitAI");
     res.status(502).json({
       error: "Failed to analyze photo with AlgoreitAI",
       details: scrubbedDetails,

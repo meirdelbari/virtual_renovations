@@ -4,6 +4,13 @@
 //   position on the floor plan (JSON plans only).
 
 (function () {
+  function tr(key, vars, fallback) {
+    try {
+      if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+    } catch (_) {}
+    return fallback || key;
+  }
+
   function getFloorPlanContext() {
     return window.currentFloorPlanContext || { title: null, rooms: [] };
   }
@@ -32,7 +39,7 @@
       // Also fallback to Option B if viewer is missing (Quarantined mode)
       if (!ctx.rooms || !ctx.rooms.length || !viewer) {
           if (!photos.length) {
-            alert("No photos uploaded yet. Please upload photos first.");
+            alert(tr("alerts.noPhotosUploadedYet", null, "No photos uploaded yet. Please upload photos first."));
             return;
           }
           // Show list of photos/rooms to open in Working Area
@@ -42,7 +49,7 @@
 
       if (!photos.length) {
         alert(
-          "No photos are matched yet. Upload and match photos to rooms before using the Room button."
+          tr("alerts.noPhotosMatchedYet", null, "No photos are matched yet. Upload and match photos to rooms before using the Room button.")
         );
         return;
       }
@@ -96,7 +103,7 @@
 
     panel.innerHTML = `
       <div class="room-selector-header">
-        <div class="room-selector-title">Select Room to Edit</div>
+        <div class="room-selector-title">${escapeHtml(tr("roomViewer.selectRoomToEdit", null, "Select Room to Edit"))}</div>
         <button type="button" class="room-selector-close" aria-label="Close">
           ✕
         </button>
@@ -144,7 +151,7 @@
 
     if (!roomsWithPhotos.length) {
       alert(
-        "No rooms currently have photos assigned. Use the Upload Photos feature to match photos to rooms."
+        tr("alerts.noRoomsHavePhotos", null, "No rooms currently have photos assigned. Use the Upload Photos feature to match photos to rooms.")
       );
       return;
     }
@@ -171,7 +178,7 @@
 
     panel.innerHTML = `
       <div class="room-selector-header">
-        <div class="room-selector-title">Show room photo</div>
+        <div class="room-selector-title">${escapeHtml(tr("roomViewer.showRoomPhoto", null, "Show room photo"))}</div>
         <button type="button" class="room-selector-close" aria-label="Close">
           ✕
         </button>
@@ -194,7 +201,7 @@
         const photo = photosForRoom[0] || null;
 
         if (!photo) {
-          alert("This room does not have a photo matched yet.");
+          alert(tr("alerts.roomHasNoPhoto", null, "This room does not have a photo matched yet."));
           return;
         }
 

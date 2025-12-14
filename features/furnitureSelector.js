@@ -4,6 +4,13 @@
 // - Stage: Stages the room with furniture according to the selected style.
 
 (function () {
+  function tr(key, vars, fallback) {
+    try {
+      if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+    } catch (_) {}
+    return fallback || key;
+  }
+
   const FURNITURE_OPTIONS = [
     {
       id: "remove",
@@ -62,7 +69,10 @@
     panel.style.zIndex = "2000"; // Ensure it's on top of everything
     panel.style.right = "auto"; // Unset right from class
     
-    const itemsHtml = FURNITURE_OPTIONS.map(opt => `
+    const itemsHtml = FURNITURE_OPTIONS.map(opt => {
+      const label = tr(`furniture.options.${opt.id}.label`, null, opt.label);
+      const desc = tr(`furniture.options.${opt.id}.desc`, null, opt.description);
+      return `
         <div class="renovate-category">
             <button 
               type="button" 
@@ -72,16 +82,17 @@
             >
               <span style="font-size: 1.2em;">${opt.icon}</span>
               <div>
-                  <div>${opt.label}</div>
-                  <div style="font-size: 0.8em; color: #6b7280; font-weight: 400;">${opt.description}</div>
+                  <div>${label}</div>
+                  <div style="font-size: 0.8em; color: #6b7280; font-weight: 400;">${desc}</div>
               </div>
             </button>
         </div>
-    `).join("");
+      `;
+    }).join("");
 
     panel.innerHTML = `
       <div class="renovate-selector-header">
-        <div class="renovate-selector-title">Furniture Actions</div>
+        <div class="renovate-selector-title">${tr("furniture.title", null, "Furniture Actions")}</div>
       </div>
       <div class="renovate-selector-body">
         ${itemsHtml}
@@ -116,7 +127,7 @@
       console.log("[FurnitureSelector] Selected:", furnitureId);
       const selected = FURNITURE_OPTIONS.find((opt) => opt.id === furnitureId);
       window.currentFurnitureSelection = selected
-        ? { id: selected.id, label: selected.label }
+        ? { id: selected.id, label: tr(`furniture.options.${selected.id}.label`, null, selected.label) }
         : null;
       
       // Update global state
@@ -135,7 +146,7 @@
 
       if (window.updateSelectionSummary) {
         window.updateSelectionSummary({
-          furniture: selected ? selected.label : null,
+          furniture: selected ? tr(`furniture.options.${selected.id}.label`, null, selected.label) : null,
         });
       }
 
@@ -143,10 +154,10 @@
       const geminiBtn = document.querySelector('[data-role="gemini-ai"]');
       if (geminiBtn) {
         geminiBtn.classList.add('pulse-animation');
-        geminiBtn.textContent = "✨ Click to Process";
+        geminiBtn.textContent = tr("ops.clickToProcess", null, "✨ Click to Process");
         setTimeout(() => {
             geminiBtn.classList.remove('pulse-animation');
-            geminiBtn.textContent = "✨ AlgoreitAI";
+            geminiBtn.textContent = tr("ops.algoreit", null, "✨ AlgoreitAI");
         }, 3000);
       }
   }

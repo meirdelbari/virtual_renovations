@@ -5,6 +5,13 @@
 // - Renders a simple gallery of thumbnails and assigned names
 
 (function () {
+  function tr(key, vars, fallback) {
+    try {
+      if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+    } catch (_) {}
+    return fallback || key;
+  }
+
   let photoCounter = 1;
   const photoItems = [];
   const processedItems = [];
@@ -12,21 +19,21 @@
 
   // Standard room types for Option B (No Floor Plan)
   const ROOM_TYPES = [
-    "Living Room",
-    "Bedroom",
-    "Kitchen",
-    "Bathroom",
-    "Dining Room",
-    "Office",
-    "Hallway",
-    "Balcony",
-    "Kids Room",
-    "Master Bedroom",
-    "Guest Room",
-    "Entrance",
-    "Home Exterior",
-    "Garden",
-    "Other"
+    { id: "living_room", label: "Living Room" },
+    { id: "bedroom", label: "Bedroom" },
+    { id: "kitchen", label: "Kitchen" },
+    { id: "bathroom", label: "Bathroom" },
+    { id: "dining_room", label: "Dining Room" },
+    { id: "office", label: "Office" },
+    { id: "hallway", label: "Hallway" },
+    { id: "balcony", label: "Balcony" },
+    { id: "kids_room", label: "Kids Room" },
+    { id: "master_bedroom", label: "Master Bedroom" },
+    { id: "guest_room", label: "Guest Room" },
+    { id: "entrance", label: "Entrance" },
+    { id: "home_exterior", label: "Home Exterior" },
+    { id: "garden", label: "Garden" },
+    { id: "other", label: "Other" }
   ];
 
   window.isOptionBActive = window.isOptionBActive || false;
@@ -152,11 +159,11 @@
   window.saveRenovatedPhotosToFolder = async function (event) {
       const triggerElement = event && event.currentTarget ? event.currentTarget : null;
       if (typeof window.showDirectoryPicker !== "function") {
-          alert("Your browser does not support saving directly to folders. Please use the Download buttons instead.");
+          alert(tr("alerts.saveFolderNotSupported", null, "Your browser does not support saving directly to folders. Please use the Download buttons instead."));
           return;
       }
       if (!processedItems.length) {
-          alert("There are no renovation photos to save yet.");
+          alert(tr("alerts.noRenovationsToSave", null, "There are no renovation photos to save yet."));
           return;
       }
       try {
@@ -168,14 +175,14 @@
       } catch (error) {
           if (error && error.name === "AbortError") return;
           console.error("Folder picker error:", error);
-          alert("Could not access that folder. Please try again.");
+          alert(tr("alerts.folderAccessFailed", null, "Could not access that folder. Please try again."));
           return;
       }
       if (!saveDirectoryHandle) return;
 
       const hasPermission = await ensureDirectoryWritePermission(saveDirectoryHandle);
       if (!hasPermission) {
-          alert("Please allow write access to that folder in order to save photos.");
+          alert(tr("alerts.needFolderWrite", null, "Please allow write access to that folder in order to save photos."));
           saveDirectoryHandle = null;
           return;
       }
@@ -201,7 +208,7 @@
           );
       } catch (error) {
           console.error("Saving renovation photos failed:", error);
-          alert("Saving photos failed. Please ensure the folder is still accessible.");
+          alert(tr("alerts.savingFailed", null, "Saving photos failed. Please ensure the folder is still accessible."));
       }
   };
 
@@ -346,11 +353,11 @@
       const headerHtml = `
         <div class="photo-gallery-header" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
           <div>
-            <div class="photo-gallery-title">✨ Renovation Photos</div>
-            <div class="photo-gallery-subtitle">Click to view in Working Area</div>
+            <div class="photo-gallery-title">${escapeHtml(tr("upload.renovationsTitle", null, "✨ Renovation Photos"))}</div>
+            <div class="photo-gallery-subtitle">${escapeHtml(tr("upload.renovationsSubtitle", null, "Click to view in Working Area"))}</div>
           </div>
           <button onclick="window.saveRenovatedPhotosToFolder(event)" class="op-btn renovation-save-btn" style="padding: 8px 18px; font-size: 13px;">
-            💾 Download Renovation Photos
+            ${escapeHtml(tr("upload.downloadRenovations", null, "💾 Download Renovation Photos"))}
           </button>
         </div>
       `;
@@ -361,8 +368,8 @@
         <div class="photo-gallery-grid">
           ${processedItems.map(item => `
             <figure class="photo-card" onclick="window.openInWorkingArea(${item.id}, true)" style="cursor: pointer; border-color: #4285f4; box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15); position: relative;">
-              <button onclick="event.stopPropagation(); window.deleteProcessedPhoto(${item.id})" style="position: absolute; top: 5px; right: 5px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="Delete renovation">🗑️</button>
-              <button onclick="event.stopPropagation(); window.downloadPhoto('${item.url}', '${escapeHtml(item.originalName)}')" style="position: absolute; top: 5px; right: 34px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #4285f4; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="Download photo">⬇️</button>
+              <button onclick="event.stopPropagation(); window.deleteProcessedPhoto(${item.id})" style="position: absolute; top: 5px; right: 5px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="${escapeHtml(tr("upload.deleteRenovation", null, "Delete renovation"))}">🗑️</button>
+              <button onclick="event.stopPropagation(); window.downloadPhoto('${item.url}', '${escapeHtml(item.originalName)}')" style="position: absolute; top: 5px; right: 34px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #4285f4; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="${escapeHtml(tr("upload.downloadPhoto", null, "Download photo"))}">⬇️</button>
               <div class="photo-card-img-wrap">
                 <img src="${item.url}" class="photo-card-img" />
               </div>
@@ -390,11 +397,11 @@
       container.style.display = "block";
       container.innerHTML = `
         <div style="background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e0e0ea; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center;">
-            <div style="margin-bottom: 10px; font-weight: 600; color: #4285f4;">Working Area - ${escapeHtml(item.originalName)}</div>
+            <div style="margin-bottom: 10px; font-weight: 600; color: #4285f4;">${escapeHtml(tr("upload.workingAreaTitle", { name: item.originalName }, `Working Area - ${item.originalName}`))}</div>
             <div style="position: relative; display: inline-block; max-width: 100%;">
                 <img src="${item.url}" style="max-width: 100%; max-height: 60vh; border-radius: 8px; display: block;" />
             </div>
-            <div class="working-area-caption" style="margin-top: 10px; color: #6b7280; font-size: 13px;">Ready to Renovate</div>
+            <div class="working-area-caption" style="margin-top: 10px; color: #6b7280; font-size: 13px;">${escapeHtml(tr("upload.workingAreaReady", null, "Ready to Renovate"))}</div>
         </div>
       `;
       
@@ -424,7 +431,7 @@
       container.classList.add("photo-gallery-empty");
       container.innerHTML = `
         <div class="app-placeholder">
-          No photos uploaded yet. Click "Upload Photos" to add images linked to the current floor plan.
+          ${escapeHtml(tr("upload.empty", null, "No photos uploaded yet. Click \"Upload Photos\" to add images linked to the current floor plan."))}
         </div>
       `;
       return;
@@ -437,8 +444,8 @@
     // Pre-calculate Option B numbering (Room Type counts)
     const typeCounts = {};
     photoItems.forEach(p => {
-       if (p.roomType) {
-           typeCounts[p.roomType] = (typeCounts[p.roomType] || 0) + 1;
+       if (p.roomTypeId) {
+           typeCounts[p.roomTypeId] = (typeCounts[p.roomTypeId] || 0) + 1;
        }
     });
 
@@ -453,22 +460,25 @@
             // Option A: Linked to real floor plan room
             assignedName = buildPhotoName(baseSlug, room.name, index + 1, item.originalName);
             displayName = assignedName;
-        } else if (item.roomType) {
+        } else if (item.roomTypeId) {
             // Option B: User selected room type
-            const myType = item.roomType;
+            const myTypeId = item.roomTypeId;
+            const def = ROOM_TYPES.find(t => t.id === myTypeId) || { id: myTypeId, label: myTypeId };
+            const translatedType = tr(`roomTypes.${myTypeId}`, null, def.label);
             // Determine index within this type to add number if needed
             const sameTypeBefore = photoItems
                 .slice(0, index)
-                .filter(p => p.roomType === myType).length;
+                .filter(p => p.roomTypeId === myTypeId).length;
             const typeIndex = sameTypeBefore + 1;
-            const totalOfType = typeCounts[myType];
+            const totalOfType = typeCounts[myTypeId];
 
             // "If there are few rooms number them"
             const suffix = totalOfType > 1 ? ` ${typeIndex}` : "";
-            displayName = `${myType}${suffix}`;
+            displayName = `${translatedType}${suffix}`;
             
-            // Construct technical assigned name based on display name
-            assignedName = buildPhotoName(baseSlug, `${myType}${suffix}`, index + 1, item.originalName); 
+            // Construct technical assigned name using stable IDs (avoid Hebrew in filenames)
+            const fileRoom = `${myTypeId}${totalOfType > 1 ? `_${typeIndex}` : ""}`;
+            assignedName = buildPhotoName(baseSlug, fileRoom, index + 1, item.originalName); 
         } else {
             // Fallback / Unassigned
             assignedName = buildPhotoName(baseSlug, null, index + 1, item.originalName);
@@ -512,16 +522,18 @@
         } else {
              // Option B: Static Room Types
              selectHtml = `<select class="photo-card-select" onchange="window.assignPhotoToRoomType(${item.id}, this.value)" onclick="event.stopPropagation()">
-                <option value="" disabled ${!item.roomType ? "selected" : ""}>Match Photo-Room</option>
-                ${ROOM_TYPES.map(type => 
-                    `<option value="${type}" ${type === item.roomType ? "selected" : ""}>${type}</option>`
+                <option value="" disabled ${!item.roomTypeId ? "selected" : ""}>${escapeHtml(tr("upload.matchPhotoRoom", null, "Match Photo-Room"))}</option>
+                ${ROOM_TYPES.map(type => {
+                    const lbl = tr(`roomTypes.${type.id}`, null, type.label);
+                    return `<option value="${type.id}" ${type.id === item.roomTypeId ? "selected" : ""}>${escapeHtml(lbl)}</option>`;
+                }).join("")}
                 ).join("")}
             </select>`;
         }
         
         return `
           <figure class="photo-card" ${clickAction} style="${cursorStyle} transition: transform 0.2s; position: relative;">
-            <button onclick="event.stopPropagation(); window.deleteRawPhoto(${item.id})" style="position: absolute; top: 5px; right: 5px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="Delete photo">🗑️</button>
+            <button onclick="event.stopPropagation(); window.deleteRawPhoto(${item.id})" style="position: absolute; top: 5px; right: 5px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="${escapeHtml(tr("upload.deletePhoto", null, "Delete photo"))}">🗑️</button>
             <div class="photo-card-img-wrap">
               <img
                 src="${item.url}"
@@ -545,8 +557,8 @@
     const workingAreaExists = !!document.getElementById("photo-working-area");
     container.innerHTML = `
       <div class="photo-gallery-header">
-        <div class="photo-gallery-title">Raw Photos</div>
-        <div class="photo-gallery-subtitle">${workingAreaExists ? "Click a photo to open in Working Area" : `${photoItems.length} photo${photoItems.length === 1 ? "" : "s"} uploaded`}</div>
+        <div class="photo-gallery-title">${escapeHtml(tr("upload.rawTitle", null, "Raw Photos"))}</div>
+        <div class="photo-gallery-subtitle">${escapeHtml(workingAreaExists ? tr("upload.rawSubtitleClick", null, "Click a photo to open in Working Area") : tr("upload.rawSubtitleCount", { count: photoItems.length, plural: photoItems.length === 1 ? "" : "s" }, `${photoItems.length} photo${photoItems.length === 1 ? "" : "s"} uploaded`))}</div>
       </div>
       <div class="photo-gallery-grid">
         ${itemsHtml}
@@ -571,7 +583,7 @@
     const item = photoItems.find((p) => p.id === photoId);
     if (!item) return;
     
-    item.roomType = newType;
+    item.roomTypeId = newType;
     // Clear specific room ID if switching to generic type (though usually they are mutually exclusive modes)
     item.roomId = null;
     

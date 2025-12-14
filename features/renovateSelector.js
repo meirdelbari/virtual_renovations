@@ -5,6 +5,13 @@
 // - Downloads the renovated image so the user can save it locally.
 
 (function () {
+  function tr(key, vars, fallback) {
+    try {
+      if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+    } catch (_) {}
+    return fallback || key;
+  }
+
   // API base helper (supports file:// fallback to http://localhost:4000)
   function getApiUrl(path) {
     if (typeof window.getApiUrl === "function") {
@@ -17,6 +24,7 @@
 
   const RENOVATIONS = [
     {
+      id: "room",
       label: "Room",
       groups: [
         {
@@ -76,6 +84,7 @@
       ],
     },
     {
+      id: "bathroom",
       label: "Bathroom",
       groups: [
         {
@@ -136,6 +145,7 @@
       ],
     },
     {
+      id: "kitchen",
       label: "Kitchen",
       groups: [
         {
@@ -180,6 +190,7 @@
       ],
     },
     {
+      id: "exterior",
       label: "Exterior",
       groups: [
         {
@@ -276,39 +287,43 @@
     let itemsHtml = "";
 
     // Add Remove Furniture option at the top
+    const removeFurnitureLabel = tr("renovate.removeFurniture", null, "Remove Furniture");
     itemsHtml += `
       <div class="renovate-category">
         <button
           type="button"
           class="renovate-option-item"
           data-renovation-id="furniture_clear_remove"
-          data-renovation-label="Remove Furniture"
+          data-renovation-label="${escapeHtml(removeFurnitureLabel)}"
           style="width: 100%; text-align: left; padding: 10px 12px; font-weight: 600; background: #fff; border: none; border-bottom: 1px solid #e5e7eb; color: #dc2626; cursor: pointer; display: flex; align-items: center; gap: 8px;"
         >
-          <span>🧹</span> Remove Furniture
+          <span>🧹</span> ${escapeHtml(removeFurnitureLabel)}
         </button>
       </div>
     `;
     
     RENOVATIONS.forEach((category, index) => {
         const categoryId = `renovate-cat-${index}`;
+        const categoryLabel = tr(`renovate.categories.${category.id}`, null, category.label);
         const groupsHtml = category.groups
           .map((group, gIndex) => {
             const groupId = `${categoryId}-group-${gIndex}`;
+            const groupLabel = tr(`renovate.groups.${group.id}`, null, group.label);
             const optionButtons = group.options
-              .map(
-                (option) => `
+              .map((option) => {
+                const optionLabel = tr(`renovate.options.${option.id}`, null, option.label);
+                return `
                   <button
                     type="button"
                     class="renovate-option-item"
                     data-renovation-id="${group.id}_${option.id}"
-                    data-renovation-label="${escapeHtml(option.label)}"
+                    data-renovation-label="${escapeHtml(optionLabel)}"
                     style="padding-left: 32px;"
                   >
-                    ${escapeHtml(option.label)}
+                    ${escapeHtml(optionLabel)}
                   </button>
-                `
-              )
+                `;
+              })
               .join("");
             return `
               <div class="renovate-group">
@@ -318,7 +333,7 @@
                   data-target="${groupId}"
                   style="width: 100%; text-align: left; padding: 8px 12px; font-weight: 500; background: #fff; border: none; border-bottom: 1px solid #e5e7eb; color: #374151; cursor: pointer;"
                 >
-                  ${escapeHtml(group.label)}
+                  ${escapeHtml(groupLabel)}
                 </button>
                 <div
                   id="${groupId}"
@@ -340,7 +355,7 @@
               data-target="${categoryId}"
               style="width: 100%; text-align: left; padding: 10px 12px; font-weight: 600; background: #eef2ff; border: none; border-bottom: 1px solid #e5e7eb; color: #374151; cursor: pointer;"
             >
-              ${escapeHtml(category.label)}
+              ${escapeHtml(categoryLabel)}
             </button>
             <div 
               id="${categoryId}" 
@@ -355,7 +370,7 @@
 
     panel.innerHTML = `
       <div class="renovate-selector-header">
-        <div class="renovate-selector-title">Apply renovation</div>
+        <div class="renovate-selector-title">${escapeHtml(tr("renovate.title", null, "Apply renovation"))}</div>
       </div>
       <div class="renovate-selector-body" style="max-height: 400px; overflow-y: auto;">
         ${itemsHtml}
@@ -441,10 +456,10 @@
         const geminiBtn = document.querySelector('[data-role="gemini-ai"]');
         if (geminiBtn) {
             geminiBtn.classList.add('pulse-animation'); // We'll add this CSS
-            geminiBtn.textContent = "✨ Click to Process";
+            geminiBtn.textContent = tr("ops.clickToProcess", null, "✨ Click to Process");
             setTimeout(() => {
                 geminiBtn.classList.remove('pulse-animation');
-                geminiBtn.textContent = "✨ AlgoreitAI";
+                geminiBtn.textContent = tr("ops.algoreit", null, "✨ AlgoreitAI");
             }, 3000);
         }
         

@@ -21,15 +21,22 @@ const selectionSummaryState = {
 };
 window.selectionSummaryResetOnNextSelection = false;
 
+function tr(key, vars, fallback) {
+  try {
+    if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+  } catch (_) {}
+  return fallback || key;
+}
+
 function renderSelectionSummary() {
   const container = document.getElementById("selection-summary");
   if (!container) return;
 
   const chips = [
-    ["renovation", "Renovation"],
-    ["furniture", "Furniture"],
-    ["style", "Style"],
-    ["enhance", "Enhance"],
+    ["renovation", tr("summary.renovation", null, "Renovation")],
+    ["furniture", tr("summary.furniture", null, "Furniture")],
+    ["style", tr("summary.style", null, "Style")],
+    ["enhance", tr("summary.enhance", null, "Enhance")],
   ];
 
   let hasValue = false;
@@ -51,6 +58,9 @@ function renderSelectionSummary() {
 
   container.classList.toggle("is-hidden", !hasValue);
 }
+
+// Expose so other modules can re-show after i18n changes
+window.renderSelectionSummary = renderSelectionSummary;
 
 window.updateSelectionSummary = function (partial) {
   if (partial && typeof partial === "object") {
@@ -107,7 +117,7 @@ function initOpsGuard() {
       if (role === "style-selector" && !window.currentRenovationId && !lock) {
         e.stopImmediatePropagation();
         e.preventDefault();
-        alert("Please select  Renovation or Furniture");
+        alert(tr("alerts.selectRenovationOrFurniture", null, "Please select Renovation or Furniture"));
         return;
       }
 
@@ -126,8 +136,8 @@ function initOpsGuard() {
           e.preventDefault();
           alert(
             needsStyle
-              ? " Please select Style and then apply AlgoreitAI "
-              : " Please select Renovation, Furniture ,  Enhance Quilty or Custom"
+              ? tr("alerts.selectStyleThenAlgoreit", null, "Please select Style and then apply AlgoreitAI")
+              : tr("alerts.selectSomethingFirst", null, "Please select Renovation, Furniture, Enhance Quality or Custom")
           );
           return;
         }
@@ -146,8 +156,8 @@ function initOpsGuard() {
       e.preventDefault();
       const msg =
         lock.type === "stage"
-          ? " Please select Style and apply AlgotritAI "
-          : " Please complete Renovation by select Style and apply AlgotritAI ";
+          ? tr("alerts.completeStageFlow", null, "Please select Style and apply AlgoreitAI")
+          : tr("alerts.completeRenovationFlow", null, "Please complete Renovation by select Style and apply AlgoreitAI");
       alert(msg);
     },
     true
@@ -198,4 +208,9 @@ document.addEventListener("DOMContentLoaded", function () {
   initSelectionSummaryRow();
   console.info("AlgoreitAI Virtual Renovations app loaded.");
 });
+
+// Re-render summary labels on language change
+try {
+  window.addEventListener("i18n:changed", () => renderSelectionSummary());
+} catch (_) {}
 

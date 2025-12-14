@@ -6,6 +6,23 @@
 // - Uses Google Imagen 3 for image-to-image transformations
 
 (function () {
+  function tr(key, vars, fallback) {
+    try {
+      if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+    } catch (_) {}
+    return fallback || key;
+  }
+
+  function escapeHtml(str) {
+    if (typeof str !== "string") return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // API base helper:
   // - When opened via file://, relative "/api/..." becomes "file:///api/..." and fails.
   // - The backend serves both UI and API locally on http://localhost:4000
@@ -193,7 +210,7 @@
     // We allow proceeding if 'last' is valid, even if matches list seems empty (fallback for edge cases)
     if (!matches.length && (!last || !last.url)) {
       alert(
-        "There are no uploaded photos to process. Use 'Upload Photos' first."
+        tr("alerts.noPhotosToProcess", null, "There are no uploaded photos to process. Use 'Upload Photos' first.")
       );
       showSummary();
       return;
@@ -202,7 +219,7 @@
     // Validate that user has selected a room/photo
     if (!last || !last.photoId) {
       alert(
-        "Please select a room first by clicking the 'Room' button and choosing a photo to renovate."
+        tr("alerts.selectRoomFirst", null, "Please select a room first by clicking the 'Room' button and choosing a photo to renovate.")
       );
       showSummary();
       return;
@@ -238,7 +255,7 @@
       }
     }
     if (!isPhotoRelated(instructions)) {
-      alert("Requests must describe a change to the current photo. Please update your instructions.");
+      alert(tr("alerts.requestMustBePhotoRelated", null, "Requests must describe a change to the current photo. Please update your instructions."));
       showSummary();
       return;
     }
@@ -261,7 +278,7 @@ CRITICAL CONSTRAINTS:
     if (button) {
       button.disabled = true;
       var originalText = button.textContent;
-      button.textContent = "Processing with AlgoreitAI...";
+      button.textContent = tr("gemini.processingBtn", null, "Processing with AlgoreitAI...");
       thinkingIndicator = showGeminiThinkingIndicator(button);
     }
 
@@ -368,7 +385,7 @@ CRITICAL CONSTRAINTS:
     } finally {
       if (button) {
         button.disabled = false;
-        button.textContent = originalText || "✨ AlgoreitAI";
+        button.textContent = originalText || tr("ops.algoreit", null, "✨ AlgoreitAI");
       }
       hideGeminiThinkingIndicator(thinkingIndicator);
       showSummary();
@@ -421,28 +438,44 @@ CRITICAL CONSTRAINTS:
     const modal = document.createElement("div");
     modal.className = "gemini-modal";
 
+    const title = tr("gemini.modal.title", null, "AlgoreitAI Processing");
+    const desc = tr(
+      "gemini.modal.desc",
+      null,
+      "Describe what you want AlgoreitAI to do with this photo. Be specific about materials, colors, styles, or transformations."
+    );
+    const placeholder = tr(
+      "gemini.modal.placeholder",
+      null,
+      "Example: Replace the floor with light oak hardwood, repaint walls in warm beige, and update lighting fixtures to modern brass style..."
+    );
+    const hint = suggestion
+      ? tr("gemini.modal.prefilled", null, "✓ Pre-filled based on your style and renovation selections.")
+      : tr("gemini.modal.tip", null, "Tip: Use your Style and Renovate selections first for auto-suggestions.");
+    const cancel = tr("gemini.modal.cancel", null, "Cancel");
+    const submit = tr("gemini.modal.submit", null, "Send to AlgoreitAI");
+
     modal.innerHTML = `
       <div class="gemini-modal-header">
-        <h2>AlgoreitAI Processing</h2>
+        <h2>${title}</h2>
         <button class="gemini-modal-close" type="button">&times;</button>
       </div>
       <div class="gemini-modal-body">
         <p class="gemini-modal-description">
-          Describe what you want AlgoreitAI to do with this photo.
-          Be specific about materials, colors, styles, or transformations.
+          ${desc}
         </p>
         <textarea
           class="gemini-instructions-input"
-          placeholder="Example: Replace the floor with light oak hardwood, repaint walls in warm beige, and update lighting fixtures to modern brass style..."
+          placeholder="${escapeHtml(placeholder)}"
           rows="6"
         >${suggestion}</textarea>
         <div class="gemini-modal-hint">
-          ${suggestion ? "✓ Pre-filled based on your style and renovation selections." : "Tip: Use your Style and Renovate selections first for auto-suggestions."}
+          ${hint}
         </div>
       </div>
       <div class="gemini-modal-footer">
-        <button class="gemini-btn-cancel" type="button">Cancel</button>
-        <button class="gemini-btn-submit" type="button">Send to AlgoreitAI</button>
+        <button class="gemini-btn-cancel" type="button">${cancel}</button>
+        <button class="gemini-btn-submit" type="button">${submit}</button>
       </div>
     `;
 
@@ -460,7 +493,7 @@ CRITICAL CONSTRAINTS:
     submitBtn.addEventListener("click", () => {
       const instructions = textarea.value.trim();
       if (!instructions) {
-        alert("Please provide instructions before submitting.");
+        alert(tr("alerts.provideInstructions", null, "Please provide instructions before submitting."));
         return;
       }
       cleanup();
@@ -497,27 +530,34 @@ CRITICAL CONSTRAINTS:
     const modal = document.createElement("div");
     modal.className = "gemini-modal";
 
+    const title = tr("gemini.tweak.title", null, "Quick Tweak");
+    const desc = tr("gemini.tweak.desc", null, "Tell AlgoreitAI what you would like to do with this photo.");
+    const placeholder = tr("gemini.tweak.placeholder", null, "Tell AlgoreitAI what you would like to do...");
+    const hint = tr("gemini.tweak.hint", null, "Keep it photo-specific (e.g., repaint walls, swap countertop).");
+    const cancel = tr("gemini.tweak.cancel", null, "Cancel");
+    const submit = tr("gemini.tweak.submit", null, "Send Tweak");
+
     modal.innerHTML = `
       <div class="gemini-modal-header">
-        <h2>Quick Tweak</h2>
+        <h2>${title}</h2>
         <button class="gemini-modal-close" type="button">&times;</button>
       </div>
       <div class="gemini-modal-body">
         <p class="gemini-modal-description">
-          Tell AlgoreitAi what  would you like do with this photo.
+          ${desc}
         </p>
         <textarea
           class="gemini-instructions-input"
-          placeholder="Tell AlgoreitAi what  would you like do..."
+          placeholder="${escapeHtml(placeholder)}"
           rows="4"
         ></textarea>
         <div class="gemini-modal-hint">
-          Keep it photo-specific (e.g., repaint walls, swap countertop).
+          ${hint}
         </div>
       </div>
       <div class="gemini-modal-footer">
-        <button class="gemini-btn-cancel" type="button">Cancel</button>
-        <button class="gemini-btn-submit" type="button">Send Tweak</button>
+        <button class="gemini-btn-cancel" type="button">${cancel}</button>
+        <button class="gemini-btn-submit" type="button">${submit}</button>
       </div>
     `;
 
@@ -535,11 +575,11 @@ CRITICAL CONSTRAINTS:
     submitBtn.addEventListener("click", () => {
       const instructions = textarea.value.trim();
       if (!instructions) {
-        alert("Please tell AlgoreitAI what to change in this photo.");
+        alert(tr("alerts.tweakEmpty", null, "Please tell AlgoreitAI what to change in this photo."));
         return;
       }
       if (!isPhotoRelated(instructions)) {
-        alert("Requests must relate to the current photo. Please describe a change in this image.");
+        alert(tr("alerts.tweakNotRelated", null, "Requests must relate to the current photo. Please describe a change in this image."));
         return;
       }
       cleanup();
@@ -845,7 +885,7 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
         <span class="gemini-thinking-dot"></span>
         <span class="gemini-thinking-dot"></span>
       </div>
-      <span class="gemini-thinking-text">Processing…</span>
+      <span class="gemini-thinking-text">${escapeHtml(tr("gemini.thinking", null, "Processing…"))}</span>
     `;
 
     document.body.appendChild(indicator);

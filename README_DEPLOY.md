@@ -62,6 +62,14 @@ To run the application locally:
       ```
 4.  Open `http://localhost:4000` in your browser (avoid `file://index.html` because `/api/...` will fail).
 
+## Translations (i18n)
+
+Translations are stored in:
+- `locales/english.json`
+- `locales/hebrew.json`
+
+Language selection is done at runtime via a dropdown in the UI, and persisted in the browser (`VR_LOCALE`).
+
 ## Project Structure
 
 *   `api/`: Contains the backend logic (Serverless Functions).
