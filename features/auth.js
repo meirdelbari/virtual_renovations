@@ -11,6 +11,62 @@
   let clerk;
   let authListenerCleanup = null;
 
+  function getQueryParam(name) {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const v = params.get(name);
+      return v == null ? null : String(v);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function clearQueryParam(name) {
+    try {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has(name)) return;
+      url.searchParams.delete(name);
+      // Avoid full reload; just clean the URL.
+      window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+    } catch (_) {}
+  }
+
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
+  function isLikelyClerkRedirectUrl() {
+    try {
+      const search = String(window.location.search || "");
+      // Clerk commonly uses __clerk_* params during OAuth redirects.
+      return /(?:\?|&)(__clerk_[^=]+)=/i.test(search);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showAuthLoading(message) {
+    const landing = document.getElementById("landing-page");
+    const app = document.getElementById("app");
+    if (landing) landing.style.display = "none";
+    if (app) app.style.display = "none";
+    document.body.classList.add("auth-locked");
+
+    // If sign-in modal already exists, don't add a second overlay.
+    if (document.getElementById("auth-modal")) return;
+
+    const modal = document.createElement("div");
+    modal.id = "auth-modal";
+    modal.className = "auth-modal";
+    modal.innerHTML = `
+      <div class="auth-container" style="text-align:center;">
+        <div style="font-size:16px;font-weight:600;margin-bottom:10px;">${message || "Signing you in..."}</div>
+        <div style="font-size:13px;opacity:0.8;">Please wait a moment.</div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
   async function initAuth() {
     console.log("Auth: Starting initialization...");
 
@@ -35,6 +91,8 @@
     }
 
     // Local development guard: Clerk custom domain blocks localhost (CORS/404)
+    // Removed to allow Google Sign In testing on localhost
+    /*
     const isLocalhost =
       window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1";
@@ -43,6 +101,7 @@
       showLandingPage({ offlineMode: true });
       return;
     }
+    */
 
     try {
       // When opened directly from the file system, skip auth fetch to avoid CORS errors.
@@ -74,6 +133,7 @@
       if (window.Clerk) {
         clerk = window.Clerk;
         try {
+          console.log("Auth: Loading Clerk...");
           await clerk.load({
             publishableKey: publishableKey // Explicitly pass key to load
           });
@@ -83,6 +143,7 @@
         }
         
         console.log("Auth: Clerk Loaded. User:", clerk.user ? "Signed In" : "Signed Out");
+        console.log("Auth: Current URL:", window.location.href);
 
         // Always re-bind listeners so we react to sign-in/up redirect states
         bindClerkAuthListener();
@@ -90,10 +151,52 @@
         if (clerk.user) {
           // User is signed in
           mountUserButton();
+          try {
+            sessionStorage.removeItem("vr_auth_intent");
+          } catch (_) {}
+          clearQueryParam("vr_post_auth");
           showApp();
         } else {
-          // User is not signed in - Show Landing Page
-          showLandingPage();
+          // If we just returned from OAuth, Clerk may need a moment to hydrate.
+          const isPostAuth =
+            getQueryParam("vr_post_auth") === "1" || isLikelyClerkRedirectUrl();
+          if (isPostAuth) {
+            showAuthLoading("Signing you in...");
+            // Retry hydration a few times before falling back to sign-in UI.
+            for (let i = 0; i < 8; i++) {
+              await sleep(250);
+              try {
+                await clerk.load();
+              } catch (_) {}
+              if (clerk.user) break;
+            }
+
+            if (clerk.user) {
+              mountUserButton();
+              try {
+                sessionStorage.removeItem("vr_auth_intent");
+              } catch (_) {}
+              clearQueryParam("vr_post_auth");
+              showApp();
+              return;
+            }
+
+            // Still not signed in; show sign-in modal instead of bouncing to landing.
+            showSignInModal();
+            return;
+          }
+
+          // If user previously clicked Start and we asked them to sign in, reopen the modal.
+          let intent = null;
+          try {
+            intent = sessionStorage.getItem("vr_auth_intent");
+          } catch (_) {}
+          if (intent === "start") {
+            showSignInModal();
+          } else {
+            // User is not signed in - Show Landing Page
+            showLandingPage();
+          }
         }
       }
     } catch (error) {
@@ -213,6 +316,11 @@
     }
 
     console.log("Auth: Showing Sign In Modal");
+
+    // Remember the user's intent so a refresh/redirect can continue automatically.
+    try {
+      sessionStorage.setItem("vr_auth_intent", "start");
+    } catch (_) {}
     
     // Hide landing page when opening modal
     const landing = document.getElementById("landing-page");
@@ -237,9 +345,17 @@
     `;
     document.body.appendChild(modal);
 
+    // Redirect back to the current page with a "post auth" hint so we can auto-enter the app.
+    let afterUrl = "/";
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("vr_post_auth", "1");
+      afterUrl = url.pathname + url.search + url.hash;
+    } catch (_) {}
+
     clerk.mountSignIn(document.getElementById("sign-in-mount"), {
-      afterSignInUrl: "/",
-      afterSignUpUrl: "/",
+      afterSignInUrl: afterUrl,
+      afterSignUpUrl: afterUrl,
       appearance: {
         elements: {
           footerActionLink: { color: "#5b46ff" },
