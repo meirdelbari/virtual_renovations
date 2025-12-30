@@ -33,7 +33,11 @@ async function apiCall(endpoint, method = "GET", body = null) {
     throw new Error(`Server returned non-JSON: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `API Error ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(data.error || `API Error ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   return data;
 }
 
@@ -81,24 +85,25 @@ function badge(status) {
 }
 
 async function loadSuppliers() {
-  const status = document.getElementById("status-filter").value;
-  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
-  const suppliers = await apiCall(`/admin/suppliers${qs}`);
+  try {
+    const status = document.getElementById("status-filter").value;
+    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    const suppliers = await apiCall(`/admin/suppliers${qs}`);
 
-  document.getElementById("total-count").textContent = String(suppliers.length);
+    document.getElementById("total-count").textContent = String(suppliers.length);
 
-  const tbody = document.getElementById("rows");
-  tbody.innerHTML = "";
+    const tbody = document.getElementById("rows");
+    tbody.innerHTML = "";
 
-  if (suppliers.length === 0) {
-    tbody.innerHTML = `<tr><td class="p-4 text-gray-500" colspan="6">No suppliers found.</td></tr>`;
-    return;
-  }
+    if (suppliers.length === 0) {
+      tbody.innerHTML = `<tr><td class="p-4 text-gray-500" colspan="6">No suppliers found.</td></tr>`;
+      return;
+    }
 
-  suppliers.forEach((s) => {
-    const tr = document.createElement("tr");
-    tr.className = "border-t";
-    tr.innerHTML = `
+    suppliers.forEach((s) => {
+      const tr = document.createElement("tr");
+      tr.className = "border-t";
+      tr.innerHTML = `
       <td class="p-3 font-medium text-gray-900">${s.companyName || ""}</td>
       <td class="p-3 text-gray-700">${s.contactEmail || ""}</td>
       <td class="p-3"><span class="${badge(s.status)}">${s.status || "pending"}</span></td>
@@ -111,40 +116,52 @@ async function loadSuppliers() {
         </div>
       </td>
     `;
-    tbody.appendChild(tr);
-  });
-
-  // Bind events
-  document.querySelectorAll(".approve-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.id;
-      btn.disabled = true;
-      try {
-        await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/approve`, "POST");
-        await loadSuppliers();
-      } catch (e) {
-        alert(e.message);
-      } finally {
-        btn.disabled = false;
-      }
+      tbody.appendChild(tr);
     });
-  });
 
-  document.querySelectorAll(".reject-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.id;
-      const reason = prompt("Reject reason (optional):") || "";
-      btn.disabled = true;
-      try {
-        await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/reject`, "POST", { reason });
-        await loadSuppliers();
-      } catch (e) {
-        alert(e.message);
-      } finally {
-        btn.disabled = false;
-      }
+    // Bind events
+    document.querySelectorAll(".approve-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        btn.disabled = true;
+        try {
+          await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/approve`, "POST");
+          await loadSuppliers();
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
     });
-  });
+
+    document.querySelectorAll(".reject-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const reason = prompt("Reject reason (optional):") || "";
+        btn.disabled = true;
+        try {
+          await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/reject`, "POST", { reason });
+          await loadSuppliers();
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+  } catch (e) {
+    // Surface authz problems loudly
+    if (e && e.status === 403) {
+      setLoadingError(
+        "Admin access required",
+        "Your Clerk user is signed in, but not allowlisted as a supplier admin. Add SUPPLIER_ADMIN_USER_IDS in Vercel and redeploy."
+      );
+    } else {
+      setLoadingError("Failed to load suppliers", e?.message || String(e));
+    }
+    throw e;
+  }
 }
 
 async function init() {
@@ -169,13 +186,14 @@ async function init() {
     currentUser = clerk.user;
     mountUserButton();
 
-    document.getElementById("loading").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-
     document.getElementById("refresh-btn").addEventListener("click", loadSuppliers);
     document.getElementById("status-filter").addEventListener("change", loadSuppliers);
 
+    // Load data first; only then reveal the UI so failures aren't silent
     await loadSuppliers();
+
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
   } catch (e) {
     console.error(e);
     setLoadingError("Failed to load admin.", e.message || String(e));
