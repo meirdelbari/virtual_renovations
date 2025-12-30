@@ -287,6 +287,57 @@ body.auth-locked > *:not(#auth-modal) {
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
 }
 
+/* ==========================================================
+   Rich Tooltips (custom, with background)
+   ========================================================== */
+.vr-tooltip {
+  position: fixed;
+  z-index: 2500;
+  max-width: 320px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  /* Yellow background with black text (high visibility, friendly) */
+  background: rgba(254, 249, 195, 0.65); /* yellow-100 (even more transparent) */
+  color: #111827; /* slate-900 */
+  font-size: 12.5px;
+  line-height: 1.35;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
+  border: 1px solid rgba(250, 204, 21, 0.45); /* yellow border */
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.vr-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.vr-tooltip::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: rgba(254, 249, 195, 0.65);
+  border-left: 1px solid rgba(250, 204, 21, 0.45);
+  border-top: 1px solid rgba(250, 204, 21, 0.45);
+  transform: rotate(45deg);
+}
+
+.vr-tooltip[data-placement="top"]::after {
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%) rotate(225deg);
+}
+
+.vr-tooltip[data-placement="bottom"]::after {
+  left: 50%;
+  top: -6px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
 .op-btn-primary {
   background: linear-gradient(135deg, #8b5cf6, #0ea5e9);
   color: #ffffff;
@@ -353,6 +404,50 @@ body.auth-locked > *:not(#auth-modal) {
   margin-top: 2px;
 }
 
+/* Floor plan processing banner (more visible than subtitle text) */
+.floor-plan-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  margin-top: 8px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.floor-plan-status--processing {
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  color: #0f172a;
+}
+
+.floor-plan-status--error {
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  color: #7f1d1d;
+}
+
+.floor-plan-status-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(30, 64, 175, 0.22);
+  border-top-color: rgba(30, 64, 175, 0.9);
+  animation: floorPlanSpin 900ms linear infinite;
+  flex: 0 0 auto;
+}
+
+.floor-plan-status--error .floor-plan-status-spinner {
+  border-color: rgba(127, 29, 29, 0.20);
+  border-top-color: rgba(127, 29, 29, 0.85);
+}
+
+@keyframes floorPlanSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .floor-plan-table {
   width: 100%;
   border-collapse: collapse;
@@ -368,6 +463,11 @@ body.auth-locked > *:not(#auth-modal) {
   padding: 8px 10px;
   border-bottom: 1px solid var(--color-border-subtle);
   text-align: left;
+}
+
+/* Product selector (Category vs Style rows spacing) */
+.ps-style-row {
+  margin-top: 10px;
 }
 
 .floor-plan-table th:nth-child(n + 2),
@@ -1217,3 +1317,47 @@ body.auth-locked > *:not(#auth-modal) {
     touch-action: manipulation;
   }
 }
+
+/* Dropdown Menu Styles */
+.op-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.op-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1600; /* Higher than guide overlay */
+  min-width: 160px;
+  background: #ffffff;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  box-shadow: var(--shadow-soft);
+  margin-top: 4px;
+  display: none;
+  flex-direction: column;
+  padding: 4px;
+}
+
+.op-dropdown-menu.is-open {
+  display: flex;
+}
+
+.op-dropdown-item {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--color-text-main);
+  cursor: pointer;
+  border-radius: 6px;
+  width: 100%;
+  transition: background 0.15s ease;
+}
+
+.op-dropdown-item:hover {
+  background: #f3f4f6;
+}
+

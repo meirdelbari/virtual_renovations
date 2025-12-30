@@ -15,6 +15,7 @@
   let photoCounter = 1;
   const photoItems = [];
   const processedItems = [];
+  const virtualTourItems = []; // New separate list for Virtual Tour photos
   let saveDirectoryHandle = null;
 
   // Standard room types for Option B (No Floor Plan)
@@ -97,7 +98,8 @@
                 workingArea.className = "photo-working-area";
                 workingArea.style.marginBottom = "30px";
                 workingArea.style.display = "none"; 
-                photosContainer.appendChild(workingArea);
+                // Ensure Working Area is always at the top
+                photosContainer.prepend(workingArea);
             }
 
             if (!document.getElementById("processed-gallery")) {
@@ -156,62 +158,6 @@
     });
   }
 
-  window.saveRenovatedPhotosToFolder = async function (event) {
-      const triggerElement = event && event.currentTarget ? event.currentTarget : null;
-      if (typeof window.showDirectoryPicker !== "function") {
-          alert(tr("alerts.saveFolderNotSupported", null, "Your browser does not support saving directly to folders. Please use the Download buttons instead."));
-          return;
-      }
-      if (!processedItems.length) {
-          alert(tr("alerts.noRenovationsToSave", null, "There are no renovation photos to save yet."));
-          return;
-      }
-      try {
-          if (!saveDirectoryHandle || (event && event.shiftKey)) {
-              saveDirectoryHandle = await window.showDirectoryPicker({
-                  mode: "readwrite",
-              });
-          }
-      } catch (error) {
-          if (error && error.name === "AbortError") return;
-          console.error("Folder picker error:", error);
-          alert(tr("alerts.folderAccessFailed", null, "Could not access that folder. Please try again."));
-          return;
-      }
-      if (!saveDirectoryHandle) return;
-
-      const hasPermission = await ensureDirectoryWritePermission(saveDirectoryHandle);
-      if (!hasPermission) {
-          alert(tr("alerts.needFolderWrite", null, "Please allow write access to that folder in order to save photos."));
-          saveDirectoryHandle = null;
-          return;
-      }
-      try {
-          const usedNames = new Set();
-          let saved = 0;
-          for (const item of processedItems) {
-              const filename = buildUniqueFilename(
-                  sanitizeFilename(item.originalName || `renovated_${item.id}.png`),
-                  usedNames
-              );
-              const fileHandle = await saveDirectoryHandle.getFileHandle(filename, { create: true });
-              const writable = await fileHandle.createWritable();
-              const response = await fetch(item.url);
-              await writable.write(await response.blob());
-              await writable.close();
-              saved++;
-          }
-          showToast(
-              `Download complete! ${saved} renovation photo${saved === 1 ? "" : "s"} saved to your folder.`,
-              "success",
-              { anchor: triggerElement }
-          );
-      } catch (error) {
-          console.error("Saving renovation photos failed:", error);
-          alert(tr("alerts.savingFailed", null, "Saving photos failed. Please ensure the folder is still accessible."));
-      }
-  };
-
   // Public helper to add processed photo to TOP ROW and Working Area
   window.addProcessedPhotoToGallery = function(originalPhotoId, newUrl, styleId, renovationId) {
       // Try to find in raw photos first
@@ -221,8 +167,23 @@
       if (!original) {
           original = processedItems.find(p => p.id === originalPhotoId);
       }
+
+      // If still not found, try virtual tour photos
+      if (!original) {
+          original = virtualTourItems.find(p => p.id === originalPhotoId);
+      }
       
-      if (!original) return;
+      // If still not found, creating a synthetic original if we can't find the source is risky without more info,
+      // but we should try to avoid failing silently.
+      if (!original) {
+          console.warn("[UploadPhotos] Original photo not found for ID:", originalPhotoId);
+          // Create a dummy original to allow saving the result
+          original = {
+              id: originalPhotoId,
+              originalName: "Unknown Source",
+              roomId: null
+          };
+      }
 
       // 1. Create a NEW item for the renovated photo list (Renovated Row)
       const renovationLabel = renovationId ? renovationId.replace(/_/g, ' ') : "Renovated";
@@ -268,7 +229,202 @@
           container.className = "photo-gallery";
           container.style.marginBottom = "20px";
           container.style.display = "none"; 
+          
+          // Always insert before raw gallery in workspace
+          if (rawGallery && photosContainer.contains(rawGallery)) {
+              rawGallery.parentNode.insertBefore(container, rawGallery);
+          } else {
+              photosContainer.appendChild(container);
+          }
+      }
 
+      // 3. Re-render Renovated Gallery
+      container.style.display = "block";
+      renderProcessedGallery(container);
+
+      // 4. Update the Working Area (Only for Option B)
+      // If Working Area doesn't exist (Option A), this function does nothing safely.
+      openInWorkingArea(newItem);
+
+      // Update caption to show details (Option B)
+      const workingArea = document.getElementById("photo-working-area");
+      if (workingArea) {
+          const caption = workingArea.querySelector(".working-area-caption");
+          if (caption) caption.textContent = `Result: ${renovationLabel} (${styleId || "Modern"})`;
+      }
+
+      return newItem; // Return the item so caller can use it (e.g. Gemini chaining)
+  };
+
+  // Public helper to download a photo
+  window.downloadPhoto = function(url, filename) {
+      const link = document.createElement("a");
+      link.href = url;
+      const safeName = sanitizeFilename(filename || "renovated-photo.png");
+      link.download = safeName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
+  function renderProcessedGallery(container) {
+      if (!container) return;
+
+      if (processedItems.length === 0) {
+          container.style.display = "none";
+          container.innerHTML = "";
+          return;
+      }
+
+      const headerHtml = `
+        <div class="photo-gallery-header" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div>
+            <div class="photo-gallery-title">${escapeHtml(tr("upload.renovationsTitle", null, "✨ Renovation Photos"))}</div>
+            <div class="photo-gallery-subtitle">${escapeHtml(tr("upload.renovationsSubtitle", null, "Click to view in Working Area"))}</div>
+          </div>
+          <button onclick="window.saveRenovatedPhotosToFolder(event)" class="op-btn renovation-save-btn" style="padding: 8px 18px; font-size: 13px;">
+            ${escapeHtml(tr("upload.downloadRenovations", null, "💾 Download Photos"))}
+          </button>
+        </div>
+      `;
+      
+      container.style.display = "block";
+      container.innerHTML = `
+        ${headerHtml}
+        <div class="photo-gallery-grid">
+          ${processedItems.map(item => `
+            <figure class="photo-card" onclick="window.openInWorkingArea(${item.id}, true)" style="cursor: pointer; border-color: #4285f4; box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15); position: relative;">
+              <button onclick="event.stopPropagation(); window.deleteProcessedPhoto(${item.id})" style="position: absolute; top: 5px; right: 5px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="${escapeHtml(tr("upload.deleteRenovation", null, "Delete renovation"))}">🗑️</button>
+              <button onclick="event.stopPropagation(); window.downloadPhoto('${item.url}', '${escapeHtml(item.originalName)}')" style="position: absolute; top: 5px; right: 34px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #4285f4; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="${escapeHtml(tr("upload.downloadPhoto", null, "Download photo"))}">⬇️</button>
+              <div class="photo-card-img-wrap">
+                <img src="${item.url}" class="photo-card-img" />
+              </div>
+              <figcaption class="photo-card-caption">
+                <div class="photo-card-name">${escapeHtml(item.renovation || "Renovated")}</div>
+                <div class="photo-card-original" style="color: #4285f4;">${escapeHtml(item.style || "Modern")}</div>
+              </figcaption>
+            </figure>
+          `).join("")}
+        </div>
+      `;
+  }
+  
+  // Public helper to add a standalone virtual tour photo
+  window.addVirtualTourPhoto = function(url, roomName) {
+      const gallery = ensureGalleryExists(); // Ensures containers exist
+      const newId = Date.now(); // Use timestamp to avoid collisions
+      
+      // Create a item specifically for Virtual Tour
+      const newItem = {
+          id: newId,
+          url: url,
+          originalName: `Virtual Tour - ${roomName}`,
+          renovation: "AI Generation",
+          style: "AlgoreitAI",
+          roomId: null,
+          isRenovated: true,
+          isVirtualTour: true
+      };
+      
+      virtualTourItems.push(newItem);
+      
+      let container = document.getElementById("virtual-tour-gallery");
+      if (!container) {
+          // Create container if it doesn't exist, insert before processed-gallery or at top of workspace photos area
+          const workspace = document.querySelector(".app-workspace");
+          const photosContainer = document.getElementById("photos-container") || workspace;
+          const processedGallery = document.getElementById("processed-gallery");
+          
+          container = document.createElement("div");
+          container.id = "virtual-tour-gallery";
+          container.className = "photo-gallery";
+          container.style.marginBottom = "20px";
+          
+          if (processedGallery && photosContainer.contains(processedGallery)) {
+              processedGallery.parentNode.insertBefore(container, processedGallery);
+          } else {
+              photosContainer.prepend(container);
+          }
+      }
+      
+      container.style.display = "block";
+      renderVirtualTourGallery(container);
+      
+      return newItem;
+  };
+
+  // Public helper to add processed photo to TOP ROW and Working Area
+  window.addProcessedPhotoToGallery = function(originalPhotoId, newUrl, styleId, renovationId) {
+      // Try to find in raw photos first
+      let original = photoItems.find(p => p.id === originalPhotoId);
+      
+      // If not found, try processed photos (chaining renovations)
+      if (!original) {
+          original = processedItems.find(p => p.id === originalPhotoId);
+      }
+
+      // If still not found, try virtual tour photos
+      if (!original) {
+          original = virtualTourItems.find(p => p.id === originalPhotoId);
+      }
+      
+      // If still not found, creating a synthetic original if we can't find the source is risky without more info,
+      // but we should try to avoid failing silently.
+      if (!original) {
+          console.warn("[UploadPhotos] Original photo not found for ID:", originalPhotoId);
+          // Create a dummy original to allow saving the result
+          original = {
+              id: originalPhotoId,
+              originalName: "Unknown Source",
+              roomId: null
+          };
+      }
+
+      // 1. Create a NEW item for the renovated photo list (Renovated Row)
+      const renovationLabel = renovationId ? renovationId.replace(/_/g, ' ') : "Renovated";
+      const labelPrefix =
+          typeof renovationLabel === "string" && renovationLabel.toLowerCase().includes("enhanc")
+              ? "Enhanced"
+              : "Renovated";
+      
+      // Simplify name to avoid "Renovated - Renovated - ..."
+      let baseName = original.originalName || "";
+      const knownPrefixes = ["Renovated - ", "Enhanced - "];
+      knownPrefixes.forEach(prefix => {
+          if (baseName.startsWith(prefix)) {
+              baseName = baseName.substring(prefix.length);
+          }
+      });
+      if (!baseName) {
+          baseName = original.originalName || "";
+      }
+      
+      const newItem = {
+          id: Date.now(), // Use timestamp for unique ID in processed list
+          url: newUrl,
+          originalName: `${labelPrefix} - ${baseName || `photo_${originalPhotoId}`}`,
+          style: styleId,
+          renovation: renovationId,
+          roomId: original.roomId, 
+          isRenovated: true
+      };
+      
+      // Add to processed list
+      processedItems.push(newItem);
+      
+      // 2. Ensure processed-gallery exists in the correct place
+      let container = document.getElementById("processed-gallery");
+      if (!container) {
+          const workspace = document.querySelector(".app-workspace");
+          const photosContainer = document.getElementById("photos-container") || workspace;
+          const rawGallery = document.getElementById("photo-gallery");
+          
+          container = document.createElement("div");
+          container.id = "processed-gallery";
+          container.className = "photo-gallery";
+          container.style.marginBottom = "20px";
+          container.style.display = "none"; 
+          
           // Always insert before raw gallery in workspace
           if (rawGallery && photosContainer.contains(rawGallery)) {
               rawGallery.parentNode.insertBefore(container, rawGallery);
@@ -330,21 +486,96 @@
       }
   };
 
-  // Public helper to download a photo
-  window.downloadPhoto = function(url, filename) {
-      const link = document.createElement("a");
-      link.href = url;
-      const safeName = sanitizeFilename(filename || "renovated-photo.png");
-      link.download = safeName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  // Helper to delete a virtual tour photo
+  window.deleteVirtualTourPhoto = function(id) {
+      const index = virtualTourItems.findIndex(item => item.id === id);
+      if (index !== -1) {
+          // Check if we are deleting the currently viewed photo
+          const workingArea = document.getElementById("photo-working-area");
+          const currentImg = workingArea ? workingArea.querySelector("img") : null;
+          if (currentImg && currentImg.src === virtualTourItems[index].url) {
+              workingArea.style.display = "none";
+          }
+          
+          virtualTourItems.splice(index, 1);
+          const container = document.getElementById("virtual-tour-gallery");
+          if (container) renderVirtualTourGallery(container);
+      }
   };
 
-  function renderProcessedGallery(container) {
+  window.downloadVirtualTourPhotos = async function(event) {
+      const list = virtualTourItems;
+      if (!list.length) {
+          alert("No virtual tour photos to save.");
+          return;
+      }
+      // Re-use the save logic but target virtualTourItems
+      await savePhotosListToFolder(list, "virtual_tour", event);
+  };
+
+  // Refactored save function to handle any list
+  async function savePhotosListToFolder(list, defaultPrefix, event) {
+      const triggerElement = event && event.currentTarget ? event.currentTarget : null;
+      if (typeof window.showDirectoryPicker !== "function") {
+          alert(tr("alerts.saveFolderNotSupported", null, "Your browser does not support saving directly to folders. Please use the Download buttons instead."));
+          return;
+      }
+      
+      try {
+          if (!saveDirectoryHandle || (event && event.shiftKey)) {
+              saveDirectoryHandle = await window.showDirectoryPicker({
+                  mode: "readwrite",
+              });
+          }
+      } catch (error) {
+          if (error && error.name === "AbortError") return;
+          console.error("Folder picker error:", error);
+          alert(tr("alerts.folderAccessFailed", null, "Could not access that folder. Please try again."));
+          return;
+      }
+      if (!saveDirectoryHandle) return;
+
+      const hasPermission = await ensureDirectoryWritePermission(saveDirectoryHandle);
+      if (!hasPermission) {
+          alert(tr("alerts.needFolderWrite", null, "Please allow write access to that folder in order to save photos."));
+          saveDirectoryHandle = null;
+          return;
+      }
+      try {
+          const usedNames = new Set();
+          let saved = 0;
+          for (const item of list) {
+              const filename = buildUniqueFilename(
+                  sanitizeFilename(item.originalName || `${defaultPrefix}_${item.id}.png`),
+                  usedNames
+              );
+              const fileHandle = await saveDirectoryHandle.getFileHandle(filename, { create: true });
+              const writable = await fileHandle.createWritable();
+              const response = await fetch(item.url);
+              await writable.write(await response.blob());
+              await writable.close();
+              saved++;
+          }
+          showToast(
+              `Download complete! ${saved} photo${saved === 1 ? "" : "s"} saved to your folder.`,
+              "success",
+              { anchor: triggerElement }
+          );
+      } catch (error) {
+          console.error("Saving photos failed:", error);
+          alert(tr("alerts.savingFailed", null, "Saving photos failed. Please ensure the folder is still accessible."));
+      }
+  }
+
+  // Bind old save function to new generic one for backward compatibility
+  window.saveRenovatedPhotosToFolder = function(event) {
+      savePhotosListToFolder(processedItems, "renovated", event);
+  };
+
+  function renderVirtualTourGallery(container) {
       if (!container) return;
 
-      if (processedItems.length === 0) {
+      if (virtualTourItems.length === 0) {
           container.style.display = "none";
           container.innerHTML = "";
           return;
@@ -353,11 +584,11 @@
       const headerHtml = `
         <div class="photo-gallery-header" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
           <div>
-            <div class="photo-gallery-title">${escapeHtml(tr("upload.renovationsTitle", null, "✨ Renovation Photos"))}</div>
-            <div class="photo-gallery-subtitle">${escapeHtml(tr("upload.renovationsSubtitle", null, "Click to view in Working Area"))}</div>
+            <div class="photo-gallery-title">Virtual Tour Photos</div>
+            <div class="photo-gallery-subtitle">Generated by AlgoreitAI</div>
           </div>
-          <button onclick="window.saveRenovatedPhotosToFolder(event)" class="op-btn renovation-save-btn" style="padding: 8px 18px; font-size: 13px;">
-            ${escapeHtml(tr("upload.downloadRenovations", null, "💾 Download Renovation Photos"))}
+          <button onclick="window.downloadVirtualTourPhotos(event)" class="op-btn renovation-save-btn" style="padding: 8px 18px; font-size: 13px;">
+            💾 Download Folder
           </button>
         </div>
       `;
@@ -366,26 +597,29 @@
       container.innerHTML = `
         ${headerHtml}
         <div class="photo-gallery-grid">
-          ${processedItems.map(item => `
-            <figure class="photo-card" onclick="window.openInWorkingArea(${item.id}, true)" style="cursor: pointer; border-color: #4285f4; box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15); position: relative;">
-              <button onclick="event.stopPropagation(); window.deleteProcessedPhoto(${item.id})" style="position: absolute; top: 5px; right: 5px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="${escapeHtml(tr("upload.deleteRenovation", null, "Delete renovation"))}">🗑️</button>
-              <button onclick="event.stopPropagation(); window.downloadPhoto('${item.url}', '${escapeHtml(item.originalName)}')" style="position: absolute; top: 5px; right: 34px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #4285f4; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="${escapeHtml(tr("upload.downloadPhoto", null, "Download photo"))}">⬇️</button>
+          ${virtualTourItems.map(item => `
+            <figure class="photo-card" onclick="window.openInWorkingArea(${item.id}, false, true)" style="cursor: pointer; border-color: #8b5cf6; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15); position: relative;">
+              <button onclick="event.stopPropagation(); window.deleteVirtualTourPhoto(${item.id})" style="position: absolute; top: 5px; right: 5px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="Delete">🗑️</button>
+              <button onclick="event.stopPropagation(); window.downloadPhoto('${item.url}', '${escapeHtml(item.originalName)}')" style="position: absolute; top: 5px; right: 34px; background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #8b5cf6; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="Download">⬇️</button>
               <div class="photo-card-img-wrap">
                 <img src="${item.url}" class="photo-card-img" />
               </div>
               <figcaption class="photo-card-caption">
-                <div class="photo-card-name">${escapeHtml(item.renovation || "Renovated")}</div>
-                <div class="photo-card-original" style="color: #4285f4;">${escapeHtml(item.style || "Modern")}</div>
+                <div class="photo-card-name">${escapeHtml(item.originalName)}</div>
+                <div class="photo-card-original" style="color: #8b5cf6;">AlgoreitAI</div>
               </figcaption>
             </figure>
           `).join("")}
         </div>
       `;
   }
-  
-  // Expose helper to open items from either list
-  window.openInWorkingArea = function(id, isProcessed = false) {
-      const list = isProcessed ? processedItems : photoItems;
+
+  // Expose helper to open items from any list
+  window.openInWorkingArea = function(id, isProcessed = false, isVirtualTour = false) {
+      let list = photoItems;
+      if (isVirtualTour) list = virtualTourItems;
+      else if (isProcessed) list = processedItems;
+      
       const item = list.find(p => p.id === id);
       if (item) openInWorkingArea(item);
   };
@@ -418,6 +652,70 @@
       // Scroll to it
       container.scrollIntoView({ behavior: "smooth" });
   }
+
+  // Helper to add a photo from Virtual Tour (Text-to-Image)
+  window.addVirtualTourPhoto = function(url, roomName) {
+      // 1. Create a "fake" raw photo entry first so we have a base ID
+      const newId = photoCounter++;
+      const rawItem = {
+          id: newId,
+          url: url, // Use the generated image as the "raw" source too
+          originalName: `Virtual Tour - ${roomName}.jpg`,
+          roomId: null, // We'll try to find the room ID or just use name
+          roomName: roomName,
+          isVirtualTour: true
+      };
+      
+      // Try to find matching room in floor plan context to link ID
+      const ctx = getFloorPlanContext();
+      if (ctx && ctx.rooms) {
+          const match = ctx.rooms.find(r => r.name === roomName);
+          if (match) rawItem.roomId = match.id;
+      }
+      
+      photoItems.push(rawItem);
+      
+      // 2. Also add to processed gallery as a "result"
+      const processedItem = {
+          id: Date.now(),
+          url: url,
+          originalName: `Virtual Tour - ${roomName}`,
+          style: "AlgoreitAI Generated",
+          renovation: "Virtual Tour",
+          roomId: rawItem.roomId,
+          roomName: roomName,
+          isRenovated: true
+      };
+      processedItems.push(processedItem);
+      
+      // 3. Update UI
+      // Ensure gallery containers exist
+      const gallery = document.getElementById("photo-gallery");
+      if (gallery) renderGallery(gallery);
+      
+      const processedGallery = document.getElementById("processed-gallery");
+      if (processedGallery) {
+          processedGallery.style.display = "block";
+          renderProcessedGallery(processedGallery);
+      } else {
+          // If processed gallery doesn't exist yet, force create it
+          // reusing the init logic might be hard, so let's just refresh the whole view if possible
+          // or manually trigger the ensureGallery logic.
+          // For now, let's just rely on renderGallery updating the raw list which is good enough for persistence in session.
+      }
+      
+      // Update global matches so the tour sees it next time
+      const matches = window.currentPhotoMatches || [];
+      matches.push({
+          id: rawItem.id,
+          url: url,
+          originalName: rawItem.originalName,
+          assignedName: roomName, // Simplified
+          roomId: rawItem.roomId,
+          roomName: roomName
+      });
+      window.currentPhotoMatches = matches;
+  };
 
   window.initUploadPhotos = initUploadPhotos;
 

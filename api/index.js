@@ -3,9 +3,14 @@ const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
 const geminiClient = require("./geminiClient");
+const paymentService = require("./paymentService");
+
+const supplierRoutes = require("./supplierRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// ... (Rest of config)
 
 const openai =
   process.env.OPENAI_API_KEY && new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -16,12 +21,37 @@ app.use(
     credentials: false,
   })
 );
+
+// Stripe Webhook (Must be before express.json() to get raw body)
+app.post(
+  "/api/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const signature = req.headers["stripe-signature"];
+    try {
+      const result = await paymentService.handleWebhook(req.body, signature);
+      res.json(result);
+    } catch (err) {
+      console.error("Webhook Error:", err.message);
+      res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+  }
+);
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+// Mount Supplier Routes
+console.log("Mounting Supplier Routes at /api/suppliers");
+app.use("/api/suppliers", supplierRoutes);
+
 app.get("/api/auth-config", (req, res) => {
+  const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE || process.env.CLERK_PUBLISHABLE_KEY;
+  if (!key) {
+      console.error("Auth Config Error: No Clerk Key found in environment variables.");
+  }
   res.json({
-    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE || process.env.CLERK_PUBLISHABLE_KEY,
+    publishableKey: key,
   });
 });
 
@@ -51,6 +81,37 @@ app.get("/api/health", (req, res) => {
     geminiConfigured: geminiConfig.configured,
     geminiProvider: geminiConfig.provider,
   });
+});
+
+// Payments & Credits
+
+app.post("/api/create-checkout-session", async (req, res) => {
+  try {
+    const { userId, userEmail, planType, planId, returnUrl } = req.body;
+    const session = await paymentService.createCheckoutSession({
+      userId,
+      userEmail,
+      planType,
+      planId,
+      returnUrl: returnUrl || req.headers.referer,
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("Checkout Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/credits", async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: "userId required" });
+  try {
+    const credits = await paymentService.getUserCredits(userId);
+    res.json({ credits });
+  } catch (err) {
+    console.error("Get Credits Error:", err);
+    res.status(500).json({ error: "Failed to get credits" });
+  }
 });
 
 // AI-powered renovation using OpenAI images API
@@ -140,7 +201,7 @@ function buildPrompt(styleId, renovationId) {
 
 // Process a photo (image generation)
 app.post("/api/gemini/process-photo", async (req, res) => {
-  const { imageDataUrl, instructions, meta } = req.body || {};
+  const { imageDataUrl, instructions, meta, userId } = req.body || {};
 
   // Validate input
   if (!imageDataUrl || typeof imageDataUrl !== "string") {
@@ -153,6 +214,28 @@ app.post("/api/gemini/process-photo", async (req, res) => {
     return res.status(400).json({
       error: "instructions (string) is required",
     });
+  }
+
+  // Check Credits
+  if (userId) {
+    try {
+      const allowed = await paymentService.deductCredit(userId, 1);
+      if (!allowed) {
+        return res.status(402).json({
+          error: "Insufficient credits. Please purchase more credits to continue.",
+          code: "INSUFFICIENT_CREDITS"
+        });
+      }
+    } catch (err) {
+      console.error("Payment Service Error:", err);
+      // Fallback: If credit check fails due to system error, maybe block or allow?
+      // Blocking for safety.
+      return res.status(500).json({ error: "Failed to verify credits." });
+    }
+  } else {
+    // strict mode: require user ID
+    // return res.status(401).json({ error: "User not authenticated" });
+    console.warn("Processing without userId - bypassing credit check (Legacy/Dev mode)");
   }
 
   // Check if AlgoreitAI backend is configured
@@ -252,6 +335,109 @@ app.post("/api/gemini/analyze-photo", async (req, res) => {
   }
 });
 
+// Generate image from text (New Feature with DALL-E Fallback)
+app.post("/api/gemini/generate-view", async (req, res) => {
+  // Supports optional image context
+  const { prompt, userId, contextImage } = req.body || {};
+
+  if (!prompt || typeof prompt !== "string") {
+    return res.status(400).json({
+      error: "prompt (string) is required",
+    });
+  }
+
+  // Check Credits (Optional logic mirroring process-photo)
+  if (userId) {
+     try {
+       const allowed = await paymentService.deductCredit(userId, 1);
+       if (!allowed) {
+         return res.status(402).json({
+           error: "Insufficient credits.",
+           code: "INSUFFICIENT_CREDITS"
+         });
+       }
+     } catch(err) {
+        console.warn("Credit check failed, proceeding cautiously:", err.message);
+     }
+  }
+
+  try {
+    const config = geminiClient.checkConfiguration();
+    let imageBase64;
+    let provider = "AlgoreitAI (Imagen 3)";
+
+    // Try Gemini/Imagen First
+    if (config.configured) {
+        try {
+            // NEW: If contextImage is provided, use processImageWithGemini (Img2Img)
+            // Otherwise use generateImageFromText (Text2Img)
+            if (contextImage) {
+                console.log("Generating view with context image (Vision+Gen)...");
+                // We treat this as an Img2Img transformation where instructions = prompt
+                const base64Match = contextImage.match(/^data:image\/[a-z]+;base64,(.+)$/i);
+                if (base64Match) {
+                    const result = await geminiClient.processImageWithGemini({
+                        imageBase64: base64Match[1],
+                        instructions: prompt 
+                    });
+                    imageBase64 = result.imageBase64;
+                } else {
+                    console.warn("Invalid context image format, falling back to text-only.");
+                    const result = await geminiClient.generateImageFromText({ prompt });
+                    imageBase64 = result.imageBase64;
+                }
+            } else {
+                const result = await geminiClient.generateImageFromText({ prompt });
+                if (result.imageBase64) {
+                    imageBase64 = result.imageBase64;
+                }
+            }
+        } catch (geminiError) {
+            console.warn("Gemini generation failed, trying OpenAI fallback:", geminiError.message);
+            // Fall through to OpenAI if available
+        }
+    }
+
+    // Try OpenAI Fallback
+    if (!imageBase64 && openai) {
+        console.log("Using OpenAI DALL-E fallback...");
+        const response = await openai.images.generate({
+            model: "dall-e-3",
+            prompt: prompt,
+            n: 1,
+            size: "1024x1024",
+            response_format: "b64_json"
+        });
+        
+        if (response.data && response.data[0] && response.data[0].b64_json) {
+            imageBase64 = response.data[0].b64_json;
+            // User requested that "AlgoreitAI" is what they see when Gemini 3 Pro is implemented.
+            // Since we are falling back to maintain functionality, we will keep the provider label compatible 
+            // or just generic "AlgoreitAI" so the UI stays consistent with the brand.
+            provider = "AlgoreitAI"; 
+        }
+    }
+
+    if (!imageBase64) {
+      throw new Error("AlgoreitAI Generation failed. Please try again later.");
+    }
+
+    const outDataUrl = `data:image/jpeg;base64,${imageBase64}`;
+    res.json({
+      imageDataUrl: outDataUrl,
+      provider: provider,
+    });
+  } catch (error) {
+    console.error("Error in /api/gemini/generate-view:", error);
+    const rawDetails = error.message || String(error);
+    const scrubbedDetails = rawDetails.replace(/Gemini|Imagen/gi, "AlgoreitAI");
+    res.status(502).json({
+      error: "Failed to generate view with AlgoreitAI",
+      details: scrubbedDetails,
+    });
+  }
+});
+
 // Serve static files from the root directory (Local + Vercel Monolith Support)
 const path = require("path");
 app.use(express.static(path.join(__dirname, "..")));
@@ -264,4 +450,3 @@ if (require.main === module) {
 }
 
 module.exports = app;
-

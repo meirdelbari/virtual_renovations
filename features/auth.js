@@ -139,7 +139,33 @@
           });
         } catch (err) {
            console.warn("Clerk load error (retrying without key param):", err);
-           await clerk.load(); 
+           // If we are on localhost and the key is rejected, try a BYPASS
+           if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+               console.warn("Auth: Localhost Bypass Active");
+               // Mock a user session for localhost
+               clerk = {
+                   user: {
+                       id: "user_mock_localhost",
+                       firstName: "Dev",
+                       imageUrl: "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y",
+                       primaryEmailAddress: { emailAddress: "dev@localhost" }
+                   },
+                   mountUserButton: (el) => {
+                       el.innerHTML = "<div style='background:#eee;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:12px'>Dev User</div>";
+                   },
+                   openSignIn: () => alert("Localhost Dev Mode: You are already signed in as Dev User."),
+               };
+               // Force success flow
+               mountUserButton();
+               showApp();
+               return;
+           }
+
+           try {
+             await clerk.load(); 
+           } catch (e2) {
+             console.error("Clerk final load failed:", e2);
+           }
         }
         
         console.log("Auth: Clerk Loaded. User:", clerk.user ? "Signed In" : "Signed Out");
@@ -336,14 +362,27 @@
     modal.id = "auth-modal";
     modal.className = "auth-modal";
     modal.innerHTML = `
-      <div class="auth-container">
-        <div id="sign-in-mount"></div>
+      <div class="auth-container" style="position: relative;">
+        <button type="button" id="auth-close-btn" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666; z-index: 10;">&times;</button>
+        <div id="sign-in-mount" style="min-height: 150px; display: flex; align-items: center; justify-content: center;">
+            <!-- Loading state inside the mount point -->
+            <div class="auth-loading-spinner">Loading sign in...</div>
+        </div>
         <div class="auth-footer">
           By signing in, you agree to our <a href="/terms.html" target="_blank">Terms of Service</a> & <a href="/terms.html" target="_blank">Privacy Policy</a>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
+
+    // Bind Close Button
+    document.getElementById("auth-close-btn").addEventListener("click", () => {
+        // Clear intent so it doesn't auto-reopen
+        try { sessionStorage.removeItem("vr_auth_intent"); } catch(_) {}
+        document.body.classList.remove("auth-locked");
+        modal.remove();
+        showLandingPage();
+    });
 
     // Redirect back to the current page with a "post auth" hint so we can auto-enter the app.
     let afterUrl = "/";
@@ -353,17 +392,33 @@
       afterUrl = url.pathname + url.search + url.hash;
     } catch (_) {}
 
-    clerk.mountSignIn(document.getElementById("sign-in-mount"), {
-      afterSignInUrl: afterUrl,
-      afterSignUpUrl: afterUrl,
-      appearance: {
-        elements: {
-          footerActionLink: { color: "#5b46ff" },
-          card: { boxShadow: "none", background: "transparent" }
+    try {
+      clerk.mountSignIn(document.getElementById("sign-in-mount"), {
+        afterSignInUrl: afterUrl,
+        afterSignUpUrl: afterUrl,
+        appearance: {
+          elements: {
+            footerActionLink: { color: "#5b46ff" },
+            card: { boxShadow: "none", background: "transparent" }
+          }
         }
-      }
-    });
+      });
+    } catch (err) {
+      console.error("Clerk mount failed:", err);
+      document.getElementById("sign-in-mount").innerHTML = `
+        <div style="padding: 20px; text-align: center; color: #ef4444;">
+          <p>Sign-in service unavailable.</p>
+          <button class="op-btn" onclick="window.initAuthSkip()">Continue Offline</button>
+        </div>
+      `;
+    }
   }
+
+  // Helper to force skip auth from UI
+  window.initAuthSkip = function() {
+      try { sessionStorage.removeItem("vr_auth_intent"); } catch(_) {}
+      showApp();
+  };
 
   function showApp() {
     document.body.classList.remove("auth-locked");

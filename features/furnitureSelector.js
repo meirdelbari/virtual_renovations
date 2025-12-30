@@ -2,6 +2,7 @@
 // - Provides furniture options (Remove, Stage).
 // - Remove: Clears all furniture (uses existing logic).
 // - Stage: Stages the room with furniture according to the selected style.
+// - Supports switching between "AI Default" and "Suppliers" mode.
 
 (function () {
   function tr(key, vars, fallback) {
@@ -9,6 +10,74 @@
       if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
     } catch (_) {}
     return fallback || key;
+  }
+
+  // Helper to trigger product selector
+  function openProductSelectorForFurniture() {
+      if (window.productSelector) {
+          // Open selector filtered to 'Furniture' or 'Staging'
+          // Use current global style if available, otherwise pass null
+          const style = (window.currentStyleContext && window.currentStyleContext.id)
+                        ? window.currentStyleContext.id
+                        : null;
+          
+          window.productSelector.open('Furniture', style);
+          
+          // We need to tell the system we are in a furniture supplier flow
+          // If we select a product, it will trigger 'productSelected'
+          // We might want to set a flag or renovation ID
+          window.currentRenovationId = "furniture_stage_room"; // Context
+          window.currentRenovationLabel = "Stage Room";
+      } else {
+          alert("Product selector not loaded");
+      }
+  }
+
+  function hydrateStyleFromStorage() {
+      try {
+          if (window.currentStyleContext && window.currentStyleContext.id) return true;
+          // Use session storage first
+          let id = window.sessionStorage ? window.sessionStorage.getItem('VR_SELECTED_STYLE_ID') : null;
+          // Fallback to local
+          if (!id && window.localStorage) {
+               id = window.localStorage.getItem('VR_SELECTED_STYLE_ID');
+               // Consume legacy local storage
+               window.localStorage.removeItem('VR_SELECTED_STYLE_ID');
+          }
+          
+          if (!id) return false;
+          window.currentStyleContext = { id, label: String(id) };
+          window.currentStyleId = id;
+          if (window.updateSelectionSummary) {
+              window.updateSelectionSummary({ style: String(id) });
+          }
+          // Consume session storage
+          if (window.sessionStorage) window.sessionStorage.removeItem('VR_SELECTED_STYLE_ID');
+          
+          return true;
+      } catch (_) {
+          return false;
+      }
+  }
+
+  // --- Header Toggle Logic (copied/adapted from RenovateSelector) ---
+  let currentMode = 'AI'; // 'AI' or 'Supplier'
+
+  function updateToggleUI(panel) {
+      const btnAI = panel.querySelector('.mode-toggle-ai');
+      const btnSupplier = panel.querySelector('.mode-toggle-supplier');
+      
+      // Tailwind classes for active vs inactive states
+      const activeClasses = "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-indigo-600 text-white shadow-sm";
+      const inactiveClasses = "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-500 hover:text-gray-900";
+      
+      if(currentMode === 'AI') {
+          btnAI.className = `mode-toggle-btn mode-toggle-ai ${activeClasses}`;
+          btnSupplier.className = `mode-toggle-btn mode-toggle-supplier ${inactiveClasses}`;
+      } else {
+          btnAI.className = `mode-toggle-btn mode-toggle-ai ${inactiveClasses}`;
+          btnSupplier.className = `mode-toggle-btn mode-toggle-supplier ${activeClasses}`;
+      }
   }
 
   const FURNITURE_OPTIONS = [
@@ -54,6 +123,18 @@
         panel.parentNode.removeChild(panel);
       }
     });
+
+    // If Style selection was triggered as part of a pending Supplier flow,
+    // styleSelector dispatches `continueSupplierFlow`. We handle the furniture-stage case here.
+    window.addEventListener("continueSupplierFlow", (e) => {
+      try {
+        const pending = e && e.detail ? e.detail : null;
+        if (!pending) return;
+        if (pending.groupId === "furniture" && pending.optId === "stage") {
+          openProductSelectorForFurniture();
+        }
+      } catch (_) {}
+    });
   }
 
   window.initFurnitureSelector = initFurnitureSelector;
@@ -90,9 +171,14 @@
       `;
     }).join("");
 
+    // Add Toggle Header
     panel.innerHTML = `
-      <div class="renovate-selector-header">
+      <div class="renovate-selector-header" style="display: flex; flex-direction: column; gap: 8px;">
         <div class="renovate-selector-title">${tr("furniture.title", null, "Furniture Actions")}</div>
+        <div class="flex bg-white rounded-lg p-1 border border-gray-200 shadow-sm w-full" style="display: flex;">
+             <button type="button" class="mode-toggle-btn mode-toggle-ai" style="flex:1;">✨ AI</button>
+             <button type="button" class="mode-toggle-btn mode-toggle-supplier" style="flex:1;">🛍️ Suppliers</button>
+        </div>
       </div>
       <div class="renovate-selector-body">
         ${itemsHtml}
@@ -101,6 +187,24 @@
 
     container.appendChild(panel);
     
+    // Bind Toggle Events
+    const btnAI = panel.querySelector('.mode-toggle-ai');
+    const btnSupplier = panel.querySelector('.mode-toggle-supplier');
+    
+    updateToggleUI(panel); // Set initial state
+    
+    btnAI.onclick = (e) => {
+        e.stopPropagation();
+        currentMode = 'AI';
+        updateToggleUI(panel);
+    };
+    
+    btnSupplier.onclick = (e) => {
+        e.stopPropagation();
+        currentMode = 'Supplier';
+        updateToggleUI(panel);
+    };
+
     // Calculate position relative to document body
     const rect = button.getBoundingClientRect();
     const scrollX = window.scrollX || window.pageXOffset;
@@ -109,11 +213,30 @@
     panel.style.left = `${rect.left + scrollX}px`;
     panel.style.top = `${rect.bottom + scrollY + 8}px`;
 
-    // Add click handlers
+    // Add click handlers for options
     panel.querySelectorAll(".furniture-option-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const furnitureId = btn.getAttribute("data-furniture-id");
-        handleFurnitureSelection(furnitureId);
+        
+        // Check mode only for "stage" (Remove is always AI/Clear)
+        if (furnitureId === 'stage' && currentMode === 'Supplier') {
+             // Supplier Flow
+             // No need to prompt for Style here.
+             // If Supplier Portal already selected a style, hydrate it silently for better filtering.
+             hydrateStyleFromStorage();
+
+             // Always open Products. If style exists, the Product Selector will pre-filter by it.
+             openProductSelectorForFurniture();
+        } else {
+             // AI Default Flow (or Remove)
+             if (currentMode === 'AI' || furnitureId === 'remove') {
+                 // Clear any product selection if AI mode
+                 if (window.setProductSelection) window.setProductSelection(null); 
+                 else window.currentProductSelection = null;
+             }
+             
+             handleFurnitureSelection(furnitureId);
+        }
         
         // Close panel
         if (panel.parentNode) {
@@ -125,6 +248,11 @@
 
   function handleFurnitureSelection(furnitureId) {
       console.log("[FurnitureSelector] Selected:", furnitureId);
+      
+      // Clear conflicting modes
+      window.enhanceSelected = false;
+      window.customPromptPending = false;
+
       const selected = FURNITURE_OPTIONS.find((opt) => opt.id === furnitureId);
       window.currentFurnitureSelection = selected
         ? { id: selected.id, label: tr(`furniture.options.${selected.id}.label`, null, selected.label) }

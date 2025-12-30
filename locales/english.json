@@ -1,8 +1,8 @@
 {
   "app": {
     "brand": "AlgoreitAI",
-    "title": "AlgoreitAI - Virtual Renovations",
-    "appTitle": "AlgoreitAI-Virtual Renovations"
+    "title": "AlgoreitAI - Virtual Renovations & Staging",
+    "appTitle": "AlgoreitAI-Virtual Renovations & Staging"
   },
   "lang": {
     "english": "🇺🇸 English",
@@ -36,11 +36,15 @@
     "after": "After"
   },
   "ops": {
+    "upload": "Upload ▾",
+    "photos": "Photos",
     "uploadPhotos": "Upload Photos",
+    "floorPlan": "Floor Plan",
     "room": "Room",
     "enhance": "Enhance Quality",
     "renovate": "Renovate ▾",
     "furniture": "Furniture ▾",
+    "products": "Products",
     "style": "Style ▾",
     "algoreit": "✨ AlgoreitAI",
     "clickToProcess": "✨ Click to Process",
@@ -48,12 +52,51 @@
     "reset": "Reset",
     "guide": "Guide Me"
   },
+  "tooltips": {
+    "ops": {
+      "uploadMenu": "Upload photos or floor plans",
+      "uploadPhotos": "Upload photos of rooms to renovate or stage.",
+      "uploadFloorPlan": "Upload a floor plan image or PDF to analyze and visualize.",
+      "enhance": "Recommended for a low quality photo. Improve resolution and lighting.",
+      "renovate": "Replace flooring and wall paint. Transform the look of rooms, kitchens, bathrooms, and gardens.",
+      "furniture": "Add, remove, or stage furniture.",
+      "products": "Browse and insert real furniture products from suppliers.",
+      "style": "Select the design style (e.g., Modern, Scandinavian) for the renovation.",
+      "algoreit": "Generate the final renovated image using AI.",
+      "custom": "Enter custom instructions to modify the image.",
+      "reset": "Clear all selections.",
+      "guide": "Get step-by-step help on how to use the application."
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "download": "Download"
+  },
   "summary": {
     "label": "Selections",
     "renovation": "Renovation",
     "furniture": "Furniture",
     "style": "Style",
     "enhance": "Enhance"
+  },
+  "floorPlan": {
+    "analyzing": "✨ AlgoreitAI analyzing the floor plan ... Please wait.",
+    "retrying": "✨ Retrying analysis...",
+    "analysisFailed": "Analysis failed.",
+    "retryAi": "Retry AI Analysis",
+    "visualReference": "AI-Analyzed Floor Plan (Visual Reference)",
+    "visualReferenceAlt": "Floor Plan Analysis Source",
+    "noSourceImage": "No source image available to generate 3D view. Please upload a floor plan image or PDF first.",
+    "generating3dTitle": "✨ Generating 3D Floor Plan...",
+    "generating3dDesc": "Converting your 2D plan into a realistic 3D isometric view. This may take 10-20 seconds.",
+    "ready3dTitle": "✨ 3D Floor Plan Ready",
+    "editInWorkingArea": "Edit in Working Area",
+    "tooltipClose3d": "Close this window without saving.",
+    "tooltipEdit3d": "Load this 3D image into the main workspace to renovate or edit it.",
+    "tooltipDownload3d": "Save this 3D floor plan image to your computer.",
+    "virtualTour": "Start Virtual Tour",
+    "generate3d": "Generate 3D View"
   },
   "fileMode": {
     "title": "Local mode detected (file://)",
@@ -221,7 +264,7 @@
     "downloadPhoto": "Download photo",
     "renovationsTitle": "✨ Renovation Photos",
     "renovationsSubtitle": "Click to view in Working Area",
-    "downloadRenovations": "💾 Download Renovation Photos"
+    "downloadRenovations": "💾 Download Photos"
   },
   "guide": {
     "title": "Need a walkthrough?",
@@ -232,6 +275,7 @@
     "close": "Got it",
     "desc": {
       "upload": "Import your home photos (Rooms, kitchen, Bath, Exterior, Garden...etc).",
+      "floorPlan": "Upload and view your floor plan to organize rooms.",
       "match": "(Feature at the bottom of each uploaded photo): Helps AlgoreitAI adapt and generate the best design for you.",
       "room": "Select a photo from the gallery to open it in the Working Area.",
       "enhance": "Sharpen and upscale your photos.",
@@ -242,6 +286,7 @@
       "reset": "Clear everything and start over."
     },
     "steps": {
+      "1a": "Optional: Upload a Floor Plan to define your rooms.",
       "1": "Upload Photos and match each one to a room type (e.g., \"Living Room\") using the selector at the uploaded photos bottom.",
       "2": "Click Room to select which photo to edit in the Working Area.",
       "3": "Use Enhance Quality to improve photo resolution if needed.",
@@ -258,6 +303,7 @@
     },
     "btn": {
       "upload": "Upload Photos",
+      "floorPlan": "Floor Plan",
       "match": "Match Photo-Room ▾",
       "room": "Room",
       "enhance": "Enhance Quality",

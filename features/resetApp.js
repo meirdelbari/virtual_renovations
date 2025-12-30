@@ -31,6 +31,17 @@
         // Flag to skip landing once after reload
         try {
             sessionStorage.setItem("skipLandingOnce", "1");
+            
+            // Clear persistent style selection
+            if (window.localStorage) {
+                window.localStorage.removeItem("VR_SELECTED_STYLE_ID");
+            }
+            if (window.sessionStorage) {
+                window.sessionStorage.removeItem("VR_SELECTED_STYLE_ID");
+            }
+
+            // Also ensure product selection is cleared
+            window.currentProductSelection = null;
         } catch (_) {}
 
         // Full reload to clear all state, but we'll auto-enter the app on load

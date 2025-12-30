@@ -92,13 +92,25 @@
       rooms: [], // rooms cannot be inferred from a generic PDF/Image
     };
 
+    const analyzingText =
+      window.t
+        ? window.t(
+            "floorPlan.analyzing",
+            null,
+            "✨ Analyzing floor plan with AI... Please wait."
+          )
+        : "✨ Analyzing floor plan with AI... Please wait.";
+
     // Initial state: Analyzing
     container.innerHTML = `
       <div class="floor-plan-header">
         <div>
           <div class="floor-plan-title">${safeName}</div>
           <div class="floor-plan-subtitle">
-            ✨ Analyzing floor plan with AI... Please wait.
+            <div class="floor-plan-status floor-plan-status--processing" role="status" aria-live="polite">
+              <span class="floor-plan-status-spinner" aria-hidden="true"></span>
+              <span class="floor-plan-status-text">${escapeHtml(analyzingText)}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -115,13 +127,39 @@
         console.error("Analysis failed:", error);
         const subtitle = container.querySelector(".floor-plan-subtitle");
         if (subtitle) {
+            const failedText =
+              window.t
+                ? window.t("floorPlan.analysisFailed", null, "Analysis failed.")
+                : "Analysis failed.";
+            const retryLabel =
+              window.t
+                ? window.t("floorPlan.retryAi", null, "Retry AI Analysis")
+                : "Retry AI Analysis";
+
             subtitle.innerHTML = `
-                Analysis failed. <button class="op-btn op-btn-gemini" id="retry-pdf-btn" style="padding: 4px 12px; font-size: 12px;">Retry AI Analysis</button>
+                <div class="floor-plan-status floor-plan-status--error" role="status" aria-live="polite">
+                  <span class="floor-plan-status-spinner" aria-hidden="true"></span>
+                  <span>${escapeHtml(failedText)}</span>
+                  <button class="op-btn op-btn-gemini" id="retry-pdf-btn" style="padding: 4px 12px; font-size: 12px;">${escapeHtml(retryLabel)}</button>
+                </div>
             `;
             const retryBtn = document.getElementById("retry-pdf-btn");
             if (retryBtn) {
                 retryBtn.addEventListener("click", () => {
-                    subtitle.textContent = "✨ Retrying analysis...";
+                    const retryingText =
+                      window.t
+                        ? window.t(
+                            "floorPlan.retrying",
+                            null,
+                            "✨ Retrying analysis..."
+                          )
+                        : "✨ Retrying analysis...";
+                    subtitle.innerHTML = `
+                      <div class="floor-plan-status floor-plan-status--processing" role="status" aria-live="polite">
+                        <span class="floor-plan-status-spinner" aria-hidden="true"></span>
+                        <span class="floor-plan-status-text">${escapeHtml(retryingText)}</span>
+                      </div>
+                    `;
                     analyzeVisualFloorPlan(file, container, isPdf);
                 });
             }
@@ -164,17 +202,32 @@
 
     // 3. Send to AlgoreitAI for analysis
     const prompt = `
-      Analyze this floor plan image. Identify all the rooms.
+      Analyze this floor plan image. Identify all the rooms and detailed features to create a 3D visualization.
+      CRITICAL: Extract specific architectural details that define the room's look.
       Return ONLY a valid JSON object with this structure:
       {
         "label": "Floor Plan",
         "rooms": [
-          { "name": "Living Room", "width": 5.0, "length": 4.0, "ceiling_height": 2.8 },
-          ...
+          { 
+            "name": "Living Room", 
+            "width": 5.0, 
+            "length": 4.0, 
+            "ceiling_height": 2.8,
+            "layout_shape": "Rectangular",
+            "flooring_guess": "Wood parquet",
+            "windows_location": "Two large windows on the north wall",
+            "doors_location": "Double door entry from hallway on south",
+            "connecting_rooms": "Hallway (South), Dining (East)",
+            "furniture_location": "Sofa in center facing east wall",
+            "architectural_features": "Fireplace on east wall, Coffered ceiling",
+            "item_relations": "Coffee table between sofa and TV unit",
+            "furniture_type": "Modern sectional sofa, glass coffee table",
+            "kitchen_shape": null,
+            "bathroom_accessories": null
+          }
         ],
         "units": "meters"
       }
-      Estimate dimensions if not explicitly written. If ceiling height is unknown, assume 2.8.
       Do not include any markdown formatting or explanation, just the raw JSON string.
     `;
 
@@ -198,6 +251,7 @@
     try {
       const floorPlanData = JSON.parse(text);
       // Success! Render the extracted data
+      // Pass the imageDataUrl as background for reference, but also for generation
       renderFloorPlan(floorPlanData, container, imageDataUrl);
     } catch (e) {
       console.error("Failed to parse AlgoreitAI JSON:", text);
@@ -237,6 +291,11 @@
     lastLayoutMode = backgroundImageUrl ? "image" : "svg";
     window.currentFloorPlanMeasurements = editablePlanData;
 
+    // Store the floor plan image URL globally for use in generation
+    if (backgroundImageUrl) {
+        window.currentFloorPlanImage = backgroundImageUrl;
+    }
+
     const title = normalizedPlan.label || normalizedPlan.id || "Floor Plan";
     const units = normalizedPlan.units || "units";
 
@@ -264,17 +323,38 @@
             }${escapeHtml(units)} (width × length × ceiling height)
           </div>
         </div>
+          <div style="display: flex; gap: 10px;">
+           <!-- Removed Download List and Virtual Tour buttons as per request -->
+           <button class="op-btn" id="generate-3d-btn" style="display: none; align-items: center; gap: 6px;" title="Convert this floor plan into a 3D isometric view using AI.">
+             <span>🧊</span> <span>3D View</span>
+           </button>
+           <button class="op-btn" id="room-viewer-btn" style="display: none; align-items: center; gap: 6px;" title="Select a room from the floor plan to view its photo.">
+             <span>👁️</span> <span>Room</span>
+           </button>
+        </div>
       </div>
     `;
 
     // Use the original image if provided (from PDF analysis), otherwise generate SVG
     let layoutHtml;
     if (backgroundImageUrl) {
+        const visualRefText =
+          window.t
+            ? window.t(
+                "floorPlan.visualReference",
+                null,
+                "AI-Analyzed Floor Plan (Visual Reference)"
+              )
+            : "AI-Analyzed Floor Plan (Visual Reference)";
+        const visualRefAlt =
+          window.t
+            ? window.t("floorPlan.visualReferenceAlt", null, "Floor Plan Analysis Source")
+            : "Floor Plan Analysis Source";
         layoutHtml = `
         <div class="floor-plan-layout" style="text-align: center; background: #f9fafb; padding: 10px; border-radius: 12px; border: 1px solid var(--color-border-subtle); overflow: hidden;">
-            <img src="${backgroundImageUrl}" style="width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Floor Plan Analysis Source" />
+            <img src="${backgroundImageUrl}" style="width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="${escapeHtml(visualRefAlt)}" />
             <div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
-                AI-Analyzed Floor Plan (Visual Reference)
+                ${escapeHtml(visualRefText)}
             </div>
         </div>
         `;
@@ -365,7 +445,589 @@
         container.insertAdjacentHTML("beforeend", tableHtml);
         enableMeasurementEditing(container);
     }
+
+    // Virtual Tour Button Logic - DISABLED
+    /*
+    const tourBtn = document.getElementById("start-virtual-tour-btn");
+    if (tourBtn) {
+        // Translate button text if possible
+        try {
+             if (window.t) {
+                 const label = window.t("floorPlan.virtualTour", null, "Start Virtual Tour");
+                 tourBtn.querySelector("span:last-child").textContent = label;
+             }
+        } catch(_) {}
+
+        // Show button only if we have rooms
+        if (normalizedPlan.rooms && normalizedPlan.rooms.length > 0) {
+            tourBtn.style.display = "flex";
+            tourBtn.onclick = () => startVirtualTour(normalizedPlan.rooms);
+        }
+    }
+    */
+
+    // PDF Button Logic - DISABLED
+    /*
+    const pdfBtn = document.getElementById("download-pdf-btn");
+    if (pdfBtn && normalizedPlan.rooms && normalizedPlan.rooms.length > 0) {
+        pdfBtn.style.display = "flex";
+        pdfBtn.onclick = () => generateFloorPlanPdf(normalizedPlan);
+    }
+    */
+
+    // Room Button Logic
+    const roomBtn = document.getElementById("room-viewer-btn");
+    if (roomBtn) {
+         try {
+             if (window.t) {
+                 const label = window.t("ops.room", null, "Room");
+                 roomBtn.querySelector("span:last-child").textContent = label;
+             }
+        } catch(_) {}
+
+        if (normalizedPlan) {
+            roomBtn.style.display = "flex";
+            roomBtn.onclick = (e) => {
+                if (window.handleRoomViewerClick) {
+                    window.handleRoomViewerClick(roomBtn);
+                }
+            };
+        }
+    }
+
+    // 3D View Button Logic
+    const view3dBtn = document.getElementById("generate-3d-btn");
+    if (view3dBtn) {
+         // Translate
+         try {
+             if (window.t) {
+                 const label = window.t("floorPlan.generate3d", null, "Generate 3D View");
+                 view3dBtn.querySelector("span:last-child").textContent = label;
+             }
+        } catch(_) {}
+
+        // Enable if we have an image or just allow it generally (it will warn if no image)
+        // Only show if we have a plan or image
+        if (normalizedPlan || backgroundImageUrl) {
+            view3dBtn.style.display = "flex";
+            view3dBtn.onclick = () => generate3DView(backgroundImageUrl, normalizedPlan ? normalizedPlan.rooms : []);
+        }
+    }
   }
+
+  async function generate3DView(sourceImageUrl, rooms = []) {
+      if (!sourceImageUrl) {
+          const msg =
+            window.t
+              ? window.t(
+                  "floorPlan.noSourceImage",
+                  null,
+                  "No source image available to generate 3D view. Please upload a floor plan image or PDF first."
+                )
+              : "No source image available to generate 3D view. Please upload a floor plan image or PDF first.";
+          alert(msg);
+          return;
+      }
+
+      // Create a modal to show progress and result
+      const overlay = document.createElement("div");
+      overlay.className = "guide-modal-overlay";
+      overlay.style.zIndex = "2100";
+
+      const modal = document.createElement("div");
+      modal.className = "guide-modal";
+      modal.style.maxWidth = "800px";
+      modal.style.width = "90%";
+      modal.style.padding = "20px";
+      modal.style.textAlign = "center";
+      
+      const genTitle =
+        window.t
+          ? window.t("floorPlan.generating3dTitle", null, "✨ Generating 3D Floor Plan...")
+          : "✨ Generating 3D Floor Plan...";
+      const genDesc =
+        window.t
+          ? window.t(
+              "floorPlan.generating3dDesc",
+              null,
+              "Converting your 2D plan into a realistic 3D isometric view. This may take 10-20 seconds."
+            )
+          : "Converting your 2D plan into a realistic 3D isometric view. This may take 10-20 seconds.";
+      const cancelLabel =
+        window.t ? window.t("common.cancel", null, "Cancel") : "Cancel";
+
+      modal.innerHTML = `
+          <h2 style="margin-top:0;">${escapeHtml(genTitle)}</h2>
+          <p>${escapeHtml(genDesc)}</p>
+          <div style="margin: 20px 0;">
+              <div class="app-spinner" style="margin: 0 auto;"></div>
+          </div>
+          <button class="op-btn op-btn-reset close-3d-btn">${escapeHtml(cancelLabel)}</button>
+      `;
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      const closeBtn = modal.querySelector(".close-3d-btn");
+      closeBtn.onclick = () => overlay.remove();
+
+      try {
+          // Construct room list summary for the prompt
+          let roomSummary = "";
+          if (rooms && rooms.length > 0) {
+              roomSummary = "The floor plan contains the following rooms:\n" + rooms.map(r => {
+                  const dims = (r.width && r.length) ? ` (${r.width}m x ${r.length}m)` : "";
+                  const feats = r.furniture_type ? `, furnished as: ${r.furniture_type}` : "";
+                  return `- ${r.name || "Room"}${dims}${feats}`;
+              }).join("\n");
+          }
+
+          const prompt = `
+            Convert this 2D floor plan into a high-quality 3D isometric rendered floor plan.
+            
+            FLOOR PLAN DATA:
+            ${roomSummary}
+
+            Key requirements:
+            1. Maintain the exact layout, walls, and room proportions shown in the image and described in the data.
+            2. Extrude walls to show depth.
+            3. Apply realistic materials: wood flooring in living areas, tiles in wet areas.
+            4. Furnish rooms with modern furniture according to the room labels and descriptions above.
+            5. Use soft, warm, photorealistic lighting.
+            6. View angle: Classic isometric top-down (45 degrees).
+            7. High resolution, architectural visualization style.
+          `;
+
+          const response = await fetch(getApiUrl("/api/gemini/process-photo"), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                  imageDataUrl: sourceImageUrl,
+                  instructions: prompt,
+                  // We omit userId to bypass strict credit checks for this demo feature,
+                  // similar to how virtual tour works. Or pass it if you want to charge.
+              })
+          });
+
+          if (!response.ok) {
+              const err = await response.json();
+              throw new Error(err.error || err.details || "Generation failed");
+          }
+
+          const data = await response.json();
+          
+          if (data.imageDataUrl) {
+              // Success! Show result.
+              const readyTitle =
+                window.t
+                  ? window.t("floorPlan.ready3dTitle", null, "✨ 3D Floor Plan Ready")
+                  : "✨ 3D Floor Plan Ready";
+              const closeLabel2 =
+                window.t ? window.t("common.close", null, "Close") : "Close";
+              const editLabel =
+                window.t
+                  ? window.t("floorPlan.editInWorkingArea", null, "Edit in Working Area")
+                  : "Edit in Working Area";
+              const downloadLabel =
+                window.t ? window.t("common.download", null, "Download") : "Download";
+
+              modal.innerHTML = `
+                  <h2 style="margin-top:0;">${escapeHtml(readyTitle)}</h2>
+                  <div style="margin: 20px 0; background: #f9fafb; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
+                      <img src="${data.imageDataUrl}" style="max-width: 100%; max-height: 60vh; display: block; margin: 0 auto;" />
+                  </div>
+                  <div style="display: flex; gap: 10px; justify-content: center;">
+                      <button class="op-btn close-3d-btn" title="${escapeHtml(window.t ? window.t("floorPlan.tooltipClose3d", null, "Close this window without saving.") : "Close this window without saving.")}">${escapeHtml(closeLabel2)}</button>
+                      <button class="op-btn op-btn-accent edit-3d-btn" title="${escapeHtml(window.t ? window.t("floorPlan.tooltipEdit3d", null, "Load this 3D image into the main workspace to renovate or edit it.") : "Load this 3D image into the main workspace to renovate or edit it.")}">${escapeHtml(editLabel)}</button>
+                      <button class="op-btn op-btn-accent download-3d-btn" title="${escapeHtml(window.t ? window.t("floorPlan.tooltipDownload3d", null, "Save this 3D floor plan image to your computer.") : "Save this 3D floor plan image to your computer.")}">⬇️ ${escapeHtml(downloadLabel)}</button>
+                  </div>
+              `;
+              
+              const newCloseBtn = modal.querySelector(".close-3d-btn");
+              newCloseBtn.onclick = () => overlay.remove();
+
+              const editBtn = modal.querySelector(".edit-3d-btn");
+              editBtn.onclick = () => {
+                   if (window.handleImageUpload) {
+                       // Create a file object from the data URL
+                       fetch(data.imageDataUrl)
+                           .then(res => res.blob())
+                           .then(blob => {
+                               const file = new File([blob], "3d_floor_plan.png", { type: "image/png" });
+                               
+                               // Let's use the standard "Photo Upload" simulation
+                               const dt = new DataTransfer();
+                               dt.items.add(file);
+                               const fileInput = document.getElementById("photo-file-input");
+                               if (fileInput) {
+                                   fileInput.files = dt.files;
+                                   fileInput.dispatchEvent(new Event('change'));
+                                   overlay.remove();
+                               } else {
+                                   alert("Could not load into working area. Photo uploader not found.");
+                               }
+                           });
+                   } else {
+                        // Fallback if handleImageUpload check fails, try input directly
+                       fetch(data.imageDataUrl)
+                           .then(res => res.blob())
+                           .then(blob => {
+                               const file = new File([blob], "3d_floor_plan.png", { type: "image/png" });
+                               const dt = new DataTransfer();
+                               dt.items.add(file);
+                               const fileInput = document.getElementById("photo-file-input");
+                               if (fileInput) {
+                                   fileInput.files = dt.files;
+                                   fileInput.dispatchEvent(new Event('change'));
+                                   overlay.remove();
+                               } else {
+                                   alert("Could not load into working area. Photo uploader not found.");
+                               }
+                           });
+                   }
+              };
+              
+              const downloadBtn = modal.querySelector(".download-3d-btn");
+              downloadBtn.onclick = () => {
+                  const link = document.createElement("a");
+                  link.href = data.imageDataUrl;
+                  link.download = `3d_floor_plan_${Date.now()}.png`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+              };
+
+              // Add to "Processed Photos" gallery so it persists
+              if (typeof window.addProcessedPhotoToGallery === "function") {
+                  // Create a dummy match object for the floor plan if one doesn't exist
+                  // Or use a generic ID
+                  const planId = window.currentFloorPlanContext && window.currentFloorPlanContext.id 
+                                 ? window.currentFloorPlanContext.id 
+                                 : Date.now();
+                                 
+                  window.addProcessedPhotoToGallery(
+                      planId,
+                      data.imageDataUrl,
+                      "3D View", // Style Label
+                      "Floor Plan" // Renovation Label
+                  );
+                  console.log("3D View added to Renovation Photos gallery.");
+              }
+          } else {
+             throw new Error("No image returned.");
+          }
+
+      } catch (e) {
+          console.error(e);
+          modal.innerHTML = `
+              <h2 style="color: #ef4444; margin-top:0;">Generation Failed</h2>
+              <p>${escapeHtml(e.message)}</p>
+              <button class="op-btn op-btn-reset close-3d-btn" style="margin-top: 20px;">Close</button>
+          `;
+          const errCloseBtn = modal.querySelector(".close-3d-btn");
+          errCloseBtn.onclick = () => overlay.remove();
+      }
+  }
+
+  async function generateFloorPlanPdf(plan) {
+      if (!window.jspdf) {
+          alert("PDF Generator library not loaded. Please refresh.");
+          return;
+      }
+      
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      // Title
+      doc.setFontSize(20);
+      doc.text(plan.label || "Floor Plan Room List", 14, 22);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      const dateStr = new Date().toLocaleDateString();
+      doc.text(`Generated by AlgoreitAI on ${dateStr}`, 14, 30);
+      
+      // Columns
+      const tableColumn = ["Room", "Dimensions", "Area", "Features"];
+      const tableRows = [];
+
+      plan.rooms.forEach(room => {
+          const width = typeof room.width === "number" ? room.width.toFixed(2) : "?";
+          const length = typeof room.length === "number" ? room.length.toFixed(2) : "?";
+          const area = (typeof room.width === "number" && typeof room.length === "number") 
+              ? (room.width * room.length).toFixed(2) 
+              : "-";
+          
+          // Combine features into one text block
+          let features = [];
+          if (room.windows_location) features.push(`Windows: ${room.windows_location}`);
+          if (room.doors_location) features.push(`Doors: ${room.doors_location}`);
+          if (room.furniture_type) features.push(`Style: ${room.furniture_type}`);
+          if (room.kitchen_shape) features.push(`Kitchen: ${room.kitchen_shape}`);
+          if (room.bathroom_accessories) features.push(`Bath: ${room.bathroom_accessories}`);
+          
+          const featureText = features.join("\n");
+          
+          const rowData = [
+              room.name || "Unnamed Room",
+              `${width} x ${length} ${plan.units || 'm'}`,
+              `${area} m²`,
+              featureText
+          ];
+          tableRows.push(rowData);
+      });
+
+      if (doc.autoTable) {
+          doc.autoTable({
+              head: [tableColumn],
+              body: tableRows,
+              startY: 40,
+              theme: 'grid',
+              headStyles: { fillColor: [66, 133, 244] }, // Google Blue-ish
+              columnStyles: {
+                  0: { fontStyle: 'bold', cellWidth: 30 },
+                  1: { cellWidth: 25 },
+                  2: { cellWidth: 20 },
+                  3: { cellWidth: 'auto' }
+              },
+              styles: { overflow: 'linebreak', fontSize: 10, cellPadding: 4 }
+          });
+      } else {
+           // Fallback if autoTable is missing
+           let y = 40;
+           tableRows.forEach(row => {
+               doc.text(`${row[0]} | ${row[1]} | ${row[3]}`, 14, y);
+               y += 10;
+           });
+      }
+      
+      // Save
+      doc.save(`virtual_tour_list_${Date.now()}.pdf`);
+  }
+
+  function startVirtualTour(rooms) {
+      if (!rooms || !rooms.length) return;
+      
+      let currentIndex = 0;
+      const matches = window.currentPhotoMatches || []; // From uploadPhotos.js
+
+      // Create Modal
+      const overlay = document.createElement("div");
+      overlay.className = "guide-modal-overlay"; // Reuse guide modal overlay style
+      overlay.style.zIndex = "2000";
+
+      const modal = document.createElement("div");
+      modal.className = "guide-modal"; // Reuse guide modal style
+      modal.style.maxWidth = "800px";
+      modal.style.width = "90%";
+      modal.style.padding = "0";
+      modal.style.overflow = "hidden";
+
+      // Render function
+      function renderSlide(index) {
+          const room = rooms[index];
+          const roomName = room.name || `Room ${index + 1}`;
+          
+          // Find photo for this room
+          // Match by Room ID (Option A)
+          let match = matches.find(m => m.roomId === index || m.roomId === room.id); 
+          
+          // If not found by ID, try fuzzy match by name (fallback)
+          if (!match && roomName) {
+              const slug = roomName.toLowerCase().replace(/[^a-z0-9]/g, "");
+              match = matches.find(m => {
+                  const mName = (m.roomName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                  return mName.includes(slug) || slug.includes(mName);
+              });
+          }
+
+          const photoUrl = match ? match.url : null;
+          
+          // Dimensions
+          const width = typeof room.width === 'number' ? room.width.toFixed(2) : "?";
+          const length = typeof room.length === 'number' ? room.length.toFixed(2) : "?";
+
+          modal.innerHTML = `
+            <div style="background: #fff; display: flex; flex-direction: column; height: 70vh; max-height: 600px;">
+                <div style="padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight: 600; font-size: 18px;">
+                        ${index + 1}. ${escapeHtml(roomName)}
+                        <span style="font-weight: 400; color: #666; font-size: 14px; margin-left: 10px;">
+                           ${width} x ${length}
+                        </span>
+                    </div>
+                    <button class="close-tour-btn" style="background:none; border:none; font-size: 24px; cursor: pointer;">&times;</button>
+                </div>
+                
+                <div style="flex: 1; position: relative; background: #f9fafb; display: flex; align-items: center; justify-content: center; overflow: hidden;" id="tour-slide-content-${index}">
+                    ${photoUrl 
+                        ? `<img src="${photoUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />` 
+                        : `<div style="text-align: center; color: #9ca3af; padding: 20px;">
+                             <div style="font-size: 40px; margin-bottom: 10px;">📷</div>
+                             <div>No photo matched to this room yet.</div>
+                             <div style="font-size: 12px; margin-top: 5px; margin-bottom: 15px;">Option 1: Upload photos and match them to "${escapeHtml(roomName)}"</div>
+                             <button class="op-btn op-btn-gemini generate-view-btn" data-index="${index}" style="margin-top: 10px;">
+                                ✨ Option 2: Generate with AlgoreitAI
+                             </button>
+                           </div>`
+                    }
+                    
+                    ${index > 0 
+                        ? `<button class="tour-nav-btn prev" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px;">❮</button>` 
+                        : ''}
+                    
+                    ${index < rooms.length - 1 
+                        ? `<button class="tour-nav-btn next" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px;">❯</button>` 
+                        : ''}
+                </div>
+
+                <div style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #fff;">
+                    <div style="font-size: 14px; color: #666;">
+                        Room ${index + 1} of ${rooms.length}
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        ${photoUrl 
+                            ? `<button class="op-btn op-btn-accent" onclick="window.openInWorkingArea(${match.id}); document.querySelector('.guide-modal-overlay').remove();">
+                                 Edit this Room
+                               </button>`
+                            : ''
+                        }
+                    </div>
+                </div>
+            </div>
+          `;
+
+          // Bind events
+          const closeBtn = modal.querySelector(".close-tour-btn");
+          if(closeBtn) closeBtn.onclick = () => overlay.remove();
+
+          const prevBtn = modal.querySelector(".tour-nav-btn.prev");
+          if(prevBtn) prevBtn.onclick = () => renderSlide(index - 1);
+
+          const nextBtn = modal.querySelector(".tour-nav-btn.next");
+          if(nextBtn) nextBtn.onclick = () => renderSlide(index + 1);
+          
+          const genBtn = modal.querySelector(".generate-view-btn");
+          if(genBtn) {
+             genBtn.onclick = async () => {
+                 const btn = genBtn;
+                 const originalText = btn.innerHTML;
+                 btn.disabled = true;
+                 btn.innerHTML = "✨ Generating...";
+                 
+                 const container = document.getElementById(`tour-slide-content-${index}`);
+                 
+                 try {
+                     // Build detailed prompt from room data
+                     const r = room; // shorthand
+                     let details = "";
+                     
+                     if (r.layout_shape) details += `, shape: ${r.layout_shape}`;
+                     if (r.flooring_guess) details += `, flooring: ${r.flooring_guess}`;
+                     if (r.architectural_features) details += `, features: ${r.architectural_features}`;
+                     if (r.connecting_rooms) details += `, connections: ${r.connecting_rooms}`;
+                     
+                     if (r.windows_location) details += `, windows: ${r.windows_location}`;
+                     if (r.doors_location) details += `, doors: ${r.doors_location}`;
+                     if (r.furniture_type) details += `, furniture style: ${r.furniture_type}`;
+                     if (r.furniture_location) details += `, layout: ${r.furniture_location}`;
+                     if (r.item_relations) details += `, arrangement: ${r.item_relations}`;
+                     if (r.kitchen_shape) details += `, kitchen shape: ${r.kitchen_shape}`;
+                     if (r.bathroom_accessories) details += `, bathroom features: ${r.bathroom_accessories}`;
+
+                     // USE FLOOR PLAN CONTEXT IF AVAILABLE (Strategy A)
+                     let contextImage = null;
+                     if (window.currentFloorPlanImage) {
+                         contextImage = window.currentFloorPlanImage;
+                         console.log("Using floor plan image context for room generation");
+                     }
+
+                     let prompt;
+                     if (contextImage) {
+                         // Vision + Generation Prompt
+                         prompt = `Generate a photorealistic eye-level view of the ${roomName} shown in this floor plan. 
+                         Focus specifically on the area labeled "${roomName}".
+                         Dimensions: ${width}m x ${length}m.
+                         Details: ${details}.
+                         Perspective: Standing inside the room looking towards the main feature.
+                         Structure: Strictly follow the ${r.layout_shape || 'layout'} shown in the plan.
+                         Style: Modern interior design, 4k, photorealistic.`;
+                     } else {
+                         // Text-Only Fallback
+                         prompt = `Realistic high-quality architectural photography of a ${roomName}, modern interior design, ${width}m x ${length}m room${details}, empty or lightly furnished, bright natural lighting, 4k, photorealistic`;
+                     }
+                     
+                     const response = await fetch(getApiUrl("/api/gemini/generate-view"), {
+                         method: "POST",
+                         headers: { "Content-Type": "application/json" },
+                         // Pass contextImage if available
+                         body: JSON.stringify({ 
+                             prompt,
+                             contextImage 
+                         }) 
+                     });
+                     
+                     const data = await response.json();
+
+                     if (!response.ok) {
+                         throw new Error(data.details || data.error || "Generation failed");
+                     }
+                     
+                     if (data.imageDataUrl) {
+                         // 1. Add to gallery so it persists
+                         if (window.addVirtualTourPhoto) {
+                             window.addVirtualTourPhoto(data.imageDataUrl, roomName);
+                         }
+                         
+                         // Update Slide View
+                         container.innerHTML = `
+                            <img src="${data.imageDataUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                            <div style="position: absolute; bottom: 20px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px;">
+                                ✨ AI Generated View
+                            </div>
+                         `;
+                         
+                         // Re-bind nav buttons since we wiped container HTML
+                         if (index > 0) {
+                             const prev = document.createElement("button");
+                             prev.className = "tour-nav-btn prev";
+                             prev.style.cssText = "position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px;";
+                             prev.innerHTML = "❮";
+                             prev.onclick = () => renderSlide(index - 1);
+                             container.appendChild(prev);
+                         }
+                         if (index < rooms.length - 1) {
+                             const next = document.createElement("button");
+                             next.className = "tour-nav-btn next";
+                             next.style.cssText = "position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px;";
+                             next.innerHTML = "❯";
+                             next.onclick = () => renderSlide(index + 1);
+                             container.appendChild(next);
+                         }
+
+                     }
+                 } catch (e) {
+                     console.error(e);
+                     alert("Generation Error: " + e.message);
+                     btn.innerHTML = "Error. Try again.";
+                     btn.disabled = false;
+                 }
+             };
+          }
+      }
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      
+      // Start at 0
+      renderSlide(0);
+
+      // Close on click outside
+      overlay.onclick = (e) => {
+          if (e.target === overlay) overlay.remove();
+      };
+  }
+
 
   function createFloorPlanLayout(plan) {
     const rooms = Array.isArray(plan.rooms) ? plan.rooms : [];

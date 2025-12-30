@@ -39,9 +39,21 @@ Furniture & Staging Module
 - A dedicated "Furniture" dropdown button provides specialized interior design tasks.
 - **Remove**: Clears all furniture and decor from a room to reveal the bare shell.
   - Uses a specialized AI prompt that instructs the model to ignore style changes and focus solely on inpainting the empty space with original materials.
+  - Bypasses the "Style" selection requirement.
 - **Stage**: Virtually stages an empty room with furniture.
   - Uses the selected "Style" (e.g., Modern, Minimalist) to determine furniture aesthetics.
-  - Automatically detects the room type (from Option B tags or Option A room names) to place appropriate items (beds for bedrooms, sofas for living rooms).
+  - Can integrate with **Supplier Products** (see below).
+
+Supplier Product Integration
+----------------------------
+- **Product Selector**: A catalog browsing modal (`features/productSelector.js`) allowing users to pick real-world items (chairs, flooring, etc.).
+- **Visual Reference**:
+  - When a product is selected, the Working Area updates to show a **Side-by-Side Collage** (Room | Product).
+  - This collage is sent to the AI engine.
+- **AI Prompting**:
+  - The prompt is dynamically adjusted to instruct the AI to "Insert the product from the right panel into the room on the left."
+  - Strict constraints are added to "Preserve existing furniture and room structure," focusing only on adding the selected item.
+- **Post-Processing**: The AI result (which may still include the collage side-panel) is automatically cropped to return only the renovated room image.
 
 Photo upload & room matching
 ----------------------------

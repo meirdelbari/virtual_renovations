@@ -139,6 +139,76 @@
     await handleGeminiProcess(customInstructions);
   };
 
+  // --- NEW: Update Working Area with Collage Preview ---
+  window.updateWorkingAreaWithCollage = async function() {
+    // 1. Get current photo context
+    let url = window.lastFocusedRoomPhoto && window.lastFocusedRoomPhoto.url;
+
+    // Fallback: Get from DOM if not in state
+    const container = document.getElementById("photo-working-area");
+    if (!container) return;
+    const img = container.querySelector("img");
+    
+    // If state is missing but DOM has an image, use that
+    if (!url && img && img.src && !img.src.startsWith("data:")) {
+        url = img.src;
+        console.log("[GeminiAI] State missing, using DOM URL for collage:", url);
+    }
+    
+    if (!url) {
+        console.warn("[GeminiAI] Cannot update working area: No photo URL found.");
+        return; 
+    }
+
+    // 3. Check for product selection
+    if (window.currentProductSelection && window.currentProductSelection.imageUrl) {
+        console.log("[GeminiAI] Updating working area with Reference Product collage...");
+        
+        // Indicate loading
+        const originalOpacity = img.style.opacity;
+        img.style.opacity = "0.5";
+        
+        try {
+            // Build collage
+            const productUrl = window.currentProductSelection.imageUrl;
+            const collageInfo = await buildRoomAndProductCollage(url, productUrl);
+            
+            if (collageInfo && collageInfo.dataUrl) {
+                // Update Image
+                img.src = collageInfo.dataUrl;
+                
+                // Optional: Update caption/title to indicate preview mode
+                const caption = container.querySelector(".working-area-caption");
+                if (caption) {
+                    caption.textContent = "Reference Product Active (Preview Mode)";
+                    caption.style.color = "#4285f4";
+                    caption.style.fontWeight = "600";
+                }
+            } else {
+                console.error("[GeminiAI] Collage generation returned null.");
+            }
+        } catch (e) {
+            console.error("[GeminiAI] Failed to update working area with collage:", e);
+        } finally {
+            img.style.opacity = "1";
+        }
+    } else {
+        // Revert to original if no product
+        // Only revert if we are currently showing a data URL (likely the collage) 
+        // and we have the original URL
+        if (img.src !== url && img.src.startsWith("data:")) {
+            console.log("[GeminiAI] Reverting working area to original photo.");
+            img.src = url;
+             const caption = container.querySelector(".working-area-caption");
+            if (caption) {
+                caption.textContent = tr("upload.workingAreaReady", null, "Ready to Renovate");
+                caption.style.color = "#6b7280";
+                caption.style.fontWeight = "normal";
+            }
+        }
+    }
+  };
+
   function isPhotoRelated(instructions) {
     if (!instructions || typeof instructions !== "string") return false;
     const text = instructions.toLowerCase();
@@ -217,12 +287,28 @@
     }
 
     // Validate that user has selected a room/photo
+    // If no explicit 'last focused', but we have photos, default to the last uploaded one
     if (!last || !last.photoId) {
-      alert(
-        tr("alerts.selectRoomFirst", null, "Please select a room first by clicking the 'Room' button and choosing a photo to renovate.")
-      );
-      showSummary();
-      return;
+        if (matches.length > 0) {
+            // Auto-select the most recent photo
+            const recent = matches[matches.length - 1];
+            last = { 
+                photoId: recent.id, 
+                url: recent.url,
+                roomId: recent.roomId,
+                originalName: recent.originalName
+            };
+            // Also ensure it is open in working area
+            if (typeof window.openInWorkingArea === "function") {
+                window.openInWorkingArea(recent.id);
+            }
+        } else {
+            alert(
+                tr("alerts.selectRoomFirst", null, "Please select a room first by clicking the 'Room' button and choosing a photo to renovate.")
+            );
+            showSummary();
+            return;
+        }
     }
 
     // Find the photo to process
@@ -275,21 +361,51 @@ CRITICAL CONSTRAINTS:
 
     // Disable button and show processing state
     let thinkingIndicator = null;
+    let originalText = "";
     if (button) {
       button.disabled = true;
-      var originalText = button.textContent;
+      originalText = button.textContent;
       button.textContent = tr("gemini.processingBtn", null, "Processing with AlgoreitAI...");
       thinkingIndicator = showGeminiThinkingIndicator(button);
     }
 
     try {
-      // Optimize image for Vercel (Smart Compression)
-      const imageDataUrl = await prepareImageForUpload(match.url);
+      // --- COLLAGE / REFERENCE PRODUCT LOGIC ---
+      // 1. Check if we have a product selection
+      let imageDataUrl = null;
+      let splitRatio = null; // Used to crop result if we used a collage
+
+      if (window.currentProductSelection && window.currentProductSelection.imageUrl) {
+        console.log("[GeminiAI] Supplier product selected. Building reference collage for backend...");
+        const productUrl = window.currentProductSelection.imageUrl;
+        const collageInfo = await buildRoomAndProductCollage(match.url, productUrl);
+        
+        if (collageInfo) {
+          // No modal here anymore - we just use it implicitly.
+          // The user should have already seen the preview in the working area.
+          
+          // Use the collage for upload
+          imageDataUrl = collageInfo.dataUrl;
+          splitRatio = collageInfo.splitRatio;
+          
+          console.log("[GeminiAI] Collage generated for processing. Split ratio:", splitRatio);
+        }
+      }
+
+      // 3. Optimize image for Upload (if not already set by collage)
+      if (!imageDataUrl) {
+          imageDataUrl = await prepareImageForUpload(match.url);
+      } else {
+          // Even if we have collage dataUrl, run it through prepare to ensure size limits
+          imageDataUrl = await prepareImageForUpload(imageDataUrl);
+      }
 
       // Get metadata from current context
       const meta = buildMetadata();
 
       // Send to backend
+      const userId = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
+
       const response = await fetch(getApiUrl("/api/gemini/process-photo"), {
         method: "POST",
         headers: {
@@ -299,12 +415,25 @@ CRITICAL CONSTRAINTS:
           imageDataUrl,
           instructions,
           meta,
+          userId,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const mainError = errorData.error || `HTTP ${response.status}`;
+        
+        // Handle Insufficient Credits
+        if (response.status === 402 || errorData.code === "INSUFFICIENT_CREDITS") {
+           // Show pricing modal
+           if (window.initPricing) { // Re-trigger update to be safe
+             alert("You have run out of credits. Please purchase more to continue.");
+             const btn = document.getElementById("buy-credits-btn");
+             if (btn) btn.click();
+             throw new Error("Insufficient Credits");
+           }
+        }
+
         const details = errorData.details ? `\nDetails: ${errorData.details}` : "";
         
         // Handle specific Vercel/Server errors
@@ -319,10 +448,16 @@ CRITICAL CONSTRAINTS:
       }
 
       const result = await response.json();
-      const processedImageUrl = result.imageDataUrl;
+      let processedImageUrl = result.imageDataUrl;
 
       if (!processedImageUrl) {
         throw new Error("No processed image received from AlgoreitAI");
+      }
+
+      // 4. POST-PROCESS: CROP IF COLLAGE WAS USED
+      if (splitRatio) {
+          console.log("[GeminiAI] Cropping result to remove reference panel...");
+          processedImageUrl = await cropCollageResult(processedImageUrl, splitRatio);
       }
 
       // Update the photo in the gallery
@@ -330,27 +465,38 @@ CRITICAL CONSTRAINTS:
       // because in Option B we want to keep the raw photos row intact.
       const isOptionB = !!document.getElementById("photo-working-area");
       
-      // STOP replacing the raw photo in the gallery for Option A. 
-      // We now use the "Renovated Row" for both options.
-      // if (!isOptionB && typeof window.updatePhotoUrlForGallery === "function") {
-      //   window.updatePhotoUrlForGallery(match.id, processedImageUrl);
-      // }
-      
       // Add to the "Processed Photos" top row (For both Option A and Option B)
       let newItem = null;
       if (typeof window.addProcessedPhotoToGallery === "function") {
+          // Determine labels
+          let styleLabel = window.currentStyleId;
+          let renovationLabel = window.currentRenovationId;
+          
+          // If we had custom instructions and no standard selections were active (or just to be explicit)
+          if (customInstructions) {
+              styleLabel = styleLabel || "Custom Style";
+              renovationLabel = renovationLabel || "Custom Edit";
+          }
+
           newItem = window.addProcessedPhotoToGallery(
               match.id, 
               processedImageUrl, 
-              window.currentStyleId, 
-              window.currentRenovationId
+              styleLabel, 
+              renovationLabel
           );
+      } else {
+          // If the helper is not available (Option A only mode), try to update the raw photo if it exists
+          if (!isOptionB && typeof window.updatePhotoUrlForGallery === "function") {
+             window.updatePhotoUrlForGallery(match.id, processedImageUrl);
+          }
       }
 
-      // CRITICAL FIX: Update the current focus to the NEW renovated photo.
-      // This ensures that the next renovation request (e.g., "paint walls") 
-      // is applied to THIS result, not the original raw photo.
-      if (newItem) {
+      if (!newItem) {
+          console.warn("[GeminiAI] Failed to add item to gallery. ID:", match.id);
+          // Fallback: Alert the user or try legacy method
+          alert("The image was processed but could not be added to the gallery. Please try refreshing.");
+      } else {
+          // CRITICAL FIX: Update the current focus to the NEW renovated photo.
           window.lastFocusedRoomPhoto = {
               roomId: newItem.roomId,
               photoId: newItem.id,
@@ -358,17 +504,35 @@ CRITICAL CONSTRAINTS:
               originalName: newItem.originalName
           };
           console.log("[GeminiAI] Updated focus to new renovated photo for chaining:", newItem.id);
+          
+          // Scroll to the result so the user sees it
+          const processedGallery = document.getElementById("processed-gallery");
+          if (processedGallery) {
+              processedGallery.scrollIntoView({ behavior: "smooth", block: "start" });
+              // Flash effect to highlight
+              processedGallery.style.transition = "background-color 0.5s";
+              processedGallery.style.backgroundColor = "#eff6ff";
+              setTimeout(() => { processedGallery.style.backgroundColor = "transparent"; }, 1000);
+          }
       }
 
       // Update overlay if this photo is currently displayed
       updateOverlayIfActive(match.url, processedImageUrl, match.roomId);
 
-      // Trigger download
-      // const downloadName = buildProcessedFileName(match);
-      // triggerDownload(processedImageUrl, downloadName);
-
-      // Success feedback (No popup, just log)
+      // Success feedback
       console.log("✓ Photo processed and gallery updated.");
+      
+      // Explicitly notify user
+      if (typeof showToast === "function") {
+          showToast("✨ Transformation Complete! Result added to Renovation Photos.", "success");
+      }
+      
+      // Auto-scroll to the top so they see the result
+      const processedGallery = document.getElementById("processed-gallery");
+      if (processedGallery) {
+          processedGallery.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
     } catch (error) {
       console.error("[GeminiAI] Processing failed", error);
       
@@ -522,6 +686,8 @@ CRITICAL CONSTRAINTS:
 
     return overlay;
   }
+  
+  // (Preview Modal function removed)
 
   function createTweakModal(callback) {
     const overlay = document.createElement("div");
@@ -616,9 +782,40 @@ CRITICAL CONSTRAINTS:
     
     const styleText = styleId ? styleId.replace(/_/g, " ") : "modern";
     const safeId = String(renovationId || "").trim().toLowerCase();
-    const renovationText =
+    let renovationText =
       RENOVATION_TASKS[safeId] ||
       `Apply a precise update to the ${safeId.replace(/_/g, " ")}`;
+
+    // Inject Supplier Product if selected
+    let supplierProductBlock = "";
+    if (window.currentProductSelection) {
+        const p = window.currentProductSelection;
+        const cat = p.category ? ` (${p.category})` : "";
+        const desc = p.description ? `\n- Description: ${p.description}` : "";
+        const supplier = p.supplierName ? `\n- Supplier: ${p.supplierName}` : "";
+        const price = (p.price || p.price === 0) ? `\n- Price: $${p.price}` : "";
+
+        // Dedicated block used by the specific templates below (esp. furniture staging)
+        supplierProductBlock = `\n\nSUPPLIER PRODUCT REFERENCE:\n- The INPUT IMAGE is a COLLAGE.\n- LEFT SIDE: The room to modify.\n- RIGHT SIDE: The Reference Product ("${p.name}") to insert.\n\nINSTRUCTIONS:\n1. IGNORE the right side panel in the final output.\n2. INSERT the product from the RIGHT into the room on the LEFT.\n3. PRESERVE the existing room details (walls, floor, windows, ceiling) and EXISTING FURNITURE as much as possible. Only move/remove items if they physically conflict with the new product's placement.\n4. Make it look photorealistic: match lighting, perspective, and shadows.\n5. The final result must ONLY show the room (left side) with the product integrated.`;
+
+        // Also reinforce the generic renovationText so the non-special templates still include it
+        renovationText = `Task: ADD the Reference Product shown on the RIGHT side into the room on the LEFT.\nDo not re-stage the entire room. Keep existing elements.\nContext: ${renovationText}`;
+        console.log("Injected Product into prompt (Strong Override):", p.name);
+        console.log("Full Prompt:", renovationText); // Added logging
+    }
+
+    // Special handling for enhance quality
+    if (safeId === "enhance_quality") {
+      return `You are an expert photo editor.
+TASK: Enhance the quality of this image.
+DETAILS: ${renovationText}
+CRITICAL CONSTRAINTS:
+1. Do NOT change the style, furniture, layout, or structural elements.
+2. PRESERVE the original aesthetic and design completely.
+3. Focus ONLY on improving resolution, sharpness, lighting balance, and color vibrancy.
+4. Reduce noise and artifacts.
+5. Make the image look cleaner and more professional, but keep it authentic to the original scene.`;
+    }
 
     // Special handling for furniture removal to avoid contradictory constraints
     if (safeId === "furniture_clear_remove") {
@@ -649,13 +846,14 @@ CRITICAL CONSTRAINTS:
       else if (lowerName.includes("office") || lowerName.includes("study")) roomTypeContext = "as a home office (desk, chair)";
 
       return `You are an expert interior designer.
-TASK: ${renovationText} (${roomTypeContext}).
+TASK: ${renovationText} (${roomTypeContext}).${supplierProductBlock}
 STYLE DETAILS: Use furniture and decor that strictly follows the ${styleText} aesthetic.
 CRITICAL CONSTRAINTS:
-1. Place furniture realistically within the existing space, respecting perspective and scale.
-2. Do NOT change the room layout, walls, floor, ceiling, or windows.
-3. Only ADD furniture; do not remove structural elements.
-4. Ensure lighting and shadows on the new furniture match the room's original lighting.`;
+1. The input image is a side-by-side collage (Room | Product).
+2. Your output must ONLY show the modified Room (Left side).
+3. ADD the product from the right panel into the room.
+4. PRESERVE the original room's structural elements (walls, floor, ceiling, windows) AND existing furniture layout where possible.
+5. Ensure realistic lighting and shadows for the added product.`;
     }
 
     return `You are an expert interior designer specialized in renovation.
@@ -685,9 +883,16 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
   
   async function prepareImageForUpload(url) {
     try {
-      // 1. Get the blob to check size
-      const response = await fetch(url);
-      const blob = await response.blob();
+      // 1. Get the blob to check size (or from data URL)
+      let blob;
+      if (url.startsWith("data:")) {
+         const res = await fetch(url);
+         blob = await res.blob();
+      } else {
+         const response = await fetch(url);
+         blob = await response.blob();
+      }
+
       const sizeMB = blob.size / (1024 * 1024);
       
       console.log(`[GeminiAI] Original image size: ${sizeMB.toFixed(2)} MB`);
@@ -710,6 +915,129 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
       // Fallback
       return convertToDataUrl(url);
     }
+  }
+
+  // Returns { dataUrl, splitRatio } where splitRatio is roomWidth / totalWidth
+  async function buildRoomAndProductCollage(roomUrl, productUrl) {
+    try {
+        // Fetch both images as blobs
+        const [roomBlob, productBlob] = await Promise.all([
+          fetch(roomUrl).then((r) => r.blob()),
+          fetch(productUrl).then((r) => r.blob()),
+        ]);
+    
+        const roomImg = await loadImageFromBlob(roomBlob);
+        const productImg = await loadImageFromBlob(productBlob);
+    
+        // Layout: room on left, product on right
+        const roomW = roomImg.naturalWidth || roomImg.width;
+        const roomH = roomImg.naturalHeight || roomImg.height;
+    
+        // Keep product panel ~35% of room width, at least 420px, at most 900px
+        const productPanelW = Math.max(420, Math.min(900, Math.round(roomW * 0.35)));
+        const productPanelH = roomH;
+    
+        const canvas = document.createElement("canvas");
+        const totalW = roomW + productPanelW;
+        canvas.width = totalW;
+        canvas.height = roomH;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+    
+        // Background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+        // Draw room (left)
+        ctx.drawImage(roomImg, 0, 0, roomW, roomH);
+    
+        // Divider
+        ctx.fillStyle = "rgba(0,0,0,0.12)";
+        ctx.fillRect(roomW, 0, 2, roomH);
+    
+        // Product panel background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(roomW + 2, 0, productPanelW - 2, productPanelH);
+    
+        // Fit product image inside right panel with padding
+        const pad = 24;
+        const boxW = productPanelW - pad * 2;
+        const boxH = productPanelH - pad * 2 - 64;
+    
+        const pw = productImg.naturalWidth || productImg.width;
+        const ph = productImg.naturalHeight || productImg.height;
+        const scale = Math.min(boxW / pw, boxH / ph);
+        const drawW = Math.round(pw * scale);
+        const drawH = Math.round(ph * scale);
+        const dx = roomW + pad + Math.round((boxW - drawW) / 2);
+        const dy = pad + 44;
+    
+        // Title
+        ctx.fillStyle = "#111827";
+        ctx.font = "bold 28px Inter, system-ui, -apple-system, Segoe UI, Arial";
+        ctx.fillText("Reference Product", roomW + pad, 36);
+    
+        // Draw product
+        ctx.drawImage(productImg, dx, dy, drawW, drawH);
+    
+        // Footer hint
+        ctx.fillStyle = "#374151";
+        ctx.font = "16px Inter, system-ui, -apple-system, Segoe UI, Arial";
+        ctx.fillText("Use the product on the right in the room on the left.", roomW + pad, roomH - 18);
+    
+        // Calculate split ratio for later cropping
+        const splitRatio = roomW / totalW;
+
+        // Convert to JPEG data URL
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.90);
+        
+        return { dataUrl, splitRatio };
+    } catch (e) {
+        console.error("[GeminiAI] Failed to build collage:", e);
+        return null;
+    }
+  }
+
+  function cropCollageResult(dataUrl, splitRatio) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const w = img.width;
+            const h = img.height;
+            // The result should have the same aspect ratio as input collage
+            // We want to keep the left part (the room)
+            const keepW = Math.floor(w * splitRatio);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = keepW;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw only the left part
+            ctx.drawImage(img, 0, 0, keepW, h, 0, 0, keepW, h);
+            
+            // Return high quality JPEG
+            resolve(canvas.toDataURL('image/jpeg', 0.92));
+        };
+        img.onerror = (e) => reject(new Error("Failed to load image for cropping"));
+        img.src = dataUrl;
+    });
+  }
+
+  function loadImageFromBlob(blob) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objUrl = URL.createObjectURL(blob);
+      img.onload = () => {
+        try { URL.revokeObjectURL(objUrl); } catch (_) {}
+        resolve(img);
+      };
+      img.onerror = (e) => {
+        try { URL.revokeObjectURL(objUrl); } catch (_) {}
+        reject(e);
+      };
+      img.src = objUrl;
+    });
   }
 
   function blobToDataUrl(blob) {
@@ -921,7 +1249,3 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
     );
   }
 })();
-
-
-
-

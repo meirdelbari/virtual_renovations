@@ -91,34 +91,21 @@
           label: "Floor",
           id: "bathroom_floor",
           options: [
-            { id: "ceramics", label: "Ceramics" },
             { id: "tiles", label: "Tiles" },
-            { id: "vinyl", label: "Vinyl" },
             { id: "hardwood", label: "Hardwood" },
-            { id: "laminate", label: "Laminate" },
           ],
         },
         {
           label: "Walls",
           id: "bathroom_walls",
           options: [
-            { id: "painting", label: "Painting" },
             { id: "tiles", label: "Tiles" },
+            { id: "painting", label: "Painting" },
           ],
         },
         {
-          label: "Ceiling",
-          id: "bathroom_ceiling",
-          options: [{ id: "painting", label: "Painting" }],
-        },
-        {
-          label: "Sink",
-          id: "bathroom_sink",
-          options: [{ id: "replace", label: "Replace" }],
-        },
-        {
-          label: "Bath",
-          id: "bathroom_bath",
+          label: "Vanity",
+          id: "bathroom_vanity",
           options: [{ id: "replace", label: "Replace" }],
         },
         {
@@ -127,20 +114,14 @@
           options: [{ id: "replace", label: "Replace" }],
         },
         {
-          label: "Windows",
-          id: "bathroom_windows",
-          options: [
-            { id: "painting", label: "Painting" },
-            { id: "aluminum", label: "Aluminum" },
-          ],
+          label: "Shower",
+          id: "bathroom_shower",
+          options: [{ id: "replace", label: "Replace" }],
         },
         {
-          label: "Door",
-          id: "bathroom_door",
-          options: [
-            { id: "painting", label: "Painting" },
-            { id: "replace", label: "Replace" },
-          ],
+          label: "Bathtub",
+          id: "bathroom_bathtub",
+          options: [{ id: "replace", label: "Replace" }],
         },
       ],
     },
@@ -149,96 +130,80 @@
       label: "Kitchen",
       groups: [
         {
+          label: "Floor",
+          id: "kitchen_floor",
+          options: [
+            { id: "tiles", label: "Tiles" },
+            { id: "hardwood", label: "Hardwood" },
+          ],
+        },
+        {
           label: "Cabinets",
           id: "kitchen_cabinets",
           options: [
-            { id: "painting", label: "Painting" },
             { id: "replace", label: "Replace" },
+            { id: "painting", label: "Painting" },
           ],
         },
         {
           label: "Countertop",
           id: "kitchen_countertop",
-          options: [{ id: "replace", label: "Replace" }],
+          options: [
+            { id: "replace", label: "Replace" },
+            { id: "quartz", label: "Quartz" },
+            { id: "granite", label: "Granite" },
+            { id: "marble", label: "Marble" },
+          ],
         },
         {
           label: "Backsplash",
           id: "kitchen_backsplash",
-          options: [{ id: "replace", label: "Replace" }],
-        },
-        {
-          label: "Floor",
-          id: "kitchen_floor",
           options: [
-            { id: "ceramics", label: "Ceramics" },
             { id: "tiles", label: "Tiles" },
-            { id: "vinyl", label: "Vinyl" },
-            { id: "hardwood", label: "Hardwood" },
-            { id: "laminate", label: "Laminate" },
+            { id: "painting", label: "Painting" },
           ],
-        },
-        {
-          label: "Walls",
-          id: "kitchen_walls",
-          options: [{ id: "painting", label: "Painting" }],
-        },
-        {
-          label: "Ceiling",
-          id: "kitchen_ceiling",
-          options: [{ id: "painting", label: "Painting" }],
         },
       ],
     },
     {
-      id: "exterior",
-      label: "Exterior",
+      id: "garden",
+      label: "Garden",
       groups: [
         {
-          label: "Walls",
-          id: "exterior_walls",
-          options: [{ id: "painting", label: "Painting" }],
-        },
-        {
-          label: "Windows",
-          id: "exterior_windows",
+          label: "Floor",
+          id: "garden_floor",
           options: [
-            { id: "painting", label: "Painting" },
-            { id: "replace", label: "Replace" },
+            { id: "deck", label: "Deck" },
+            { id: "paving", label: "Paving" },
+            { id: "grass", label: "Grass" },
           ],
         },
         {
-          label: "Doors",
-          id: "exterior_doors",
+          label: "Pool",
+          id: "garden_pool",
           options: [
-            { id: "painting", label: "Painting" },
-            { id: "replace", label: "Replace" },
+            { id: "add", label: "Add" },
+            { id: "remove", label: "Remove" },
           ],
         },
         {
-          label: "Roof",
-          id: "exterior_roof",
+          label: "Landscaping",
+          id: "garden_landscaping",
           options: [
-            { id: "painting", label: "Painting" },
-            { id: "replace", label: "Replace" },
+            { id: "trees", label: "Trees" },
+            { id: "plants", label: "Plants" },
           ],
         },
         {
-          label: "Garden",
-          id: "exterior_garden",
+          label: "Furniture",
+          id: "garden_furniture",
           options: [
-            { id: "clear", label: "Clear" },
-            { id: "gardening", label: "Gardening" },
-          ],
-        },
-        {
-          label: "Structure",
-          id: "exterior_structure",
-          options: [
+            { id: "add", label: "Add" },
             { id: "replace", label: "Replace" },
           ],
         },
       ],
-    },
+    }
   ];
 
   function initRenovateSelector() {
@@ -277,455 +242,303 @@
     const panel = document.createElement("div");
     panel.id = "renovate-selector-panel";
     panel.className = "renovate-selector-panel";
-    
-    // Override class styles for dropdown behavior
-    panel.style.position = "absolute";
-    panel.style.minWidth = "220px";
-    panel.style.zIndex = "2000"; // Ensure it's on top of everything
-    panel.style.right = "auto"; // Unset right from class
 
-    let itemsHtml = "";
-
-    // Add Remove Furniture option at the top
-    const removeFurnitureLabel = tr("renovate.removeFurniture", null, "Remove Furniture");
-    itemsHtml += `
-      <div class="renovate-category">
-        <button
-          type="button"
-          class="renovate-option-item"
-          data-renovation-id="furniture_clear_remove"
-          data-renovation-label="${escapeHtml(removeFurnitureLabel)}"
-          style="width: 100%; text-align: left; padding: 10px 12px; font-weight: 600; background: #fff; border: none; border-bottom: 1px solid #e5e7eb; color: #dc2626; cursor: pointer; display: flex; align-items: center; gap: 8px;"
-        >
-          <span>🧹</span> ${escapeHtml(removeFurnitureLabel)}
-        </button>
+    // Header with Source Switcher
+    const headerHtml = `
+      <div class="renovate-selector-header" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #f3f4f6;">
+        <div class="flex bg-white rounded-lg p-1 border border-gray-200 shadow-sm w-full" style="display: flex;">
+            <button id="mode-ai" class="flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-indigo-600 text-white">✨ AI</button>
+            <button id="mode-supplier" class="flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-500 hover:text-gray-900">🛍️ Suppliers</button>
+        </div>
       </div>
     `;
-    
-    RENOVATIONS.forEach((category, index) => {
-        const categoryId = `renovate-cat-${index}`;
-        const categoryLabel = tr(`renovate.categories.${category.id}`, null, category.label);
-        const groupsHtml = category.groups
-          .map((group, gIndex) => {
-            const groupId = `${categoryId}-group-${gIndex}`;
-            const groupLabel = tr(`renovate.groups.${group.id}`, null, group.label);
-            const optionButtons = group.options
-              .map((option) => {
-                const optionLabel = tr(`renovate.options.${option.id}`, null, option.label);
-                return `
-                  <button
-                    type="button"
-                    class="renovate-option-item"
-                    data-renovation-id="${group.id}_${option.id}"
-                    data-renovation-label="${escapeHtml(optionLabel)}"
-                    style="padding-left: 32px;"
-                  >
-                    ${escapeHtml(optionLabel)}
-                  </button>
-                `;
-              })
-              .join("");
-            return `
-              <div class="renovate-group">
-                <button
-                  type="button"
-                  class="renovate-group-toggle"
-                  data-target="${groupId}"
-                  style="width: 100%; text-align: left; padding: 8px 12px; font-weight: 500; background: #fff; border: none; border-bottom: 1px solid #e5e7eb; color: #374151; cursor: pointer;"
-                >
-                  ${escapeHtml(groupLabel)}
-                </button>
-                <div
-                  id="${groupId}"
-                  class="renovate-group-options"
-                  style="display: none; border-bottom: 1px solid #f3f4f6;"
-                >
-                  ${optionButtons}
-                </div>
-              </div>
-            `;
-          })
-          .join("");
 
-        itemsHtml += `
-          <div class="renovate-category">
-            <button 
-              type="button" 
-              class="renovate-category-toggle" 
-              data-target="${categoryId}"
-              style="width: 100%; text-align: left; padding: 10px 12px; font-weight: 600; background: #eef2ff; border: none; border-bottom: 1px solid #e5e7eb; color: #374151; cursor: pointer;"
-            >
-              ${escapeHtml(categoryLabel)}
-            </button>
-            <div 
-              id="${categoryId}" 
-              class="renovate-category-items" 
-              style="display: none; border-bottom: 1px solid #e5e7eb;"
-            >
-              ${groupsHtml}
+    const tabsHtml = RENOVATIONS.map((cat) => {
+      return `<button class="renovate-tab-btn" data-target="${cat.id}">${tr(`renovate.categories.${cat.id}`, null, cat.label)}</button>`;
+    }).join("");
+
+    const contentHtml = RENOVATIONS.map((cat) => {
+      const groupsHtml = cat.groups
+        .map((group) => {
+          const optionsHtml = group.options
+            .map(
+              (opt) =>
+                `<button class="renovate-option-btn" data-group-id="${group.id}" data-opt-id="${opt.id}" data-opt-label="${opt.label}">${tr(`renovate.options.${opt.id}`, null, opt.label)}</button>`
+            )
+            .join("");
+
+          return `
+            <div class="renovate-category">
+                <button class="renovate-category-toggle">
+                    ${tr(`renovate.groups.${group.id.split('_')[1]}`, null, group.label)}
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="renovate-category-content">
+                    ${optionsHtml}
+                </div>
             </div>
-          </div>
         `;
-    });
+        })
+        .join("");
+
+      return `<div id="renovate-content-${cat.id}" class="renovate-tab-content" style="display:none">${groupsHtml}</div>`;
+    }).join("");
 
     panel.innerHTML = `
-      <div class="renovate-selector-header">
-        <div class="renovate-selector-title">${escapeHtml(tr("renovate.title", null, "Apply renovation"))}</div>
+      ${headerHtml}
+      <div class="renovate-tabs">
+        ${tabsHtml}
       </div>
-      <div class="renovate-selector-body" style="max-height: 400px; overflow-y: auto;">
-        ${itemsHtml}
+      <div class="renovate-selector-body">
+        ${contentHtml}
       </div>
     `;
 
     container.appendChild(panel);
 
-    // Calculate position relative to document body
+    // Positioning
     const rect = button.getBoundingClientRect();
     const scrollX = window.scrollX || window.pageXOffset;
     const scrollY = window.scrollY || window.pageYOffset;
-
     panel.style.left = `${rect.left + scrollX}px`;
     panel.style.top = `${rect.bottom + scrollY + 8}px`;
 
+    // State for this panel instance
+    let currentMode = 'ai'; // 'ai' or 'supplier'
+
+    // Mode Switcher Logic
+    const btnAI = panel.querySelector('#mode-ai');
+    const btnSupplier = panel.querySelector('#mode-supplier');
+
+    function setMode(mode) {
+        currentMode = mode;
+        if (mode === 'ai') {
+            btnAI.className = "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-indigo-600 text-white shadow-sm";
+            btnSupplier.className = "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-500 hover:text-gray-900";
+        } else {
+            btnSupplier.className = "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-indigo-600 text-white shadow-sm";
+            btnAI.className = "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-500 hover:text-gray-900";
+        }
+    }
+
+    btnAI.onclick = (e) => { e.stopPropagation(); setMode('ai'); };
+    btnSupplier.onclick = (e) => { e.stopPropagation(); setMode('supplier'); };
+
+    // Interaction Logic
+    const tabs = panel.querySelectorAll(".renovate-tab-btn");
+    const contents = panel.querySelectorAll(".renovate-tab-content");
+
+    function activateTab(id) {
+      tabs.forEach((t) => t.classList.toggle("active", t.dataset.target === id));
+      contents.forEach((c) => (c.style.display = c.id === `renovate-content-${id}` ? "block" : "none"));
+    }
+
+    tabs.forEach((t) =>
+      t.addEventListener("click", () => activateTab(t.dataset.target))
+    );
+    // Default active
+    activateTab("room");
+
+    // Accordion Logic
     panel.querySelectorAll(".renovate-category-toggle").forEach((toggle) => {
       toggle.addEventListener("click", () => {
-        const targetId = toggle.getAttribute("data-target");
-        const target = document.getElementById(targetId);
-        if (!target) return;
-        const isOpen = target.style.display === "block";
-        target.style.display = isOpen ? "none" : "block";
+        toggle.classList.toggle("open");
+        const content = toggle.nextElementSibling;
+        content.style.display = content.style.display === "block" ? "none" : "block";
       });
     });
 
-    panel.querySelectorAll(".renovate-group-toggle").forEach((toggle) => {
-      toggle.addEventListener("click", () => {
-        const targetId = toggle.getAttribute("data-target");
-        const target = document.getElementById(targetId);
-        if (!target) return;
-        const isOpen = target.style.display === "block";
-        target.style.display = isOpen ? "none" : "block";
+    // Selection Logic with Mode Check
+    panel.querySelectorAll(".renovate-option-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const groupId = btn.dataset.groupId;
+        const optId = btn.dataset.optId;
+        const optLabel = btn.dataset.optLabel;
+        const categoryLabel = btn.closest('.renovate-tab-content').querySelector('.renovate-category-toggle').innerText.trim();
+        const fullLabel = `${categoryLabel} - ${optLabel}`;
+
+        // Close Panel
+        if (panel.parentNode) panel.parentNode.removeChild(panel);
+
+        if (currentMode === 'ai') {
+            // Option 1: Default (Existing Logic)
+            // Clear any product selection first to ensure pure AI generation
+            if (window.setProductSelection) window.setProductSelection(null); 
+            else window.currentProductSelection = null;
+            
+            commitRenovationSelection(groupId, optId, fullLabel);
+        } else {
+            // Option 2: Supplier (Directly Open Products)
+            // No need to force style selection first; user can filter in the modal.
+            openProductSelectorForRenovation(groupId, optId, fullLabel);
+        }
       });
     });
+  }
 
-    panel.querySelectorAll(".renovate-option-item").forEach((btn) => {
-      btn.addEventListener("click", async (e) => {
-        // Try multiple ways to get the ID to be safe
-        const renovationId = btn.dataset.renovationId || btn.getAttribute("data-renovation-id");
-        const renovationLabel =
-          btn.dataset.renovationLabel ||
-          btn.getAttribute("data-renovation-label") ||
-          btn.textContent.trim() ||
-          renovationId;
-        
-        console.log("[RenovateSelector] Clicked option. ID:", renovationId);
-        
-        if (!renovationId) {
-          console.error("[RenovateSelector] Error: Could not find renovation ID on button", btn);
-          alert("Internal Error: Renovation ID missing");
-          return;
+  function openProductSelectorForRenovation(groupId, optId, label) {
+        if (window.productSelector) {
+            const categoryMap = {
+                'room_floor': 'Flooring',
+                'room_walls': 'Paint',
+                'room_lighting': 'Lighting',
+                'bathroom_floor': 'Flooring',
+                'kitchen_floor': 'Flooring'
+            };
+            const categoryToFilter = categoryMap[groupId] || 'All';
+            const styleToFilter = (window.currentStyleContext && window.currentStyleContext.id) 
+                                  ? window.currentStyleContext.id 
+                                  : null;
+            
+            if (window.productSelector.open) window.productSelector.open(categoryToFilter, styleToFilter);
+            
+            commitRenovationSelection(groupId, optId, label, true); 
+        } else {
+            alert("Product selector not loaded");
         }
-        
-        if (panel.parentNode) {
-          panel.parentNode.removeChild(panel);
-        }
+  }
 
-        // Update global state
-        window.currentRenovationSelection = {
-          id: renovationId,
-          label: renovationLabel,
-        };
-
-        if (window.updateSelectionSummary) {
-          window.updateSelectionSummary({ renovation: renovationLabel });
-        }
-
-        window.currentRenovationId = renovationId;
-        if (window.setFlowLock) {
-          // Garden clear and Remove Furniture do not require Style; allow direct processing
-          if (
-            renovationId === "exterior_garden_clear" ||
-            renovationId === "furniture_clear_remove"
-          ) {
-            window.setFlowLock(null);
+  // --- New Logic: Source Selection Modal ---
+  function showSourceSelectionModal(groupId, optId, label) {
+      // Create a simple modal
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-[3000] flex items-center justify-center';
+      modal.innerHTML = `
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 class="text-lg font-bold mb-4">How do you want to renovate?</h3>
+            <p class="mb-4 text-gray-600">You selected: <strong>${label}</strong></p>
+            
+            <div class="space-y-3">
+                <button id="choice-default" class="w-full py-3 px-4 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center gap-2">
+                    <span>✨</span>
+                    <div class="text-left">
+                        <div class="font-bold">Use AI Default</div>
+                        <div class="text-xs text-gray-500">Let Gemini suggest the style</div>
+                    </div>
+                </button>
+                
+                <button id="choice-supplier" class="w-full py-3 px-4 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100 flex items-center justify-center gap-2">
+                    <span>🛍️</span>
+                    <div class="text-left">
+                        <div class="font-bold text-indigo-700">Browse Suppliers</div>
+                        <div class="text-xs text-indigo-600">Select real products from catalog</div>
+                    </div>
+                </button>
+            </div>
+            
+            <button id="choice-cancel" class="mt-4 text-sm text-gray-500 underline w-full text-center">Cancel</button>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      const closeModal = () => document.body.removeChild(modal);
+      
+      document.getElementById('choice-cancel').onclick = closeModal;
+      
+      // Option 1: Default (Existing Logic)
+      document.getElementById('choice-default').onclick = () => {
+          closeModal();
+          // Clear any product selection first to ensure pure AI generation
+          if (window.setProductSelection) window.setProductSelection(null); 
+          else window.currentProductSelection = null;
+          
+          commitRenovationSelection(groupId, optId, label);
+      };
+      
+      // Option 2: Supplier (Open Product Selector)
+      document.getElementById('choice-supplier').onclick = () => {
+          closeModal();
+          
+          // Force clear any previous renovation intent until product is picked?
+          // No, we want to know we are in "room_floor" mode.
+          // But we should clear the GENERIC prompt trigger until product is back.
+          
+            // Open Product Selector with Filter pre-set (mapping logic needed)
+            if (window.productSelector) {
+                const categoryMap = {
+                    'room_floor': 'Flooring',
+                    'room_walls': 'Paint',
+                    'room_lighting': 'Lighting',
+                    'bathroom_floor': 'Flooring',
+                    'kitchen_floor': 'Flooring'
+                };
+                const categoryToFilter = categoryMap[groupId] || 'All';
+                
+                // Allow specific style filtering from renovation option (e.g. hardwood -> style?)
+                // Or maybe the filter logic in productSelector handles "Flooring - Hardwood" if we pass "Flooring"?
+                // The issue is productSelector.filter(cat) checks: p.category === cat || p.category.startsWith(cat + ' -')
+                // "Flooring" matches "Flooring - Hardwood".
+                // But wait, the user says they selected "Renovate-Flooring-Hardwood" (which is group=room_floor, opt=hardwood)
+                // and didn't see "wood floor" (category="Flooring - Hardwood", style="scandinavian").
+                // Ah, maybe the style filter is hiding it if the current style context doesn't match?
+                // Or maybe the category logic is strict?
+                
+                window.productSelector.open();
+                setTimeout(() => {
+                    if(window.productSelector.filter) {
+                        // Pass both category AND style if we want to be smart?
+                        // For now just fix category. 
+                        window.productSelector.filter(categoryToFilter);
+                    }
+                }, 500); 
+              
+              // We also need to set the renovation ID so the prompt knows context
+              commitRenovationSelection(groupId, optId, label, true); 
           } else {
-            window.setFlowLock("renovate");
+              alert("Product selector not loaded");
           }
-        }
-        
-        // Visual feedback
-        const geminiBtn = document.querySelector('[data-role="gemini-ai"]');
-        if (geminiBtn) {
-            geminiBtn.classList.add('pulse-animation'); // We'll add this CSS
-            geminiBtn.textContent = tr("ops.clickToProcess", null, "✨ Click to Process");
-            setTimeout(() => {
-                geminiBtn.classList.remove('pulse-animation');
-                geminiBtn.textContent = tr("ops.algoreit", null, "✨ AlgoreitAI");
-            }, 3000);
-        }
-        
-        // We no longer auto-trigger here to allow the user to select a style first
-        console.log("[RenovateSelector] Renovation selected:", renovationId, "- Waiting for user to click AlgoreitAI");
-      });
-    });
-  }
-
-  // Legacy local renovation function (kept as fallback)
-  async function applyRenovation(renovationId) {
-    const styleCtx = window.currentStyleContext || { id: null, label: null };
-    if (!styleCtx.id) {
-      alert(
-        "Please choose a Style first. Click the 'Style' button and pick a design style."
-      );
-      return;
-    }
-
-    const matches = Array.isArray(window.currentPhotoMatches)
-      ? window.currentPhotoMatches
-      : [];
-    const last = window.lastFocusedRoomPhoto || null;
-
-    if (!matches.length) {
-      alert(
-        "There are no uploaded photos to renovate. Use 'Upload Photos' and match them to rooms first."
-      );
-      return;
-    }
-
-    if (!last || !last.photoId) {
-      alert(
-        "Renovate works on the last room photo you viewed. First click 'Room', choose a room, then try again."
-      );
-      return;
-    }
-
-    const match =
-      matches.find((m) => m.id === last.photoId) || {
-        id: last.photoId,
-        url: last.url,
-        originalName: last.originalName || "",
       };
+  }
 
-    try {
-      const originalUrl = match.url;
-      const renovatedUrl = await renovateImage(
-        originalUrl,
-        styleCtx.id,
-        renovationId
-      );
+  function commitRenovationSelection(groupId, optId, label, isSupplierFlow = false) {
+      const fullId = `${groupId}_${optId}`; // e.g. room_floor_hardwood
+      console.log("[RenovateSelector] Selected:", fullId);
+      
+      window.currentRenovationId = fullId;
+      window.currentRenovationLabel = label;
+      
+      // Clear conflicting modes
+      window.enhanceSelected = false;
+      window.customPromptPending = false;
 
-      if (typeof window.updatePhotoUrlForGallery === "function") {
-        window.updatePhotoUrlForGallery(match.id, renovatedUrl);
+      if (window.updateSelectionSummary) {
+        window.updateSelectionSummary({
+          renovation: label,
+        });
       }
 
-      // Keep last-focused pointer in sync with the renovated image
-      window.lastFocusedRoomPhoto = {
-        roomId: last.roomId,
-        photoId: match.id,
-        url: renovatedUrl,
-        originalName: match.originalName || "",
-      };
-
-      const overlay = document.getElementById("room-photo-overlay");
-      if (overlay) {
-        const currentHref =
-          overlay.getAttribute("href") || overlay.getAttribute("xlink:href");
-        if (currentHref === originalUrl) {
-          overlay.setAttribute("href", renovatedUrl);
-          overlay.setAttributeNS(
-            "http://www.w3.org/1999/xlink",
-            "href",
-            renovatedUrl
-          );
-        }
+      // Visual feedback
+      const geminiBtn = document.querySelector('[data-role="gemini-ai"]');
+      if (geminiBtn) {
+        geminiBtn.classList.add("pulse-animation");
+        geminiBtn.textContent = tr("ops.clickToProcess", null, "✨ Click to Process");
+        setTimeout(() => {
+          geminiBtn.classList.remove("pulse-animation");
+          geminiBtn.textContent = tr("ops.algoreit", null, "✨ AlgoreitAI");
+        }, 3000);
       }
-
-      const downloadName = buildRenovatedFileName(
-        match.originalName,
-        styleCtx.id,
-        renovationId,
-        match.id
-      );
-      triggerDownload(renovatedUrl, downloadName);
-
-      alert(
-        `Renovation '${renovationId}' applied in '${styleCtx.label}' style. A renovated copy was downloaded—save it into your 'Enhanched_Photos' (or similar) folder.`
-      );
-    } catch (error) {
-      console.error("[RenovateSelector] Failed to apply renovation", error);
-      alert("Something went wrong while applying the renovation.");
-    }
-  }
-
-  async function renovateImage(url, styleId, renovationId) {
-    const img = await loadImage(url);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth || img.width;
-    canvas.height = img.naturalHeight || img.height;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-    const imageDataUrl = canvas.toDataURL("image/png");
-
-    // Try backend AI renovation first
-    try {
-      const response = await fetch(getApiUrl("/api/renovate-room"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          imageDataUrl,
-          styleId,
-          renovationId,
-        }),
-      });
-
-      if (response.ok) {
-        const json = await response.json();
-        if (json && json.imageDataUrl) {
-          return json.imageDataUrl;
-        }
+      
+      // If NOT supplier flow, we might trigger immediate action or wait for style
+      // If Supplier flow, the user is now browsing products, so we wait.
+      
+      // Special handling for Furniture options (which map to specific renovation IDs)
+      if (optId === 'remove') {
+          window.currentRenovationId = "furniture_clear_remove";
+          if(window.setFlowLock) window.setFlowLock(null);
+      } else if (optId === 'stage') {
+          window.currentRenovationId = "furniture_stage_room";
+          if(window.setFlowLock) window.setFlowLock("stage");
       }
-    } catch (e) {
-      console.warn(
-        "[RenovateSelector] Backend renovation failed, falling back to local filter."
-      );
-    }
-
-    // Fallback: apply local tint so there is at least a visible change
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    const tint = getTint(styleId, renovationId);
-    const alpha = tint.alpha;
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      const tr = r * (1 - alpha) + tint.r * alpha;
-      const tg = g * (1 - alpha) + tint.g * alpha;
-      const tb = b * (1 - alpha) + tint.b * alpha;
-
-      data[i] = tr;
-      data[i + 1] = tg;
-      data[i + 2] = tb;
-    }
-
-    const contrast = 1.08;
-    const brightness = 6;
-    for (let i = 0; i < data.length; i += 4) {
-      for (let c = 0; c < 3; c++) {
-        let v = data[i + c];
-        v = v * contrast + brightness;
-        if (v < 0) v = 0;
-        if (v > 255) v = 255;
-        data[i + c] = v;
-      }
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-    return canvas.toDataURL("image/jpeg", 0.92);
   }
 
-  function getTint(styleId, renovationId) {
-    // Basic color suggestions based on style and renovation type.
-    // These are not photorealistic, but give a distinct visual cue.
-    const base = { r: 255, g: 255, b: 255, alpha: 0.0 };
+  // Listen for the continuation event from StyleSelector
+  window.addEventListener('continueSupplierFlow', (e) => {
+      const { groupId, optId, label } = e.detail;
+      console.log("Resuming supplier flow for:", label);
+      openProductSelectorForRenovation(groupId, optId, label);
+  });
 
-    if (renovationId === "wood_floor") {
-      return tintForStyle(styleId, {
-        modern: { r: 196, g: 154, b: 108 },
-        traditional: { r: 150, g: 105, b: 60 },
-        minimalist: { r: 220, g: 200, b: 170 },
-      });
-    }
-    if (renovationId === "carpet") {
-      return tintForStyle(styleId, {
-        modern: { r: 220, g: 220, b: 230 },
-        traditional: { r: 165, g: 60, b: 60 },
-        minimalist: { r: 230, g: 230, b: 230 },
-      });
-    }
-    if (renovationId === "tiles") {
-      return tintForStyle(styleId, {
-        modern: { r: 210, g: 215, b: 225 },
-        traditional: { r: 200, g: 190, b: 175 },
-        industrial: { r: 190, g: 190, b: 190 },
-      });
-    }
-    if (renovationId === "paint") {
-      return tintForStyle(styleId, {
-        modern: { r: 240, g: 246, b: 255 },
-        traditional: { r: 245, g: 232, b: 220 },
-        coastal: { r: 220, g: 235, b: 245 },
-        minimalist: { r: 250, g: 250, b: 250 },
-      });
-    }
-    if (renovationId === "kitchen") {
-      return tintForStyle(styleId, {
-        modern: { r: 225, g: 230, b: 240 },
-        farmhouse: { r: 230, g: 220, b: 205 },
-        industrial: { r: 210, g: 210, b: 210 },
-      });
-    }
-    if (renovationId === "bathroom") {
-      return tintForStyle(styleId, {
-        modern: { r: 225, g: 240, b: 245 },
-        coastal: { r: 210, g: 235, b: 240 },
-        minimalist: { r: 240, g: 245, b: 248 },
-      });
-    }
+  // --- End New Logic ---
 
-    return { ...base, alpha: 0.0 };
-  }
-
-  function tintForStyle(styleId, map) {
-    const base = { r: 255, g: 255, b: 255, alpha: 0.0 };
-    const chosen = map[styleId] || map.modern || null;
-    if (!chosen) return base;
-    // Stronger alpha so the renovation is clearly visible
-    return { r: chosen.r, g: chosen.g, b: chosen.b, alpha: 0.32 };
-  }
-
-  function loadImage(url) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = url;
-    });
-  }
-
-  function triggerDownload(dataUrl, filename) {
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = filename || "renovated_photo.jpg";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  function buildRenovatedFileName(originalName, styleId, renovationId, id) {
-    const base =
-      typeof originalName === "string" && originalName
-        ? originalName.replace(/\.[a-zA-Z0-9]+$/, "")
-        : `photo_${id}`;
-    return `${base}_${styleId || "style"}_${renovationId}_renovated_${String(
-      id
-    ).padStart(2, "0")}.jpg`;
-  }
-  function escapeHtml(str) {
-    if (typeof str !== "string") return "";
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
 })();
-
-

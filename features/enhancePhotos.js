@@ -45,6 +45,12 @@
       // Selection-only behavior; processing will occur when the user clicks AlgoreitAI
       window.enhanceSelected = true;
       window.currentRenovationId = "enhance_quality";
+      
+      // Clear conflicting modes
+      window.customPromptPending = false;
+      if (window.setProductSelection) window.setProductSelection(null);
+      else window.currentProductSelection = null;
+
       if (window.setFlowLock) {
         window.setFlowLock(null); // No style required for enhance
       }

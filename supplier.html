@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Portal - Virtual Renovations</title>
+    
+    <!-- Fonts and Styles -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css"> <!-- Reusing main styles for consistency -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@4/dist/clerk.browser.js"></script>
+
+    <style>
+        /* Portal Specific Overrides */
+        body {
+            background-color: #f3f4f6;
+        }
+        .portal-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Header -->
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <img src="logo.svg" alt="Logo" class="h-8 w-8 mr-2">
+                    <span class="text-xl font-bold text-gray-900">Supplier Portal</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-gray-500 hover:text-gray-700">Back to App</a>
+                    <div id="user-button"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="portal-container" id="app">
+        
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-10">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p class="mt-4 text-gray-500">Loading Portal...</p>
+        </div>
+
+        <!-- Registration View (Hidden by default) -->
+        <div id="registration-view" class="hidden max-w-2xl mx-auto">
+            <div class="card text-center">
+                <h2 class="text-2xl font-bold mb-4">Welcome to the Supplier Network</h2>
+                <p class="text-gray-600 mb-6">Join our platform to showcase your materials and furniture to thousands of homeowners designing their dream spaces.</p>
+                
+                <form id="register-form" class="text-left space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Company Name</label>
+                        <input type="text" name="companyName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Contact Email</label>
+                        <input type="email" name="contactEmail" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Main Categories (comma separated)</label>
+                        <input type="text" name="categories" placeholder="Flooring, Furniture, Paint" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                    </div>
+                    <button type="submit" class="btn-primary w-full py-3">Register Company</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard View (Hidden by default) -->
+        <div id="dashboard-view" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold" id="company-name-display">My Dashboard</h1>
+                <button onclick="showUploadModal()" class="btn-primary">+ Add New Product</button>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="card">
+                    <h3 class="text-gray-500 text-sm font-medium">Total Products</h3>
+                    <p class="text-3xl font-bold text-indigo-600" id="stat-products">0</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-gray-500 text-sm font-medium">Views (Demo)</h3>
+                    <p class="text-3xl font-bold text-indigo-600">-</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-gray-500 text-sm font-medium">Leads (Demo)</h3>
+                    <p class="text-3xl font-bold text-indigo-600">-</p>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <h2 class="text-xl font-semibold mb-4">Product Catalog</h2>
+
+            <!-- Filters -->
+            <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <!-- Category Buttons -->
+                    <div class="flex flex-wrap gap-2 w-full md:w-auto" id="category-filters">
+                        <button onclick="filterProducts('All')" class="filter-btn px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium transition whitespace-nowrap" data-cat="All">All</button>
+                        
+                        <!-- Flooring Dropdown Group -->
+                        <div class="relative group inline-block">
+                            <button onclick="filterProducts('Flooring')" class="filter-btn px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap flex items-center" data-cat="Flooring">
+                                Flooring <span class="ml-1 text-xs">▼</span>
+                            </button>
+                            <!-- Hover Menu -->
+                            <div class="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50 border border-gray-100">
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Flooring')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">All Flooring</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Flooring - Hardwood')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Hardwood</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Flooring - Laminate')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Laminate</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Flooring - Ceramics')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ceramics</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Flooring - Tiles')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Tiles</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Flooring - Vinyl')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Vinyl</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Flooring - Carpet')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Carpet</a>
+                            </div>
+                        </div>
+
+                        <!-- Furniture Dropdown Group -->
+                        <div class="relative group inline-block">
+                            <button onclick="filterProducts('Furniture')" class="filter-btn px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap flex items-center" data-cat="Furniture">
+                                Furniture <span class="ml-1 text-xs">▼</span>
+                            </button>
+                            <!-- Hover Menu -->
+                            <div class="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50 border border-gray-100">
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Furniture')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">All Furniture</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Furniture - Sofa')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sofa</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Furniture - Chair')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Chair</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Furniture - Table')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Table</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Furniture - Bed')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Bed</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Furniture - Wardrobe')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Wardrobe</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Furniture - Cabinet')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Cabinet</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Furniture - Dining Set')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dining Set</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Furniture - Rug')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rug</a>
+                            </div>
+                        </div>
+                        <!-- Lighting Dropdown Group -->
+                        <div class="relative group inline-block">
+                            <button onclick="filterProducts('Lighting')" class="filter-btn px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap flex items-center" data-cat="Lighting">
+                                Lighting <span class="ml-1 text-xs">▼</span>
+                            </button>
+                            <!-- Hover Menu -->
+                            <div class="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50 border border-gray-100">
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">All Lighting</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Chandelier')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Chandelier</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Pendant')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pendant</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Ceiling')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ceiling Light</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Wall Sconce')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Wall Sconce</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Table Lamp')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Table Lamp</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Floor Lamp')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Floor Lamp</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Recessed')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Recessed</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Track')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Track Lighting</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Outdoor')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Outdoor</a>
+                                <a href="#" onclick="event.preventDefault(); filterProducts('Lighting - Smart')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Smart Lighting</a>
+                            </div>
+                        </div>
+
+                        <button onclick="filterProducts('Paint')" class="filter-btn px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap" data-cat="Paint">Paint</button>
+                        <button onclick="filterProducts('Decor')" class="filter-btn px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap" data-cat="Decor">Decor</button>
+                    </div>
+                    
+                    <!-- Style Dropdown -->
+                    <div class="w-full md:w-48">
+                        <select id="style-filter" onchange="applyFilters()" class="block w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm">
+                            <option value="">All Styles</option>
+                            <option value="modern">Modern</option>
+                            <option value="contemporary">Contemporary</option>
+                            <option value="farmhouse">Farmhouse</option>
+                            <option value="coastal">Coastal</option>
+                            <option value="minimalist">Minimalist</option>
+                            <option value="scandinavian">Scandinavian</option>
+                            <option value="bohemian">Boho</option>
+                            <option value="industrial">Industrial</option>
+                            <option value="mid_century_modern">Mid-Century Modern</option>
+                            <option value="traditional">Traditional</option>
+                            <option value="transitional">Transitional</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Products will be injected here -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Add New Product</h3>
+                <button onclick="hideUploadModal()" class="text-gray-400 hover:text-gray-500">✕</button>
+            </div>
+            
+            <form id="product-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <input type="text" id="prod-name" required class="mt-1 block w-full border rounded-md p-2">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Category</label>
+                        <select id="prod-category" class="mt-1 block w-full border rounded-md p-2">
+                            <option value="Flooring">Flooring (General)</option>
+                            <option value="Flooring - Hardwood">Flooring - Hardwood</option>
+                            <option value="Flooring - Laminate">Flooring - Laminate</option>
+                            <option value="Flooring - Ceramics">Flooring - Ceramics</option>
+                            <option value="Flooring - Tiles">Flooring - Tiles</option>
+                            <option value="Flooring - Vinyl">Flooring - Vinyl</option>
+                            <option value="Flooring - Carpet">Flooring - Carpet</option>
+                            <option value="Furniture">Furniture (General)</option>
+                            <option value="Furniture - Sofa">Furniture - Sofa</option>
+                            <option value="Furniture - Chair">Furniture - Chair</option>
+                            <option value="Furniture - Table">Furniture - Table</option>
+                            <option value="Furniture - Bed">Furniture - Bed</option>
+                            <option value="Furniture - Wardrobe">Furniture - Wardrobe</option>
+                            <option value="Furniture - Cabinet">Furniture - Cabinet</option>
+                            <option value="Furniture - Dining Set">Furniture - Dining Set</option>
+                            <option value="Furniture - Rug">Furniture - Rug</option>
+                            <option value="Lighting">Lighting (General)</option>
+                            <option value="Lighting - Chandelier">Lighting - Chandelier</option>
+                            <option value="Lighting - Pendant">Lighting - Pendant</option>
+                            <option value="Lighting - Ceiling">Lighting - Ceiling Light</option>
+                            <option value="Lighting - Wall Sconce">Lighting - Wall Sconce</option>
+                            <option value="Lighting - Table Lamp">Lighting - Table Lamp</option>
+                            <option value="Lighting - Floor Lamp">Lighting - Floor Lamp</option>
+                            <option value="Lighting - Recessed">Lighting - Recessed</option>
+                            <option value="Lighting - Track">Lighting - Track</option>
+                            <option value="Lighting - Outdoor">Lighting - Outdoor</option>
+                            <option value="Lighting - Smart">Lighting - Smart</option>
+                            <option value="Paint">Paint</option>
+                            <option value="Decor">Decor</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Style</label>
+                        <select id="prod-style" class="mt-1 block w-full border rounded-md p-2">
+                            <option value="modern">Modern</option>
+                            <option value="contemporary">Contemporary</option>
+                            <option value="farmhouse">Farmhouse</option>
+                            <option value="coastal">Coastal</option>
+                            <option value="minimalist">Minimalist</option>
+                            <option value="scandinavian">Scandinavian</option>
+                            <option value="bohemian">Boho</option>
+                            <option value="industrial">Industrial</option>
+                            <option value="mid_century_modern">Mid-Century Modern</option>
+                            <option value="traditional">Traditional</option>
+                            <option value="transitional">Transitional</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Price ($)</label>
+                    <input type="number" id="prod-price" class="mt-1 block w-full border rounded-md p-2">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea id="prod-desc" rows="2" class="mt-1 block w-full border rounded-md p-2"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Image</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-indigo-500" onclick="document.getElementById('prod-file').click()">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="text-sm text-gray-600">Click to upload image</p>
+                        </div>
+                        <input id="prod-file" type="file" class="hidden" accept="image/*" onchange="previewImage(this)">
+                    </div>
+                    <img id="image-preview" class="mt-2 h-32 w-auto object-cover rounded hidden mx-auto">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Purchase Link (Optional)</label>
+                    <input type="url" id="prod-link" placeholder="https://..." class="mt-1 block w-full border rounded-md p-2">
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" id="submit-prod-btn" class="w-full btn-primary py-2">Upload Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/supplierPortal.js"></script>
+</body>
+</html>
+

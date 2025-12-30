@@ -6,6 +6,40 @@ Summary
 -------
 Successfully integrated AlgoreitAI, built on Google's "Nano Banana" (Gemini 2.5 Flash Image) model, for AI-powered room renovations. The application now supports sending room photos with natural language instructions to Google's state-of-the-art image generation model.
 
+Update: December 27, 2025 - Supplier Product Integration & Logic Refinement
+---------------------------------------------------------------------------
+Significant updates to support precise Supplier Product integration and streamline user flows.
+
+1. **Supplier Product "Insert" Logic**:
+   - **Collage Generation**: When a supplier product is selected, the frontend builds a side-by-side collage (Room | Product) instead of overlaying or just sending the room.
+   - **Prompt Engineering**: The prompt was overhauled for supplier products. It now explicitly instructs Gemini to:
+     - Treat the input as a collage.
+     - "INSERT" the product from the right panel into the room on the left.
+     - **PRESERVE** existing furniture and room details (preventing unwanted re-staging).
+     - Output only the modified room (left side).
+   - **Post-Processing**: The client automatically crops the result to remove the reference panel if a collage was used.
+
+2. **Flow & Selection Logic Updates**:
+   - **Style Bypass**: Selecting a Supplier Product now bypasses the mandatory "Style" selection step. The product itself acts as the style reference.
+   - **Furniture Remove**: The "Remove" action also bypasses the Style requirement.
+   - **Renovate -> Supplier**: This flow now opens the Product Selector directly, allowing users to filter by style inside the modal rather than being blocked.
+
+3. **User Experience**:
+   - **Working Area Preview**: The Working Area now updates immediately to show the side-by-side collage when a product is selected, giving visual confirmation of the input state.
+   - **No Pop-ups**: Removed blocking alerts ("Please select a Style") in favor of a smoother, non-blocking flow.
+
+Update: December 27, 2025 (Evening) - Preservation Logic
+--------------------------------------------------------
+Addressed user feedback that adding a single product was causing the AI to re-stage the entire room (changing sofas, rugs, walls).
+
+1. **Strict Preservation Prompting**: 
+   - Changed instructions from "Renovate" to "INSERT".
+   - Added specific constraint: "PRESERVE the existing room details... and EXISTING FURNITURE... Only move/remove items if they physically conflict."
+   - Explicitly commanded: "Do not re-stage the entire room."
+
+2. **Visual Strategy**:
+   - Reverted from "Overlay" back to "Side-by-Side Collage" as the overlay was confusing the AI about what was "real" in the scene. Side-by-side provides a cleaner "Source -> Target" operation for the model.
+
 Update: December 5, 2025 - Furniture Module
 -------------------------------------------
 Added specialized prompting logic for the new "Furniture" feature to handle contradictory constraints better than the generic renovation prompt.

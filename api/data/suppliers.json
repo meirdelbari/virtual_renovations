@@ -1,0 +1,15 @@
+[
+  {
+    "id": "sup_1766589886801",
+    "createdAt": "2025-12-24T15:24:46.801Z",
+    "userId": "user_mock_local_dev",
+    "companyName": "Delbari",
+    "contactEmail": "meirdelbari@gmail.com",
+    "description": "we are selling tiles and hardwood fllors also doint painting",
+    "categories": [
+      "Flooring",
+      "Staging"
+    ],
+    "logoUrl": null
+  }
+]

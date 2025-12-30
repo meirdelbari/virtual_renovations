@@ -24,14 +24,18 @@
     const viewer = document.getElementById("floor-plan-viewer"); // Optional
 
     if (!button) {
-      console.warn(
-        "[RoomViewer] Missing DOM elements; feature will not initialize."
-      );
+      // Button might be dynamic now (inside floor plan), so we don't warn loudly
+      // console.log("[RoomViewer] Static room button not found (dynamic mode).");
       return;
     }
 
     button.addEventListener("click", (e) => {
-      e.stopPropagation();
+      handleRoomViewerClick(e, button, viewer);
+    });
+  }
+
+  function handleRoomViewerClick(e, button, viewer) {
+      if (e) e.stopPropagation();
       const ctx = getFloorPlanContext();
       const photos = getPhotoMatches();
 
@@ -55,8 +59,12 @@
       }
 
       openRoomList(viewer, ctx, photos);
-    });
   }
+
+  window.handleRoomViewerClick = function(button) {
+      const viewer = document.getElementById("floor-plan-viewer");
+      handleRoomViewerClick(null, button, viewer);
+  };
 
   window.initRoomViewer = initRoomViewer;
 
