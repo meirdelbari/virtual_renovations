@@ -5,6 +5,45 @@ let currentSupplier = null;
 let allProducts = []; // Store all products for client-side filtering
 let currentCategory = 'All'; // Track active category filter
 
+function setLoadingError(message, details = "") {
+    const el = document.getElementById('loading');
+    if (!el) return;
+    el.innerHTML = `
+      <div class="text-center text-red-600">
+        <p class="font-semibold">${message}</p>
+        ${details ? `<p class="mt-2 text-sm text-gray-600">${details}</p>` : ""}
+        <button onclick="location.reload()" class="mt-4 text-indigo-600 underline">Reload</button>
+      </div>
+    `;
+}
+
+async function ensureClerkScriptLoaded(publishableKey) {
+    if (window.Clerk && typeof window.Clerk.load === 'function') return;
+
+    await new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-clerk-publishable-key]');
+        if (existing) {
+            // Script tag exists but Clerk might still be loading
+            if (window.Clerk && typeof window.Clerk.load === 'function') return resolve();
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        // Clerk JS expects the publishable key to be provided via data attribute in vanilla usage
+        script.setAttribute('data-clerk-publishable-key', publishableKey);
+
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load Clerk script"));
+        document.head.appendChild(script);
+    });
+
+    if (!window.Clerk || typeof window.Clerk.load !== 'function') {
+        throw new Error("Clerk SDK did not initialize on window");
+    }
+}
+
 async function init() {
     // Fetch Clerk key first to ensure consistency with the main app
     try {
@@ -12,81 +51,39 @@ async function init() {
         if (!res.ok) throw new Error("Failed to fetch auth config");
         const config = await res.json();
         
-        if (config.publishableKey) {
-            // Check if Clerk is already loaded (e.g. from cache or main app)
-            if (window.Clerk) {
-                startClerk(config.publishableKey);
-            } else {
-                 const script = document.createElement('script');
-                 // Use latest Clerk JS to support newer publishable key formats
-                 script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
-                 script.onload = () => startClerk(config.publishableKey);
-                 script.onerror = () => {
-                     console.error("Failed to load Clerk script");
-                     document.getElementById('loading').textContent = "Error loading authentication script.";
-                 };
-                 document.head.appendChild(script);
-            }
-        } else {
+        if (!config.publishableKey) {
             console.error("No publishableKey found in config");
-            document.getElementById('loading').textContent = "Configuration Error: No Auth Key found.";
+            setLoadingError("Configuration Error: No Auth Key found.", "The server did not return a Clerk publishable key.");
+            return;
         }
+
+        await startClerk(config.publishableKey);
     } catch (e) {
         console.error("Failed to load auth config", e);
-        document.getElementById('loading').textContent = "Error connecting to server. Is it running?";
+        setLoadingError("Error connecting to server.", e?.message || "Is the backend running?");
     }
 }
 
 async function startClerk(pubKey) {
-    // 1. Immediate Bypass for Localhost if Key is missing (prevents crash)
+    // Local dev bypass
     if (!pubKey && window.location.hostname === 'localhost') {
-         console.warn("No Publishable Key found. Entering Local Dev Mode.");
-         activateDevMode();
-         return;
-    }
-
-    if (!window.Clerk) {
-        console.error("Clerk SDK not found on window");
-        
-        // Immediate Bypass for Localhost if SDK is missing entirely
-        if (window.location.hostname === 'localhost') {
-             console.warn("Clerk SDK missing, entering Local Dev Mode directly");
-             activateDevMode();
-        }
+        console.warn("No Publishable Key found. Entering Local Dev Mode.");
+        activateDevMode();
         return;
     }
-    
-    // Check if instance already exists
-    if (window.Clerk.version) {
-        clerk = window.Clerk;
-    } else {
-        // If it's the class constructor
-        try {
-            if (!pubKey) throw new Error("Missing Publishable Key");
-            clerk = new window.Clerk(pubKey);
-        } catch (e) {
-            console.error("Clerk Constructor Error:", e);
-            if (window.location.hostname === 'localhost') {
-                activateDevMode();
-                return;
-            }
-            // Sometimes window.Clerk is already the instance
-            clerk = window.Clerk;
-        }
+    if (!pubKey) {
+        setLoadingError("Authentication configuration missing.", "No Clerk publishable key was provided.");
+        return;
     }
 
     try {
+        // Ensure Clerk is loaded only AFTER we have a key (prevents 'Missing publishableKey' crash)
+        await ensureClerkScriptLoaded(pubKey);
+
+        clerk = window.Clerk;
+
         console.log("Starting Clerk load sequence...");
-        // Only load if not already loaded
-        if (!clerk.isReady && !clerk.user) {
-             console.log("Calling clerk.load()...");
-             await clerk.load({
-                publishableKey: pubKey
-            });
-            console.log("clerk.load() returned.");
-        } else {
-             console.log("Clerk was already ready.");
-        }
+        await clerk.load({ publishableKey: pubKey });
         
         console.log("Clerk loaded in Supplier Portal");
         
@@ -136,18 +133,12 @@ async function startClerk(pubKey) {
 
         // Fallback: If load fails, it might be because it's already loaded or config issue.
         // Try to proceed if user exists on the object anyway
-        if (clerk.user) {
+        if (clerk && clerk.user) {
              currentUser = clerk.user;
              mountUserButton();
              checkSupplierStatus();
         } else {
-             document.getElementById('loading').innerHTML = `
-                <div class="text-center text-red-500">
-                   <p>Authentication Failed</p>
-                   <p class="text-xs text-gray-600">${err.message}</p>
-                   <button onclick="location.reload()" class="mt-2 text-blue-600 underline">Retry</button>
-                </div>
-             `;
+             setLoadingError("Authentication Failed", err?.message || String(err));
         }
     }
 }
