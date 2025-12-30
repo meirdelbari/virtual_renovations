@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Supplier Admin - Approvals</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <nav class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <div class="flex items-center">
+          <img src="logo.svg" alt="Logo" class="h-8 w-8 mr-2">
+          <span class="text-xl font-bold text-gray-900">Supplier Admin</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="index.html" class="text-gray-500 hover:text-gray-700">Back to App</a>
+          <div id="user-button"></div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto p-6">
+    <div id="loading" class="text-center py-10">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+      <p class="mt-4 text-gray-500">Loading Admin...</p>
+    </div>
+
+    <div id="app" class="hidden">
+      <div class="bg-white rounded-xl shadow p-5 mb-6">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Supplier Approvals</h1>
+            <p class="text-gray-600 text-sm mt-1">Approve or reject supplier registrations.</p>
+          </div>
+          <div class="flex gap-2">
+            <select id="status-filter" class="border rounded-md p-2 text-sm">
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="">All</option>
+            </select>
+            <button id="refresh-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium">Refresh</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="p-4 border-b flex items-center justify-between">
+          <div class="text-sm text-gray-600">
+            Total: <span class="font-semibold text-gray-900" id="total-count">0</span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+              <tr>
+                <th class="text-left p-3">Company</th>
+                <th class="text-left p-3">Email</th>
+                <th class="text-left p-3">Status</th>
+                <th class="text-left p-3">Created</th>
+                <th class="text-left p-3">Reason</th>
+                <th class="text-right p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/supplierAdmin.js"></script>
+</body>
+</html>
+
+

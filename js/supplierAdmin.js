@@ -1,0 +1,187 @@
+// Supplier Admin page
+// Auth: uses same "x-user-id" header as supplier portal (prototype auth).
+// Access control is enforced on the server via SUPPLIER_ADMIN_USER_IDS or SUPPLIER_ADMIN_KEY.
+
+let clerk;
+let currentUser = null;
+
+function setLoadingError(message, details = "") {
+  const el = document.getElementById("loading");
+  if (!el) return;
+  el.innerHTML = `
+    <div class="text-center text-red-600">
+      <p class="font-semibold">${message}</p>
+      ${details ? `<p class="mt-2 text-sm text-gray-600">${details}</p>` : ""}
+      <button onclick="location.reload()" class="mt-4 text-indigo-600 underline">Reload</button>
+    </div>
+  `;
+}
+
+async function apiCall(endpoint, method = "GET", body = null) {
+  const headers = {
+    "Content-Type": "application/json",
+    "x-user-id": currentUser ? currentUser.id : "",
+  };
+
+  const options = { method, headers };
+  if (body) options.body = JSON.stringify(body);
+
+  const res = await fetch(`/api/suppliers${endpoint}`, options);
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    const text = await res.text();
+    throw new Error(`Server returned non-JSON: ${text.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `API Error ${res.status}`);
+  return data;
+}
+
+async function ensureClerk(publishableKey) {
+  if (!publishableKey) throw new Error("Missing Clerk publishable key");
+
+  // Load Clerk script only after key is known
+  if (!window.Clerk || typeof window.Clerk.load !== "function") {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js";
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      script.setAttribute("data-clerk-publishable-key", publishableKey);
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("Failed to load Clerk script"));
+      document.head.appendChild(script);
+    });
+  }
+
+  clerk = window.Clerk;
+  await clerk.load({ publishableKey });
+}
+
+function mountUserButton() {
+  const el = document.getElementById("user-button");
+  if (!el) return;
+  if (clerk && clerk.mountUserButton) clerk.mountUserButton(el);
+}
+
+function formatDate(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return iso;
+  }
+}
+
+function badge(status) {
+  const base = "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold";
+  if (status === "approved") return `${base} bg-green-100 text-green-800`;
+  if (status === "rejected") return `${base} bg-red-100 text-red-800`;
+  return `${base} bg-yellow-100 text-yellow-800`; // pending/default
+}
+
+async function loadSuppliers() {
+  const status = document.getElementById("status-filter").value;
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  const suppliers = await apiCall(`/admin/suppliers${qs}`);
+
+  document.getElementById("total-count").textContent = String(suppliers.length);
+
+  const tbody = document.getElementById("rows");
+  tbody.innerHTML = "";
+
+  if (suppliers.length === 0) {
+    tbody.innerHTML = `<tr><td class="p-4 text-gray-500" colspan="6">No suppliers found.</td></tr>`;
+    return;
+  }
+
+  suppliers.forEach((s) => {
+    const tr = document.createElement("tr");
+    tr.className = "border-t";
+    tr.innerHTML = `
+      <td class="p-3 font-medium text-gray-900">${s.companyName || ""}</td>
+      <td class="p-3 text-gray-700">${s.contactEmail || ""}</td>
+      <td class="p-3"><span class="${badge(s.status)}">${s.status || "pending"}</span></td>
+      <td class="p-3 text-gray-700">${formatDate(s.createdAt)}</td>
+      <td class="p-3 text-gray-600">${s.statusReason || ""}</td>
+      <td class="p-3 text-right">
+        <div class="inline-flex gap-2">
+          <button class="approve-btn bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${s.id}">Approve</button>
+          <button class="reject-btn bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${s.id}">Reject</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Bind events
+  document.querySelectorAll(".approve-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      btn.disabled = true;
+      try {
+        await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/approve`, "POST");
+        await loadSuppliers();
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll(".reject-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const reason = prompt("Reject reason (optional):") || "";
+      btn.disabled = true;
+      try {
+        await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/reject`, "POST", { reason });
+        await loadSuppliers();
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+async function init() {
+  try {
+    const res = await fetch("/api/auth-config");
+    const config = await res.json();
+    await ensureClerk(config.publishableKey);
+
+    if (!clerk.user) {
+      document.getElementById("loading").innerHTML = `
+        <div class="text-center">
+          <p class="mb-4 text-gray-600">Please sign in to access Supplier Admin.</p>
+          <button id="login-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium">Sign In</button>
+        </div>
+      `;
+      document.getElementById("login-btn").addEventListener("click", () => {
+        clerk.openSignIn({ afterSignInUrl: window.location.href, afterSignUpUrl: window.location.href });
+      });
+      return;
+    }
+
+    currentUser = clerk.user;
+    mountUserButton();
+
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+
+    document.getElementById("refresh-btn").addEventListener("click", loadSuppliers);
+    document.getElementById("status-filter").addEventListener("change", loadSuppliers);
+
+    await loadSuppliers();
+  } catch (e) {
+    console.error(e);
+    setLoadingError("Failed to load admin.", e.message || String(e));
+  }
+}
+
+init();
+
+
