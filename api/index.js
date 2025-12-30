@@ -46,7 +46,7 @@ console.log("Mounting Supplier Routes at /api/suppliers");
 app.use("/api/suppliers", supplierRoutes);
 
 app.get("/api/auth-config", (req, res) => {
-  const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE || process.env.CLERK_PUBLISHABLE_KEY;
+  const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE || process.env.CLERK_PUBLISHABLE_KEY || process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
   if (!key) {
       console.error("Auth Config Error: No Clerk Key found in environment variables.");
   }

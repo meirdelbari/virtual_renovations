@@ -63,7 +63,7 @@
       "products": "Browse and insert real furniture products from suppliers.",
       "style": "Select the design style (e.g., Modern, Scandinavian) for the renovation.",
       "algoreit": "Generate the final renovated image using AI.",
-      "custom": "Enter custom instructions to modify the image.",
+      "custom": "Enter custom instructions to modify the image. Recommended just for minor changes.",
       "reset": "Clear all selections.",
       "guide": "Get step-by-step help on how to use the application."
     }

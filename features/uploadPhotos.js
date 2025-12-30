@@ -66,18 +66,23 @@
         const workspace = document.querySelector(".app-workspace");
         const viewer = document.getElementById("floor-plan-viewer");
         
-        // Robustly ensure photos-container exists in the correct position (after viewer, before table)
+        // Robustly ensure photos-container exists in the correct position (under floor plan and table)
         let photosContainer = document.getElementById("photos-container");
         if (!photosContainer && workspace) {
             photosContainer = document.createElement("div");
             photosContainer.id = "photos-container";
             
-            // Insert strictly after floor-plan-viewer
-            if (viewer && viewer.parentNode === workspace) {
+            const table = document.getElementById("measurements-table-container");
+            
+            // Insert strictly after measurements table if it exists
+            if (table && table.parentNode === workspace) {
+                table.insertAdjacentElement('afterend', photosContainer);
+            } else if (viewer && viewer.parentNode === workspace) {
+                // Fallback: after viewer
                 viewer.insertAdjacentElement('afterend', photosContainer);
             } else {
-                // If viewer is missing or weird, prepend to ensure it's above potential bottom elements
-                workspace.prepend(photosContainer);
+                // If viewer is missing or weird, append to ensure it's at the bottom
+                workspace.appendChild(photosContainer);
             }
         }
         
