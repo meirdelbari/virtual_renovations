@@ -18,7 +18,8 @@ async function init() {
                 startClerk(config.publishableKey);
             } else {
                  const script = document.createElement('script');
-                 script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@4/dist/clerk.browser.js';
+                 // Use latest Clerk JS to support newer publishable key formats
+                 script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
                  script.onload = () => startClerk(config.publishableKey);
                  script.onerror = () => {
                      console.error("Failed to load Clerk script");
