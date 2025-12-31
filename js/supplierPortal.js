@@ -18,13 +18,30 @@ function setLoadingError(message, details = "") {
 }
 
 function hideAllViews() {
-    const ids = ['loading', 'registration-view', 'pending-view', 'rejected-view', 'dashboard-view'];
+    const ids = ['loading', 'registration-view', 'blocked-view', 'dashboard-view'];
     ids.forEach((id) => {
         const el = document.getElementById(id);
         if (!el) return;
         el.classList.add('hidden');
     });
 }
+
+function showStatusBanner(message) {
+    const banner = document.getElementById('status-banner');
+    const text = document.getElementById('status-banner-text');
+    if (!banner || !text) return;
+    text.textContent = message;
+    banner.classList.remove('hidden');
+}
+
+function hideStatusBanner() {
+    const banner = document.getElementById('status-banner');
+    if (!banner) return;
+    banner.classList.add('hidden');
+}
+
+// Expose for inline onclick in HTML
+window.hideStatusBanner = hideStatusBanner;
 
 async function ensureClerkScriptLoaded(publishableKey) {
     if (window.Clerk && typeof window.Clerk.load === 'function') return;
@@ -217,12 +234,10 @@ async function checkSupplierStatus() {
         console.log("Checking supplier status for:", currentUser.id);
         currentSupplier = await apiCall('/me');
         console.log("Supplier found:", currentSupplier);
-        if (currentSupplier.status === 'approved') {
-            showDashboard();
-        } else if (currentSupplier.status === 'rejected') {
-            showRejected(currentSupplier.statusReason);
+        if (currentSupplier.status === 'blocked') {
+            showBlocked(currentSupplier.statusReason);
         } else {
-            showPending();
+            showDashboard();
         }
     } catch (err) {
         console.warn("Supplier check result:", err.message);
@@ -254,15 +269,10 @@ function showRegistration() {
     document.getElementById('registration-view').classList.remove('hidden');
 }
 
-function showPending() {
+function showBlocked(reason) {
     hideAllViews();
-    document.getElementById('pending-view').classList.remove('hidden');
-}
-
-function showRejected(reason) {
-    hideAllViews();
-    document.getElementById('rejected-view').classList.remove('hidden');
-    const el = document.getElementById('rejected-reason');
+    document.getElementById('blocked-view').classList.remove('hidden');
+    const el = document.getElementById('blocked-reason');
     if (el) el.textContent = reason ? `Reason: ${reason}` : "";
 }
 
@@ -288,8 +298,8 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     try {
         const res = await apiCall('/register', 'POST', data);
         currentSupplier = res;
-        if (currentSupplier.status === 'approved') showDashboard();
-        else showPending();
+        // Supplier account does not require admin approval
+        showDashboard();
     } catch (err) {
         alert("Registration failed: " + err.message);
     }
@@ -401,6 +411,15 @@ function renderProducts(products) {
     products.forEach(p => {
         const card = document.createElement('div');
         card.className = "card p-0 overflow-hidden flex flex-col";
+
+        const status = (p.status || 'approved').toLowerCase();
+        const statusBadgeClass =
+            status === 'approved'
+                ? 'bg-green-100 text-green-800'
+                : status === 'rejected'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-yellow-100 text-yellow-800';
+
         card.innerHTML = `
             <div class="h-48 bg-gray-200 w-full relative">
                 <img src="${p.imageUrl}" class="w-full h-full object-cover">
@@ -412,6 +431,10 @@ function renderProducts(products) {
                 <div class="flex justify-between items-start">
                     <h3 class="font-bold text-lg">${p.name}</h3>
                     <span class="text-sm bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded">${p.category}</span>
+                </div>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="text-xs ${statusBadgeClass} px-2 py-0.5 rounded font-semibold capitalize">${status}</span>
+                    ${status === 'rejected' && p.statusReason ? `<span class="text-xs text-gray-500">(${p.statusReason})</span>` : ''}
                 </div>
                 <div class="flex items-center mt-1">
                      <span class="text-xs text-gray-500 mr-2">Style:</span>
@@ -482,6 +505,8 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
         
         hideUploadModal();
         loadProducts();
+        showStatusBanner("Product submitted ✅ Waiting for admin approval before it appears in the app.");
+        setTimeout(() => hideStatusBanner(), 8000);
     } catch (err) {
         alert("Upload failed: " + err.message);
     } finally {

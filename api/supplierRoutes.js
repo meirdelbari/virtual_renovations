@@ -42,11 +42,11 @@ const requireSupplier = asyncHandler(async (req, res, next) => {
     next();
 });
 
-const requireApprovedSupplier = asyncHandler(async (req, res, next) => {
+const requireNotBlockedSupplier = asyncHandler(async (req, res, next) => {
     const supplier = req.supplier || (await db.suppliers.getByUserId(req.userId));
     if (!supplier) return res.status(404).json({ error: "Register as a supplier first" });
-    if (supplier.status !== "approved") {
-        return res.status(403).json({ error: "Supplier is not approved yet", status: supplier.status });
+    if (supplier.status === "blocked") {
+        return res.status(403).json({ error: "Supplier account is blocked" });
     }
     req.supplier = supplier;
     next();
@@ -102,13 +102,13 @@ router.put('/me', requireAuth, asyncHandler(async (req, res) => {
 // --- Product Routes ---
 
 // List my products
-router.get('/products', requireAuth, requireSupplier, requireApprovedSupplier, asyncHandler(async (req, res) => {
+router.get('/products', requireAuth, requireSupplier, requireNotBlockedSupplier, asyncHandler(async (req, res) => {
     const products = await db.products.getBySupplierId(req.supplier.id);
     res.json(products);
 }));
 
 // Add a product
-router.post('/products', requireAuth, requireSupplier, requireApprovedSupplier, asyncHandler(async (req, res) => {
+router.post('/products', requireAuth, requireSupplier, requireNotBlockedSupplier, asyncHandler(async (req, res) => {
     const supplier = req.supplier;
 
     const { name, description, price, category, style, imageUrl, purchaseLink } = req.body;
@@ -133,7 +133,7 @@ router.post('/products', requireAuth, requireSupplier, requireApprovedSupplier, 
 }));
 
 // Delete a product
-router.delete('/products/:id', requireAuth, requireSupplier, requireApprovedSupplier, asyncHandler(async (req, res) => {
+router.delete('/products/:id', requireAuth, requireSupplier, requireNotBlockedSupplier, asyncHandler(async (req, res) => {
     const supplier = req.supplier;
 
     const success = await db.products.delete(req.params.id, supplier.id);
@@ -145,8 +145,10 @@ router.delete('/products/:id', requireAuth, requireSupplier, requireApprovedSupp
 // Public: List all products (for the renovation tool integration)
 router.get('/public/catalog', asyncHandler(async (req, res) => {
     const suppliers = await db.suppliers.getAll();
-    const approvedIds = new Set(suppliers.filter((s) => s.status === "approved").map((s) => s.id));
-    const allProducts = (await db.products.getAll()).filter((p) => approvedIds.has(p.supplierId));
+    const activeSupplierIds = new Set(suppliers.filter((s) => s.status !== "blocked").map((s) => s.id));
+    const allProducts = (await db.products.getAll()).filter(
+        (p) => activeSupplierIds.has(p.supplierId) && p.status === "approved"
+    );
     res.json(allProducts);
 }));
 
@@ -160,9 +162,20 @@ router.get('/admin/suppliers', requireAuth, requireAdmin, asyncHandler(async (re
     res.json(suppliers);
 }));
 
-router.post('/admin/suppliers/:id/approve', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+router.post('/admin/suppliers/:id/block', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    const reason = (req.body && req.body.reason) ? String(req.body.reason) : "";
     const supplier = await db.suppliers.updateById(req.params.id, {
-        status: "approved",
+        status: "blocked",
+        statusUpdatedAt: new Date().toISOString(),
+        statusReason: reason,
+    });
+    if (!supplier) return res.status(404).json({ error: "Supplier not found" });
+    res.json(supplier);
+}));
+
+router.post('/admin/suppliers/:id/unblock', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    const supplier = await db.suppliers.updateById(req.params.id, {
+        status: "active",
         statusUpdatedAt: new Date().toISOString(),
         statusReason: "",
     });
@@ -170,15 +183,34 @@ router.post('/admin/suppliers/:id/approve', requireAuth, requireAdmin, asyncHand
     res.json(supplier);
 }));
 
-router.post('/admin/suppliers/:id/reject', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+// Products awaiting approval
+router.get('/admin/products', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    const status = req.query && req.query.status;
+    let products = await db.products.getAll();
+    if (status) products = products.filter((p) => p.status === status);
+    products.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    res.json(products);
+}));
+
+router.post('/admin/products/:id/approve', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    const product = await db.products.updateById(req.params.id, {
+        status: "approved",
+        statusUpdatedAt: new Date().toISOString(),
+        statusReason: "",
+    });
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    res.json(product);
+}));
+
+router.post('/admin/products/:id/reject', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
     const reason = (req.body && req.body.reason) ? String(req.body.reason) : "";
-    const supplier = await db.suppliers.updateById(req.params.id, {
+    const product = await db.products.updateById(req.params.id, {
         status: "rejected",
         statusUpdatedAt: new Date().toISOString(),
         statusReason: reason,
     });
-    if (!supplier) return res.status(404).json({ error: "Supplier not found" });
-    res.json(supplier);
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    res.json(product);
 }));
 
 module.exports = router;

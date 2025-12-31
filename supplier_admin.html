@@ -34,14 +34,20 @@
       <div class="bg-white rounded-xl shadow p-5 mb-6">
         <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Supplier Approvals</h1>
-            <p class="text-gray-600 text-sm mt-1">Approve or reject supplier registrations.</p>
+            <h1 class="text-2xl font-bold text-gray-900">Supplier Admin</h1>
+            <p class="text-gray-600 text-sm mt-1">Approve products and block/unblock suppliers.</p>
           </div>
           <div class="flex gap-2">
+            <select id="admin-view" class="border rounded-md p-2 text-sm">
+              <option value="products">Products</option>
+              <option value="suppliers">Suppliers</option>
+            </select>
             <select id="status-filter" class="border rounded-md p-2 text-sm">
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
+              <option value="active">Active</option>
+              <option value="blocked">Blocked</option>
               <option value="">All</option>
             </select>
             <button id="refresh-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium">Refresh</button>
@@ -59,9 +65,9 @@
         <div class="overflow-x-auto">
           <table class="min-w-full text-sm">
             <thead class="bg-gray-50 text-gray-600">
-              <tr>
-                <th class="text-left p-3">Company</th>
-                <th class="text-left p-3">Email</th>
+              <tr id="table-head-row">
+                <th class="text-left p-3">Name</th>
+                <th class="text-left p-3">Supplier / Email</th>
                 <th class="text-left p-3">Status</th>
                 <th class="text-left p-3">Created</th>
                 <th class="text-left p-3">Reason</th>

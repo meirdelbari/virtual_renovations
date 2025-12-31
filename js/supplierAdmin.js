@@ -81,7 +81,33 @@ function badge(status) {
   const base = "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold";
   if (status === "approved") return `${base} bg-green-100 text-green-800`;
   if (status === "rejected") return `${base} bg-red-100 text-red-800`;
+  if (status === "active") return `${base} bg-green-100 text-green-800`;
+  if (status === "blocked") return `${base} bg-red-100 text-red-800`;
   return `${base} bg-yellow-100 text-yellow-800`; // pending/default
+}
+
+function setTableHead(mode) {
+  const row = document.getElementById("table-head-row");
+  if (!row) return;
+  if (mode === "suppliers") {
+    row.innerHTML = `
+      <th class="text-left p-3">Company</th>
+      <th class="text-left p-3">Email</th>
+      <th class="text-left p-3">Status</th>
+      <th class="text-left p-3">Created</th>
+      <th class="text-left p-3">Reason</th>
+      <th class="text-right p-3">Actions</th>
+    `;
+  } else {
+    row.innerHTML = `
+      <th class="text-left p-3">Product</th>
+      <th class="text-left p-3">Supplier</th>
+      <th class="text-left p-3">Status</th>
+      <th class="text-left p-3">Created</th>
+      <th class="text-left p-3">Reason</th>
+      <th class="text-right p-3">Actions</th>
+    `;
+  }
 }
 
 async function loadSuppliers() {
@@ -106,13 +132,16 @@ async function loadSuppliers() {
       tr.innerHTML = `
       <td class="p-3 font-medium text-gray-900">${s.companyName || ""}</td>
       <td class="p-3 text-gray-700">${s.contactEmail || ""}</td>
-      <td class="p-3"><span class="${badge(s.status)}">${s.status || "pending"}</span></td>
+      <td class="p-3"><span class="${badge(s.status || "active")}">${s.status || "active"}</span></td>
       <td class="p-3 text-gray-700">${formatDate(s.createdAt)}</td>
       <td class="p-3 text-gray-600">${s.statusReason || ""}</td>
       <td class="p-3 text-right">
         <div class="inline-flex gap-2">
-          <button class="approve-btn bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${s.id}">Approve</button>
-          <button class="reject-btn bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${s.id}">Reject</button>
+          ${
+            (s.status || "active") === "blocked"
+              ? `<button class="unblock-btn bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${s.id}">Unblock</button>`
+              : `<button class="block-btn bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${s.id}">Block</button>`
+          }
         </div>
       </td>
     `;
@@ -120,12 +149,13 @@ async function loadSuppliers() {
     });
 
     // Bind events
-    document.querySelectorAll(".approve-btn").forEach((btn) => {
+    document.querySelectorAll(".block-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
+        const reason = prompt("Block reason (optional):") || "";
         btn.disabled = true;
         try {
-          await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/approve`, "POST");
+          await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/block`, "POST", { reason });
           await loadSuppliers();
         } catch (e) {
           alert(e.message);
@@ -135,13 +165,12 @@ async function loadSuppliers() {
       });
     });
 
-    document.querySelectorAll(".reject-btn").forEach((btn) => {
+    document.querySelectorAll(".unblock-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
-        const reason = prompt("Reject reason (optional):") || "";
         btn.disabled = true;
         try {
-          await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/reject`, "POST", { reason });
+          await apiCall(`/admin/suppliers/${encodeURIComponent(id)}/unblock`, "POST");
           await loadSuppliers();
         } catch (e) {
           alert(e.message);
@@ -159,6 +188,83 @@ async function loadSuppliers() {
       );
     } else {
       setLoadingError("Failed to load suppliers", e?.message || String(e));
+    }
+    throw e;
+  }
+}
+
+async function loadProducts() {
+  try {
+    const status = document.getElementById("status-filter").value;
+    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    const products = await apiCall(`/admin/products${qs}`);
+
+    document.getElementById("total-count").textContent = String(products.length);
+    const tbody = document.getElementById("rows");
+    tbody.innerHTML = "";
+
+    if (products.length === 0) {
+      tbody.innerHTML = `<tr><td class="p-4 text-gray-500" colspan="6">No products found.</td></tr>`;
+      return;
+    }
+
+    products.forEach((p) => {
+      const tr = document.createElement("tr");
+      tr.className = "border-t";
+      tr.innerHTML = `
+        <td class="p-3 font-medium text-gray-900">${p.name || ""}<div class="text-xs text-gray-500">${p.category || ""}</div></td>
+        <td class="p-3 text-gray-700">${p.supplierName || ""}</td>
+        <td class="p-3"><span class="${badge(p.status || "pending")}">${p.status || "pending"}</span></td>
+        <td class="p-3 text-gray-700">${formatDate(p.createdAt)}</td>
+        <td class="p-3 text-gray-600">${p.statusReason || ""}</td>
+        <td class="p-3 text-right">
+          <div class="inline-flex gap-2">
+            <button class="prod-approve-btn bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${p.id}">Approve</button>
+            <button class="prod-reject-btn bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${p.id}">Reject</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll(".prod-approve-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        btn.disabled = true;
+        try {
+          await apiCall(`/admin/products/${encodeURIComponent(id)}/approve`, "POST");
+          await loadProducts();
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+
+    document.querySelectorAll(".prod-reject-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const reason = prompt("Reject reason (optional):") || "";
+        btn.disabled = true;
+        try {
+          await apiCall(`/admin/products/${encodeURIComponent(id)}/reject`, "POST", { reason });
+          await loadProducts();
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+  } catch (e) {
+    if (e && e.status === 403) {
+      setLoadingError(
+        "Admin access required",
+        "Your Clerk user is signed in, but not allowlisted as a supplier admin. Add SUPPLIER_ADMIN_USER_IDS in Vercel and redeploy."
+      );
+    } else {
+      setLoadingError("Failed to load products", e?.message || String(e));
     }
     throw e;
   }
@@ -186,11 +292,25 @@ async function init() {
     currentUser = clerk.user;
     mountUserButton();
 
-    document.getElementById("refresh-btn").addEventListener("click", loadSuppliers);
-    document.getElementById("status-filter").addEventListener("change", loadSuppliers);
+    const viewSelect = document.getElementById("admin-view");
+    const statusSelect = document.getElementById("status-filter");
+
+    const refresh = async () => {
+      const mode = viewSelect ? viewSelect.value : "products";
+      setTableHead(mode);
+      if (mode === "suppliers") {
+        await loadSuppliers();
+      } else {
+        await loadProducts();
+      }
+    };
+
+    document.getElementById("refresh-btn").addEventListener("click", refresh);
+    statusSelect.addEventListener("change", refresh);
+    if (viewSelect) viewSelect.addEventListener("change", refresh);
 
     // Load data first; only then reveal the UI so failures aren't silent
-    await loadSuppliers();
+    await refresh();
 
     document.getElementById("loading").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");

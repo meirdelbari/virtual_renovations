@@ -2,12 +2,17 @@ const store = require("./kvStore");
 
 const db = {
   suppliers: {
-    // Backward compatible: older suppliers.json may not have status fields.
+    // Supplier status:
+    // - active (default)
+    // - blocked (admin-only)
+    //
+    // Backward compatible: previous versions used supplier approval statuses.
     getAll: async () =>
       (await store.getSuppliers()).map((s) => ({
-        status: "approved",
-        statusUpdatedAt: s.createdAt || new Date().toISOString(),
-        statusReason: "",
+        // Normalize old statuses to new model
+        status: s.status === "blocked" ? "blocked" : "active",
+        statusUpdatedAt: s.statusUpdatedAt || s.createdAt || new Date().toISOString(),
+        statusReason: s.statusReason || "",
         updatedAt: s.createdAt || new Date().toISOString(),
         ...s,
       })),
@@ -22,7 +27,7 @@ const db = {
         id: 'sup_' + Date.now(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        status: "pending",
+        status: "active",
         statusUpdatedAt: new Date().toISOString(),
         statusReason: "",
         ...supplierData
@@ -50,13 +55,29 @@ const db = {
     }
   },
   products: {
-    getAll: async () => await store.getProducts(),
-    getBySupplierId: async (supplierId) => (await store.getProducts()).filter(p => p.supplierId === supplierId),
+    // Product status:
+    // - pending (default on supplier submit)
+    // - approved (admin)
+    // - rejected (admin)
+    getAll: async () =>
+      (await store.getProducts()).map((p) => ({
+        status: "approved",
+        statusUpdatedAt: p.createdAt || new Date().toISOString(),
+        statusReason: "",
+        updatedAt: p.createdAt || new Date().toISOString(),
+        ...p,
+      })),
+    getBySupplierId: async (supplierId) =>
+      (await db.products.getAll()).filter((p) => p.supplierId === supplierId),
     create: async (productData) => {
-      const products = await store.getProducts();
+      const products = await db.products.getAll();
       const newProduct = {
         id: 'prod_' + Date.now(),
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: "pending",
+        statusUpdatedAt: new Date().toISOString(),
+        statusReason: "",
         ...productData
       };
       products.push(newProduct);
@@ -64,12 +85,22 @@ const db = {
       return newProduct;
     },
     delete: async (productId, supplierId) => {
-      const products = await store.getProducts();
+      const products = await db.products.getAll();
       const filtered = products.filter(p => !(p.id === productId && p.supplierId === supplierId));
       if (filtered.length === products.length) return false;
       await store.setProducts(filtered);
       return true;
     }
+    ,
+    updateById: async (id, updates) => {
+      const products = await db.products.getAll();
+      const index = products.findIndex((p) => p.id === id);
+      if (index === -1) return null;
+      products[index] = { ...products[index], ...updates, updatedAt: new Date().toISOString() };
+      await store.setProducts(products);
+      return products[index];
+    },
+    getById: async (id) => (await db.products.getAll()).find((p) => p.id === id),
   }
 };
 
