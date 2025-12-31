@@ -217,5 +217,19 @@ router.post('/admin/products/:id/reject', requireAuth, requireAdmin, asyncHandle
     res.json(product);
 }));
 
+// Admin: inspect supplier details + their products (for "view supplier portal" behavior)
+router.get('/admin/suppliers/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    const supplier = await db.suppliers.getById(req.params.id);
+    if (!supplier) return res.status(404).json({ error: "Supplier not found" });
+    res.json(supplier);
+}));
+
+router.get('/admin/suppliers/:id/products', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    const supplier = await db.suppliers.getById(req.params.id);
+    if (!supplier) return res.status(404).json({ error: "Supplier not found" });
+    const products = await db.products.getBySupplierId(req.params.id);
+    res.json(products);
+}));
+
 module.exports = router;
 

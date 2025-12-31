@@ -4,6 +4,8 @@ let currentUser = null;
 let currentSupplier = null;
 let allProducts = []; // Store all products for client-side filtering
 let currentCategory = 'All'; // Track active category filter
+let isAdminView = false;
+let adminSupplierId = null;
 
 function setLoadingError(message, details = "") {
     const el = document.getElementById('loading');
@@ -130,7 +132,16 @@ async function startClerk(pubKey) {
             currentUser = clerk.user;
             console.log("User found:", currentUser.id);
             mountUserButton();
-            checkSupplierStatus();
+            // Admin read-only view: ?adminSupplierId=sup_xxx
+            const params = new URLSearchParams(window.location.search || "");
+            const sid = params.get("adminSupplierId");
+            if (sid) {
+                isAdminView = true;
+                adminSupplierId = sid;
+                loadAdminSupplierView(sid);
+            } else {
+                checkSupplierStatus();
+            }
         } else {
             console.log("No user found, showing login.");
             // User is not logged in.
@@ -168,6 +179,20 @@ async function startClerk(pubKey) {
         } else {
              setLoadingError("Authentication Failed", err?.message || String(err));
         }
+    }
+}
+
+async function loadAdminSupplierView(supplierId) {
+    showLoading();
+    try {
+        // Fetch supplier + products as admin
+        const supplier = await apiCall(`/admin/suppliers/${encodeURIComponent(supplierId)}`);
+        const products = await apiCall(`/admin/suppliers/${encodeURIComponent(supplierId)}/products?t=${Date.now()}`);
+        currentSupplier = supplier;
+        allProducts = products;
+        showDashboard();
+    } catch (err) {
+        setLoadingError("Failed to load supplier (admin view).", err.message || String(err));
     }
 }
 
@@ -280,9 +305,26 @@ function showDashboard() {
     hideAllViews();
     document.getElementById('dashboard-view').classList.remove('hidden');
     
-    document.getElementById('company-name-display').textContent = currentSupplier.companyName;
+    document.getElementById('company-name-display').textContent = currentSupplier.companyName + (isAdminView ? " (Admin view)" : "");
+
+    // Toggle admin UI bits
+    const back = document.getElementById("admin-back-link");
+    const addBtn = document.getElementById("add-product-btn");
+    if (isAdminView) {
+        if (back) back.classList.remove("hidden");
+        if (addBtn) addBtn.classList.add("hidden");
+    } else {
+        if (back) back.classList.add("hidden");
+        if (addBtn) addBtn.classList.remove("hidden");
+    }
+
     renderSupplierProfile();
-    loadProducts();
+    if (isAdminView) {
+        applyFilters(); // uses allProducts already populated
+        document.getElementById('stat-products').textContent = String(allProducts.length);
+    } else {
+        loadProducts();
+    }
 }
 
 function safeText(v) {
@@ -543,12 +585,16 @@ function renderProducts(products) {
                     ? 'bg-red-100 text-red-800'
                     : 'bg-yellow-100 text-yellow-800';
 
-        card.innerHTML = `
-            <div class="h-48 bg-gray-200 w-full relative">
-                <img src="${p.imageUrl}" class="w-full h-full object-cover">
+        const deleteBtnHtml = isAdminView ? "" : `
                 <button onclick="deleteProduct('${p.id}')" class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
+        `;
+
+        card.innerHTML = `
+            <div class="h-48 bg-gray-200 w-full relative">
+                <img src="${p.imageUrl}" class="w-full h-full object-cover">
+                ${deleteBtnHtml}
             </div>
             <div class="p-4 flex-grow">
                 <div class="flex justify-between items-start">

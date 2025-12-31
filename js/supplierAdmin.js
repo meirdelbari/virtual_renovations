@@ -129,8 +129,13 @@ async function loadSuppliers() {
     suppliers.forEach((s) => {
       const tr = document.createElement("tr");
       tr.className = "border-t";
+      const portalHref = `supplier.html?adminSupplierId=${encodeURIComponent(s.id)}`;
       tr.innerHTML = `
-      <td class="p-3 font-medium text-gray-900">${s.companyName || ""}</td>
+      <td class="p-3 font-medium text-gray-900">
+        <a class="text-indigo-600 hover:underline" href="${portalHref}" target="_blank" rel="noopener noreferrer">
+          ${s.companyName || ""}
+        </a>
+      </td>
       <td class="p-3 text-gray-700">${s.contactEmail || ""}</td>
       <td class="p-3"><span class="${badge(s.status || "active")}">${s.status || "active"}</span></td>
       <td class="p-3 text-gray-700">${formatDate(s.createdAt)}</td>
@@ -211,9 +216,12 @@ async function loadProducts() {
     products.forEach((p) => {
       const tr = document.createElement("tr");
       tr.className = "border-t";
+      const portalHref = `supplier.html?adminSupplierId=${encodeURIComponent(p.supplierId || "")}`;
       tr.innerHTML = `
         <td class="p-3 font-medium text-gray-900">${p.name || ""}<div class="text-xs text-gray-500">${p.category || ""}</div></td>
-        <td class="p-3 text-gray-700">${p.supplierName || ""}</td>
+        <td class="p-3 text-gray-700">
+          ${p.supplierId ? `<a class="text-indigo-600 hover:underline" href="${portalHref}" target="_blank" rel="noopener noreferrer">${p.supplierName || ""}</a>` : (p.supplierName || "")}
+        </td>
         <td class="p-3"><span class="${badge(p.status || "pending")}">${p.status || "pending"}</span></td>
         <td class="p-3 text-gray-700">${formatDate(p.createdAt)}</td>
         <td class="p-3 text-gray-600">${p.statusReason || ""}</td>
