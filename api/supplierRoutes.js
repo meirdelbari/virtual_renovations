@@ -66,15 +66,19 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
 // Register as a supplier
 router.post('/register', requireAuth, asyncHandler(async (req, res) => {
     try {
-        const { companyName, contactEmail, description, categories } = req.body;
+        const { companyName, contactPerson, contactEmail, phone, website, address, categories } = req.body;
         
         if (!companyName) return res.status(400).json({ error: "Company name is required" });
+        if (!contactPerson) return res.status(400).json({ error: "Contact person is required" });
 
         const supplier = await db.suppliers.create({
             userId: req.userId,
             companyName,
+            contactPerson,
             contactEmail: contactEmail || "",
-            description: description || "",
+            phone: phone || "",
+            website: website || "",
+            address: address || "",
             categories: categories || [],
             logoUrl: req.body.logoUrl || null
         });

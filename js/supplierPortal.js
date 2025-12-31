@@ -290,8 +290,11 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const formData = new FormData(e.target);
     const data = {
         companyName: formData.get('companyName'),
+        contactPerson: formData.get('contactPerson'),
         contactEmail: formData.get('contactEmail'),
-        description: formData.get('description'),
+        phone: formData.get('phone'),
+        website: formData.get('website'),
+        address: formData.get('address'),
         categories: formData.get('categories').split(',').map(s => s.trim())
     };
 
