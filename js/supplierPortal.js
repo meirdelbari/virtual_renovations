@@ -450,6 +450,16 @@ function initProfileHandlers() {
 document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    const categoriesArr = String(formData.get('categories') || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    if (!categoriesArr.length) {
+        alert("Please enter at least one category.");
+        return;
+    }
+
     const data = {
         companyName: formData.get('companyName'),
         contactPerson: formData.get('contactPerson'),
@@ -457,7 +467,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         phone: formData.get('phone'),
         website: formData.get('website'),
         address: formData.get('address'),
-        categories: formData.get('categories').split(',').map(s => s.trim())
+        categories: categoriesArr
     };
 
     try {

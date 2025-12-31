@@ -423,15 +423,13 @@ CRITICAL CONSTRAINTS:
         const errorData = await response.json().catch(() => ({}));
         const mainError = errorData.error || `HTTP ${response.status}`;
         
-        // Handle Insufficient Credits
+        // Handle Insufficient Credits (only relevant when credits enforcement is enabled)
         if (response.status === 402 || errorData.code === "INSUFFICIENT_CREDITS") {
-           // Show pricing modal
-           if (window.initPricing) { // Re-trigger update to be safe
-             alert("You have run out of credits. Please purchase more to continue.");
-             const btn = document.getElementById("buy-credits-btn");
-             if (btn) btn.click();
-             throw new Error("Insufficient Credits");
-           }
+           // Do not hard-block the app UI here (payments may not be configured yet).
+           // Keep a friendly message and let the caller handle it.
+           console.warn("[GeminiAI] Credits required (402).");
+           alert("Credits are currently unavailable. Please try again later or contact support.");
+           throw new Error("Insufficient Credits");
         }
 
         const details = errorData.details ? `\nDetails: ${errorData.details}` : "";

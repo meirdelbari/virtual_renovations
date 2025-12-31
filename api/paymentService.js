@@ -9,6 +9,15 @@ if (process.env.STRIPE_SECRET_KEY) {
   console.warn("STRIPE_SECRET_KEY not set. Payment features will be disabled.");
 }
 
+function isCreditsEnforced() {
+  // Default: do NOT enforce credits unless explicitly enabled
+  // and Stripe is configured (payments system ready).
+  const flag =
+    String(process.env.ENFORCE_CREDITS || process.env.CREDITS_ENFORCEMENT || "").toLowerCase() ===
+    "true";
+  return flag && !!stripe;
+}
+
 // Pricing Configuration
 const PRICING = {
   credits: {
@@ -180,6 +189,11 @@ async function addCreditsToUser(userId, amount) {
  * Check if user has enough credits and deduct one
  */
 async function deductCredit(userId, amount = 1) {
+  // If payments/credits are not enforced yet, do not block access.
+  if (!isCreditsEnforced()) {
+    return true;
+  }
+
   // If no userId (e.g. demo mode), maybe allow or block. 
   // Assuming auth is required.
   if (!userId) throw new Error("User ID required");
@@ -213,6 +227,7 @@ async function getUserCredits(userId) {
 module.exports = {
   createCheckoutSession,
   handleWebhook,
+  isCreditsEnforced,
   deductCredit,
   getUserCredits,
   PRICING

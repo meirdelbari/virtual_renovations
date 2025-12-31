@@ -24,6 +24,10 @@ The registration form appears **only** when the signed-in Clerk user **does not 
    - Main Categories
 4. Submit the form to create your supplier profile.
 
+## Required fields
+
+All fields in the supplier registration form are **required**.
+
 ## Why you might not see the form
 
 - **Already registered as a supplier**: the portal will open the supplier dashboard directly.

@@ -70,16 +70,23 @@ router.post('/register', requireAuth, asyncHandler(async (req, res) => {
         
         if (!companyName) return res.status(400).json({ error: "Company name is required" });
         if (!contactPerson) return res.status(400).json({ error: "Contact person is required" });
+        if (!contactEmail) return res.status(400).json({ error: "Contact email is required" });
+        if (!phone) return res.status(400).json({ error: "Phone is required" });
+        if (!website) return res.status(400).json({ error: "Website is required" });
+        if (!address) return res.status(400).json({ error: "Address is required" });
+        if (!Array.isArray(categories) || categories.filter(Boolean).length === 0) {
+            return res.status(400).json({ error: "At least one category is required" });
+        }
 
         const supplier = await db.suppliers.create({
             userId: req.userId,
             companyName,
             contactPerson,
-            contactEmail: contactEmail || "",
-            phone: phone || "",
-            website: website || "",
-            address: address || "",
-            categories: categories || [],
+            contactEmail,
+            phone,
+            website,
+            address,
+            categories: categories.filter(Boolean),
             logoUrl: req.body.logoUrl || null
         });
 

@@ -217,7 +217,7 @@ app.post("/api/gemini/process-photo", async (req, res) => {
   }
 
   // Check Credits
-  if (userId) {
+  if (userId && paymentService.isCreditsEnforced && paymentService.isCreditsEnforced()) {
     try {
       const allowed = await paymentService.deductCredit(userId, 1);
       if (!allowed) {
@@ -228,14 +228,17 @@ app.post("/api/gemini/process-photo", async (req, res) => {
       }
     } catch (err) {
       console.error("Payment Service Error:", err);
-      // Fallback: If credit check fails due to system error, maybe block or allow?
-      // Blocking for safety.
+      // If credits enforcement is enabled, fail closed. Otherwise allow.
       return res.status(500).json({ error: "Failed to verify credits." });
     }
   } else {
     // strict mode: require user ID
     // return res.status(401).json({ error: "User not authenticated" });
-    console.warn("Processing without userId - bypassing credit check (Legacy/Dev mode)");
+    if (userId) {
+      console.warn("Credits enforcement is disabled. Bypassing credit check.");
+    } else {
+      console.warn("Processing without userId - bypassing credit check (Legacy/Dev mode)");
+    }
   }
 
   // Check if AlgoreitAI backend is configured
@@ -347,7 +350,7 @@ app.post("/api/gemini/generate-view", async (req, res) => {
   }
 
   // Check Credits (Optional logic mirroring process-photo)
-  if (userId) {
+  if (userId && paymentService.isCreditsEnforced && paymentService.isCreditsEnforced()) {
      try {
        const allowed = await paymentService.deductCredit(userId, 1);
        if (!allowed) {
