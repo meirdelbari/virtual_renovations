@@ -96,6 +96,24 @@
             </div>
         </div>
 
+        <!-- Pending Approval View -->
+        <div id="pending-view" class="hidden max-w-2xl mx-auto">
+            <div class="card text-center">
+                <h2 class="text-2xl font-bold mb-3">Thanks! Your supplier account is pending approval.</h2>
+                <p class="text-gray-600 mb-4">An admin will review your registration. You'll be able to add and manage products once approved.</p>
+                <p class="text-sm text-gray-500">You can leave this page and come back later.</p>
+            </div>
+        </div>
+
+        <!-- Rejected View -->
+        <div id="rejected-view" class="hidden max-w-2xl mx-auto">
+            <div class="card text-center">
+                <h2 class="text-2xl font-bold mb-3">Registration not approved</h2>
+                <p class="text-gray-600 mb-2">Your supplier registration was rejected.</p>
+                <p class="text-sm text-gray-500" id="rejected-reason"></p>
+            </div>
+        </div>
+
         <!-- Dashboard View (Hidden by default) -->
         <div id="dashboard-view" class="hidden">
             <div class="flex justify-between items-center mb-6">

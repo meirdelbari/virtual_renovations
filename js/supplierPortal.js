@@ -17,6 +17,15 @@ function setLoadingError(message, details = "") {
     `;
 }
 
+function hideAllViews() {
+    const ids = ['loading', 'registration-view', 'pending-view', 'rejected-view', 'dashboard-view'];
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add('hidden');
+    });
+}
+
 async function ensureClerkScriptLoaded(publishableKey) {
     if (window.Clerk && typeof window.Clerk.load === 'function') return;
 
@@ -108,6 +117,8 @@ async function startClerk(pubKey) {
         } else {
             console.log("No user found, showing login.");
             // User is not logged in.
+            hideAllViews();
+            document.getElementById('loading').classList.remove('hidden');
             document.getElementById('loading').innerHTML = `
                 <div class="text-center">
                     <p class="mb-4 text-gray-600">Please sign in to access the Supplier Portal.</p>
@@ -206,7 +217,13 @@ async function checkSupplierStatus() {
         console.log("Checking supplier status for:", currentUser.id);
         currentSupplier = await apiCall('/me');
         console.log("Supplier found:", currentSupplier);
-        showDashboard();
+        if (currentSupplier.status === 'approved') {
+            showDashboard();
+        } else if (currentSupplier.status === 'rejected') {
+            showRejected(currentSupplier.statusReason);
+        } else {
+            showPending();
+        }
     } catch (err) {
         console.warn("Supplier check result:", err.message);
         // If 404, they are not a supplier yet -> show registration
@@ -228,18 +245,29 @@ async function checkSupplierStatus() {
 
 // Views Management
 function showLoading() {
+    hideAllViews();
     document.getElementById('loading').classList.remove('hidden');
-    document.getElementById('registration-view').classList.add('hidden');
-    document.getElementById('dashboard-view').classList.add('hidden');
 }
 
 function showRegistration() {
-    document.getElementById('loading').classList.add('hidden');
+    hideAllViews();
     document.getElementById('registration-view').classList.remove('hidden');
 }
 
+function showPending() {
+    hideAllViews();
+    document.getElementById('pending-view').classList.remove('hidden');
+}
+
+function showRejected(reason) {
+    hideAllViews();
+    document.getElementById('rejected-view').classList.remove('hidden');
+    const el = document.getElementById('rejected-reason');
+    if (el) el.textContent = reason ? `Reason: ${reason}` : "";
+}
+
 function showDashboard() {
-    document.getElementById('loading').classList.add('hidden');
+    hideAllViews();
     document.getElementById('dashboard-view').classList.remove('hidden');
     
     document.getElementById('company-name-display').textContent = currentSupplier.companyName;
@@ -260,7 +288,8 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     try {
         const res = await apiCall('/register', 'POST', data);
         currentSupplier = res;
-        showDashboard();
+        if (currentSupplier.status === 'approved') showDashboard();
+        else showPending();
     } catch (err) {
         alert("Registration failed: " + err.message);
     }

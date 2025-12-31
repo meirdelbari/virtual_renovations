@@ -43,16 +43,29 @@ function writeJSON(filePath, data) {
 
 const db = {
   suppliers: {
-    getAll: () => readJSON(SUPPLIERS_FILE),
-    getByUserId: (userId) => readJSON(SUPPLIERS_FILE).find(s => s.userId === userId),
+    // Backward compatible: older suppliers.json may not have status fields.
+    getAll: () =>
+      readJSON(SUPPLIERS_FILE).map((s) => ({
+        status: "approved",
+        statusUpdatedAt: s.createdAt || new Date().toISOString(),
+        statusReason: "",
+        updatedAt: s.createdAt || new Date().toISOString(),
+        ...s,
+      })),
+    getById: (id) => db.suppliers.getAll().find((s) => s.id === id),
+    getByUserId: (userId) => db.suppliers.getAll().find(s => s.userId === userId),
     create: (supplierData) => {
-      const suppliers = readJSON(SUPPLIERS_FILE);
+      const suppliers = db.suppliers.getAll();
       if (suppliers.find(s => s.userId === supplierData.userId)) {
         throw new Error("Supplier already exists for this user");
       }
       const newSupplier = {
         id: 'sup_' + Date.now(),
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: "pending",
+        statusUpdatedAt: new Date().toISOString(),
+        statusReason: "",
         ...supplierData
       };
       suppliers.push(newSupplier);
@@ -60,11 +73,19 @@ const db = {
       return newSupplier;
     },
     update: (userId, updates) => {
-      const suppliers = readJSON(SUPPLIERS_FILE);
+      const suppliers = db.suppliers.getAll();
       const index = suppliers.findIndex(s => s.userId === userId);
       if (index === -1) return null;
       
-      suppliers[index] = { ...suppliers[index], ...updates };
+      suppliers[index] = { ...suppliers[index], ...updates, updatedAt: new Date().toISOString() };
+      writeJSON(SUPPLIERS_FILE, suppliers);
+      return suppliers[index];
+    },
+    updateById: (id, updates) => {
+      const suppliers = db.suppliers.getAll();
+      const index = suppliers.findIndex((s) => s.id === id);
+      if (index === -1) return null;
+      suppliers[index] = { ...suppliers[index], ...updates, updatedAt: new Date().toISOString() };
       writeJSON(SUPPLIERS_FILE, suppliers);
       return suppliers[index];
     }
