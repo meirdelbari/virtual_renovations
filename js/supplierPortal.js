@@ -281,7 +281,127 @@ function showDashboard() {
     document.getElementById('dashboard-view').classList.remove('hidden');
     
     document.getElementById('company-name-display').textContent = currentSupplier.companyName;
+    renderSupplierProfile();
     loadProducts();
+}
+
+function safeText(v) {
+    if (v === null || v === undefined) return "-";
+    const s = String(v).trim();
+    return s ? s : "-";
+}
+
+function renderSupplierProfile() {
+    if (!currentSupplier) return;
+
+    const website = (currentSupplier.website || "").trim();
+    const categories = Array.isArray(currentSupplier.categories)
+        ? currentSupplier.categories.filter(Boolean).join(", ")
+        : (currentSupplier.categories || "");
+
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = safeText(val);
+    };
+
+    set("profile-companyName", currentSupplier.companyName);
+    set("profile-contactPerson", currentSupplier.contactPerson);
+    set("profile-contactEmail", currentSupplier.contactEmail);
+    set("profile-phone", currentSupplier.phone);
+    set("profile-address", currentSupplier.address);
+    set("profile-categories", categories);
+
+    const websiteEl = document.getElementById("profile-website");
+    if (websiteEl) {
+        if (website) {
+            const href = website.startsWith("http://") || website.startsWith("https://") ? website : `https://${website}`;
+            websiteEl.innerHTML = `<a class="text-indigo-600 hover:underline" href="${href}" target="_blank" rel="noopener noreferrer">${website}</a>`;
+        } else {
+            websiteEl.textContent = "-";
+        }
+    }
+
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || "";
+    };
+
+    setVal("edit-companyName", currentSupplier.companyName || "");
+    setVal("edit-contactPerson", currentSupplier.contactPerson || "");
+    setVal("edit-contactEmail", currentSupplier.contactEmail || "");
+    setVal("edit-phone", currentSupplier.phone || "");
+    setVal("edit-website", currentSupplier.website || "");
+    setVal("edit-address", currentSupplier.address || "");
+    setVal("edit-categories", categories || "");
+}
+
+function setProfileEditMode(isEditing) {
+    const readonly = document.getElementById("profile-readonly");
+    const form = document.getElementById("profile-edit-form");
+    const editBtn = document.getElementById("edit-profile-btn");
+    if (!readonly || !form || !editBtn) return;
+
+    if (isEditing) {
+        renderSupplierProfile();
+        readonly.classList.add("hidden");
+        form.classList.remove("hidden");
+        editBtn.classList.add("hidden");
+    } else {
+        readonly.classList.remove("hidden");
+        form.classList.add("hidden");
+        editBtn.classList.remove("hidden");
+    }
+}
+
+function initProfileHandlers() {
+    const editBtn = document.getElementById("edit-profile-btn");
+    const cancelBtn = document.getElementById("cancel-profile-btn");
+    const form = document.getElementById("profile-edit-form");
+
+    if (editBtn) editBtn.addEventListener("click", () => setProfileEditMode(true));
+    if (cancelBtn) cancelBtn.addEventListener("click", () => setProfileEditMode(false));
+
+    if (form) {
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const saveBtn = document.getElementById("save-profile-btn");
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.textContent = "Saving...";
+            }
+            try {
+                const categoriesRaw = (document.getElementById("edit-categories")?.value || "")
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+
+                const payload = {
+                    companyName: document.getElementById("edit-companyName")?.value || "",
+                    contactPerson: document.getElementById("edit-contactPerson")?.value || "",
+                    contactEmail: document.getElementById("edit-contactEmail")?.value || "",
+                    phone: document.getElementById("edit-phone")?.value || "",
+                    website: document.getElementById("edit-website")?.value || "",
+                    address: document.getElementById("edit-address")?.value || "",
+                    categories: categoriesRaw,
+                };
+
+                const updated = await apiCall("/me", "PUT", payload);
+                currentSupplier = updated;
+                document.getElementById('company-name-display').textContent = currentSupplier.companyName || "My Dashboard";
+                renderSupplierProfile();
+                setProfileEditMode(false);
+                showStatusBanner("Profile updated ✅");
+                setTimeout(() => hideStatusBanner(), 4000);
+            } catch (err) {
+                alert("Failed to save profile: " + err.message);
+            } finally {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = "Save";
+                }
+            }
+        });
+    }
 }
 
 // Registration Logic
@@ -530,3 +650,4 @@ async function deleteProduct(id) {
 
 // Start
 init();
+initProfileHandlers();
