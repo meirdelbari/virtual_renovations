@@ -13,6 +13,10 @@ const requireAuth = (req, res, next) => {
     next();
 };
 
+const asyncHandler = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 const requireAdmin = (req, res, next) => {
     const allowlist = (process.env.SUPPLIER_ADMIN_USER_IDS || "")
         .split(",")
@@ -31,42 +35,42 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-const requireSupplier = (req, res, next) => {
-    const supplier = db.suppliers.getByUserId(req.userId);
+const requireSupplier = asyncHandler(async (req, res, next) => {
+    const supplier = await db.suppliers.getByUserId(req.userId);
     if (!supplier) return res.status(404).json({ error: "Register as a supplier first" });
     req.supplier = supplier;
     next();
-};
+});
 
-const requireApprovedSupplier = (req, res, next) => {
-    const supplier = req.supplier || db.suppliers.getByUserId(req.userId);
+const requireApprovedSupplier = asyncHandler(async (req, res, next) => {
+    const supplier = req.supplier || (await db.suppliers.getByUserId(req.userId));
     if (!supplier) return res.status(404).json({ error: "Register as a supplier first" });
     if (supplier.status !== "approved") {
         return res.status(403).json({ error: "Supplier is not approved yet", status: supplier.status });
     }
     req.supplier = supplier;
     next();
-};
+});
 
 // --- Supplier Profile Routes ---
 
 // Get current supplier profile
-router.get('/me', requireAuth, (req, res) => {
-    const supplier = db.suppliers.getByUserId(req.userId);
+router.get('/me', requireAuth, asyncHandler(async (req, res) => {
+    const supplier = await db.suppliers.getByUserId(req.userId);
     if (!supplier) {
         return res.status(404).json({ error: "Supplier profile not found" });
     }
     res.json(supplier);
-});
+}));
 
 // Register as a supplier
-router.post('/register', requireAuth, (req, res) => {
+router.post('/register', requireAuth, asyncHandler(async (req, res) => {
     try {
         const { companyName, contactEmail, description, categories } = req.body;
         
         if (!companyName) return res.status(400).json({ error: "Company name is required" });
 
-        const supplier = db.suppliers.create({
+        const supplier = await db.suppliers.create({
             userId: req.userId,
             companyName,
             contactEmail: contactEmail || "",
@@ -79,32 +83,32 @@ router.post('/register', requireAuth, (req, res) => {
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
-});
+}));
 
 // Update supplier profile
-router.put('/me', requireAuth, (req, res) => {
+router.put('/me', requireAuth, asyncHandler(async (req, res) => {
     try {
         // Supplier cannot self-approve or change status fields
         const { status, statusUpdatedAt, statusReason, ...safeUpdates } = req.body || {};
-        const updated = db.suppliers.update(req.userId, safeUpdates);
+        const updated = await db.suppliers.update(req.userId, safeUpdates);
         if (!updated) return res.status(404).json({ error: "Supplier not found" });
         res.json(updated);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
-});
+}));
 
 
 // --- Product Routes ---
 
 // List my products
-router.get('/products', requireAuth, requireSupplier, requireApprovedSupplier, (req, res) => {
-    const products = db.products.getBySupplierId(req.supplier.id);
+router.get('/products', requireAuth, requireSupplier, requireApprovedSupplier, asyncHandler(async (req, res) => {
+    const products = await db.products.getBySupplierId(req.supplier.id);
     res.json(products);
-});
+}));
 
 // Add a product
-router.post('/products', requireAuth, requireSupplier, requireApprovedSupplier, (req, res) => {
+router.post('/products', requireAuth, requireSupplier, requireApprovedSupplier, asyncHandler(async (req, res) => {
     const supplier = req.supplier;
 
     const { name, description, price, category, style, imageUrl, purchaseLink } = req.body;
@@ -113,7 +117,7 @@ router.post('/products', requireAuth, requireSupplier, requireApprovedSupplier, 
         return res.status(400).json({ error: "Name and Image are required" });
     }
 
-    const product = db.products.create({
+    const product = await db.products.create({
         supplierId: supplier.id,
         supplierName: supplier.companyName,
         name,
@@ -126,56 +130,56 @@ router.post('/products', requireAuth, requireSupplier, requireApprovedSupplier, 
     });
 
     res.status(201).json(product);
-});
+}));
 
 // Delete a product
-router.delete('/products/:id', requireAuth, requireSupplier, requireApprovedSupplier, (req, res) => {
+router.delete('/products/:id', requireAuth, requireSupplier, requireApprovedSupplier, asyncHandler(async (req, res) => {
     const supplier = req.supplier;
 
-    const success = db.products.delete(req.params.id, supplier.id);
+    const success = await db.products.delete(req.params.id, supplier.id);
     if (!success) return res.status(404).json({ error: "Product not found or not owned by you" });
 
     res.json({ success: true });
-});
+}));
 
 // Public: List all products (for the renovation tool integration)
-router.get('/public/catalog', (req, res) => {
-    const suppliers = db.suppliers.getAll();
+router.get('/public/catalog', asyncHandler(async (req, res) => {
+    const suppliers = await db.suppliers.getAll();
     const approvedIds = new Set(suppliers.filter((s) => s.status === "approved").map((s) => s.id));
-    const allProducts = db.products.getAll().filter((p) => approvedIds.has(p.supplierId));
+    const allProducts = (await db.products.getAll()).filter((p) => approvedIds.has(p.supplierId));
     res.json(allProducts);
-});
+}));
 
 // --- Admin Routes ---
 
-router.get('/admin/suppliers', requireAuth, requireAdmin, (req, res) => {
+router.get('/admin/suppliers', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
     const status = req.query && req.query.status;
-    let suppliers = db.suppliers.getAll();
+    let suppliers = await db.suppliers.getAll();
     if (status) suppliers = suppliers.filter((s) => s.status === status);
     suppliers.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
     res.json(suppliers);
-});
+}));
 
-router.post('/admin/suppliers/:id/approve', requireAuth, requireAdmin, (req, res) => {
-    const supplier = db.suppliers.updateById(req.params.id, {
+router.post('/admin/suppliers/:id/approve', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    const supplier = await db.suppliers.updateById(req.params.id, {
         status: "approved",
         statusUpdatedAt: new Date().toISOString(),
         statusReason: "",
     });
     if (!supplier) return res.status(404).json({ error: "Supplier not found" });
     res.json(supplier);
-});
+}));
 
-router.post('/admin/suppliers/:id/reject', requireAuth, requireAdmin, (req, res) => {
+router.post('/admin/suppliers/:id/reject', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
     const reason = (req.body && req.body.reason) ? String(req.body.reason) : "";
-    const supplier = db.suppliers.updateById(req.params.id, {
+    const supplier = await db.suppliers.updateById(req.params.id, {
         status: "rejected",
         statusUpdatedAt: new Date().toISOString(),
         statusReason: reason,
     });
     if (!supplier) return res.status(404).json({ error: "Supplier not found" });
     res.json(supplier);
-});
+}));
 
 module.exports = router;
 

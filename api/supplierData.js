@@ -1,62 +1,21 @@
-const fs = require('fs');
-const path = require('path');
-
-const DATA_DIR = path.join(__dirname, 'data');
-const SUPPLIERS_FILE = path.join(DATA_DIR, 'suppliers.json');
-const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
-
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-// Initialize files if they don't exist
-function initFile(filePath, defaultData) {
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2));
-  }
-}
-
-initFile(SUPPLIERS_FILE, []);
-initFile(PRODUCTS_FILE, []);
-
-// Helpers
-function readJSON(filePath) {
-  try {
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error(`Error reading ${filePath}:`, err);
-    return [];
-  }
-}
-
-function writeJSON(filePath, data) {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-    return true;
-  } catch (err) {
-    console.error(`Error writing ${filePath}:`, err);
-    return false;
-  }
-}
+const store = require("./kvStore");
 
 const db = {
   suppliers: {
     // Backward compatible: older suppliers.json may not have status fields.
-    getAll: () =>
-      readJSON(SUPPLIERS_FILE).map((s) => ({
+    getAll: async () =>
+      (await store.getSuppliers()).map((s) => ({
         status: "approved",
         statusUpdatedAt: s.createdAt || new Date().toISOString(),
         statusReason: "",
         updatedAt: s.createdAt || new Date().toISOString(),
         ...s,
       })),
-    getById: (id) => db.suppliers.getAll().find((s) => s.id === id),
-    getByUserId: (userId) => db.suppliers.getAll().find(s => s.userId === userId),
-    create: (supplierData) => {
-      const suppliers = db.suppliers.getAll();
-      if (suppliers.find(s => s.userId === supplierData.userId)) {
+    getById: async (id) => (await db.suppliers.getAll()).find((s) => s.id === id),
+    getByUserId: async (userId) => (await db.suppliers.getAll()).find((s) => s.userId === userId),
+    create: async (supplierData) => {
+      const suppliers = await db.suppliers.getAll();
+      if (suppliers.find((s) => s.userId === supplierData.userId)) {
         throw new Error("Supplier already exists for this user");
       }
       const newSupplier = {
@@ -69,47 +28,47 @@ const db = {
         ...supplierData
       };
       suppliers.push(newSupplier);
-      writeJSON(SUPPLIERS_FILE, suppliers);
+      await store.setSuppliers(suppliers);
       return newSupplier;
     },
-    update: (userId, updates) => {
-      const suppliers = db.suppliers.getAll();
+    update: async (userId, updates) => {
+      const suppliers = await db.suppliers.getAll();
       const index = suppliers.findIndex(s => s.userId === userId);
       if (index === -1) return null;
       
       suppliers[index] = { ...suppliers[index], ...updates, updatedAt: new Date().toISOString() };
-      writeJSON(SUPPLIERS_FILE, suppliers);
+      await store.setSuppliers(suppliers);
       return suppliers[index];
     },
-    updateById: (id, updates) => {
-      const suppliers = db.suppliers.getAll();
+    updateById: async (id, updates) => {
+      const suppliers = await db.suppliers.getAll();
       const index = suppliers.findIndex((s) => s.id === id);
       if (index === -1) return null;
       suppliers[index] = { ...suppliers[index], ...updates, updatedAt: new Date().toISOString() };
-      writeJSON(SUPPLIERS_FILE, suppliers);
+      await store.setSuppliers(suppliers);
       return suppliers[index];
     }
   },
   products: {
-    getAll: () => readJSON(PRODUCTS_FILE),
-    getBySupplierId: (supplierId) => readJSON(PRODUCTS_FILE).filter(p => p.supplierId === supplierId),
-    create: (productData) => {
-      const products = readJSON(PRODUCTS_FILE);
+    getAll: async () => await store.getProducts(),
+    getBySupplierId: async (supplierId) => (await store.getProducts()).filter(p => p.supplierId === supplierId),
+    create: async (productData) => {
+      const products = await store.getProducts();
       const newProduct = {
         id: 'prod_' + Date.now(),
         createdAt: new Date().toISOString(),
         ...productData
       };
       products.push(newProduct);
-      writeJSON(PRODUCTS_FILE, products);
+      await store.setProducts(products);
       return newProduct;
     },
-    delete: (productId, supplierId) => {
-        const products = readJSON(PRODUCTS_FILE);
-        const filtered = products.filter(p => !(p.id === productId && p.supplierId === supplierId));
-        if (filtered.length === products.length) return false;
-        writeJSON(PRODUCTS_FILE, filtered);
-        return true;
+    delete: async (productId, supplierId) => {
+      const products = await store.getProducts();
+      const filtered = products.filter(p => !(p.id === productId && p.supplierId === supplierId));
+      if (filtered.length === products.length) return false;
+      await store.setProducts(filtered);
+      return true;
     }
   }
 };
