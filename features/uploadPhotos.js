@@ -55,29 +55,21 @@
       return;
     }
 
-    // Mobile-friendly direct binding
-    const triggerUpload = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Reset value to ensure change event fires even if same file selected
-        fileInput.value = "";
-        
-        // Direct click
-        fileInput.click();
-    };
-
-    // Use both click and touchend for maximum compatibility
-    uploadButton.addEventListener("click", triggerUpload);
-    uploadButton.addEventListener("touchend", triggerUpload);
-
-    /* Original listener removed to prevent duplicate binding
-    uploadButton.addEventListener("click", (e) => {
-      // Allow upload without floor plan
-      // On mobile, ensure immediate execution for file picker
-      fileInput.click();
-    });
+    /* 
+       MOBILE FIX: We removed the programmatic click listeners for "upload-photos".
+       Instead, we replaced the button with a <label for="photo-file-input"> in the HTML.
+       This ensures native behavior on iOS without relying on JS event handling nuances.
     */
+    
+    // We still need to reset the value so the same file can be selected again
+    // But we do it on click of the label, NOT preventing default.
+    const labelBtn = document.querySelector('label[for="photo-file-input"]');
+    if (labelBtn) {
+        labelBtn.addEventListener("click", () => {
+            // Safe to reset value immediately before the browser processes the file input trigger
+            fileInput.value = "";
+        });
+    }
 
     function ensureGalleryExists() {
         const workspace = document.querySelector(".app-workspace");

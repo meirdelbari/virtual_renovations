@@ -301,7 +301,8 @@
           <div class="op-dropdown-container">
             <button class="op-btn op-btn-accent" type="button" data-role="upload-menu-btn" data-i18n="ops.upload" data-i18n-title="tooltips.ops.uploadMenu">Upload ▾</button>
             <div class="op-dropdown-menu" id="upload-dropdown-menu">
-              <button class="op-dropdown-item" type="button" data-role="upload-photos" data-i18n="ops.photos" data-i18n-title="tooltips.ops.uploadPhotos">Photos</button>
+              <!-- Using label instead of button for native file input triggering on mobile -->
+              <label class="op-dropdown-item" for="photo-file-input" style="cursor: pointer; display: block; width: 100%; box-sizing: border-box;" data-i18n="ops.photos" data-i18n-title="tooltips.ops.uploadPhotos">Photos</label>
               <button class="op-dropdown-item" type="button" data-role="upload-floor-plans" data-i18n="ops.floorPlan" data-i18n-title="tooltips.ops.uploadFloorPlan">Floor Plan</button>
             </div>
           </div>
@@ -314,14 +315,10 @@
           <button class="op-btn" type="button" data-role="gemini-tweak" data-i18n-title="tooltips.ops.custom" data-i18n="ops.custom">Custom</button>
           <button class="op-btn op-btn-reset" type="button" data-i18n="ops.reset" data-i18n-title="tooltips.ops.reset">Reset</button>
           <button class="op-btn guide-btn" type="button" data-role="guide-me" data-i18n-title="tooltips.ops.guide" data-i18n="ops.guide">Guide Me</button>
-          <!-- Important: label wrapping input to improve mobile hit area and compatibility -->
-          <label for="photo-file-input" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;">
-              <input id="photo-file-input" type="file" accept="image/*" multiple />
-          </label>
           
-          <label for="floor-plan-file-input" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;">
-              <input id="floor-plan-file-input" type="file" accept=".json,application/pdf,image/*" />
-          </label>
+          <!-- Hidden Inputs -->
+          <input id="photo-file-input" type="file" accept="image/*" multiple style="display: none;" />
+          <input id="floor-plan-file-input" type="file" accept=".json,application/pdf,image/*" style="display: none;" />
         </section>
 
         <div id="selection-summary" class="selection-summary is-hidden" aria-live="polite">
