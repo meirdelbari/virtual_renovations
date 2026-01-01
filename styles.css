@@ -1342,6 +1342,15 @@ body.auth-locked > *:not(#auth-modal) {
   display: inline-block;
 }
 
+/* Responsive Utilities */
+.mobile-only { display: none !important; }
+.desktop-only { display: inline-block !important; }
+
+@media (max-width: 768px) {
+  .mobile-only { display: inline-flex !important; }
+  .desktop-only { display: none !important; }
+}
+
 .op-dropdown-menu {
   position: absolute;
   top: 100%;

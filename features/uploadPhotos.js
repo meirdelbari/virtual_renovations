@@ -44,24 +44,23 @@
   }
 
   function initUploadPhotos() {
-    // UPDATED: Support both label (new mobile fix) and button (legacy)
-    const uploadLabel = document.querySelector('label[for="photo-file-input"]');
-    const uploadButton = document.querySelector('[data-role="upload-photos"]');
+    // UPDATED: Support multiple labels (desktop + mobile)
+    const uploadLabels = document.querySelectorAll('label[for="photo-file-input"]');
+    const uploadButton = document.querySelector('[data-role="upload-photos"]'); // Legacy fallback
     const fileInput = document.getElementById("photo-file-input");
     const floorPlanViewer = document.getElementById("floor-plan-viewer");
 
-    if ((!uploadLabel && !uploadButton) || !fileInput) {
+    if ((uploadLabels.length === 0 && !uploadButton) || !fileInput) {
       console.warn(
         "[UploadPhotos] Missing DOM elements; feature will not initialize."
       );
       return;
     }
 
-    // MOBILE FIX: If we have the label, use it with stopPropagation
-    if (uploadLabel) {
-        uploadLabel.addEventListener("click", (e) => {
-             // 1. Stop bubbling so the parent dropdown menu doesn't close immediately.
-             // If it closes (display: none), iOS kills the file picker.
+    // Attach listeners to ALL photo upload labels
+    uploadLabels.forEach(label => {
+        label.addEventListener("click", (e) => {
+             // 1. Stop bubbling so parent menus don't close immediately (critical for desktop dropdown)
              e.stopPropagation();
              
              // 2. Reset input value to allow re-selecting the same file
@@ -70,14 +69,16 @@
              // 3. Ensure gallery containers exist (visual feedback)
              ensureGalleryExists();
              
-             // 4. Manually close the menu after a safe delay
+             // 4. Manually close the menu after a safe delay (only matters if inside a menu)
              setTimeout(() => {
                 const menu = document.getElementById("upload-dropdown-menu");
                 if (menu) menu.classList.remove("is-open");
              }, 800);
         });
-    } else if (uploadButton) {
-        // Fallback for old button structure
+    });
+
+    // Fallback for old button structure
+    if (uploadButton) {
         uploadButton.addEventListener("click", () => {
             ensureGalleryExists();
             fileInput.click();

@@ -298,14 +298,18 @@
       <!-- Main content -->
       <main class="app-main">
         <section class="operations-bar" aria-label="Main operations">
-          <div class="op-dropdown-container">
+          <!-- Desktop: Dropdown Menu -->
+          <div class="op-dropdown-container desktop-only">
             <button class="op-btn op-btn-accent" type="button" data-role="upload-menu-btn" data-i18n="ops.upload" data-i18n-title="tooltips.ops.uploadMenu">Upload ▾</button>
             <div class="op-dropdown-menu" id="upload-dropdown-menu">
-              <!-- Using label instead of button for native file input triggering on mobile -->
               <label class="op-dropdown-item" for="photo-file-input" style="cursor: pointer; display: block; width: 100%; box-sizing: border-box;" data-i18n="ops.photos" data-i18n-title="tooltips.ops.uploadPhotos">Photos</label>
               <button class="op-dropdown-item" type="button" data-role="upload-floor-plans" data-i18n="ops.floorPlan" data-i18n-title="tooltips.ops.uploadFloorPlan">Floor Plan</button>
             </div>
           </div>
+
+          <!-- Mobile: Direct "Photos" Button (No Menu) -->
+          <label class="op-btn op-btn-accent mobile-only" for="photo-file-input" style="cursor: pointer;" data-i18n="ops.photos">📷 Photos</label>
+
           <button class="op-btn" type="button" data-role="enhance-photos" data-i18n="ops.enhance" data-i18n-title="tooltips.ops.enhance">Enhance Quality</button>
           <button class="op-btn" type="button" data-role="renovate-selector" data-i18n="ops.renovate" data-i18n-title="tooltips.ops.renovate">Renovate ▾</button>
           <button class="op-btn" type="button" data-role="furniture-selector" data-i18n="ops.furniture" data-i18n-title="tooltips.ops.furniture">Furniture ▾</button>
