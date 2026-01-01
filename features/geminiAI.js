@@ -265,25 +265,25 @@
   function isPhotoRelated(instructions) {
     if (!instructions || typeof instructions !== "string") return false;
     const text = instructions.toLowerCase();
+    
+    // English keywords
     const keywords = [
-      "photo",
-      "room",
-      "image",
-      "picture",
-      "wall",
-      "floor",
-      "ceiling",
-      "kitchen",
-      "bath",
-      "garden",
-      "exterior",
-      "interior",
-      "counter",
-      "furniture",
-      "window",
-      "door"
+      "photo", "room", "image", "picture", "wall", "floor", "ceiling", 
+      "kitchen", "bath", "garden", "exterior", "interior", "counter", 
+      "furniture", "window", "door", "table", "chair", "sofa", "bed", 
+      "rug", "carpet", "paint", "color", "light", "design", "style",
+      "remove", "add", "change", "replace"
     ];
-    return keywords.some((word) => text.includes(word));
+    
+    // Hebrew keywords (common renovation terms)
+    const hebrewKeywords = [
+        "חדר", "תמונה", "קיר", "רצפה", "תקרה", "מטבח", "אמבטיה", "גינה", 
+        "חוץ", "פנים", "שיש", "ריהוט", "חלון", "דלת", "שולחן", "כיסא", "כורסה",
+        "ספה", "מיטה", "שטיח", "צבע", "עיצוב", "סגנון", "להסיר", "להוסיף", 
+        "לשנות", "להחליף", "תקטין", "תגדיל", "הזז", "שים", "תשים"
+    ];
+
+    return keywords.some((word) => text.includes(word)) || hebrewKeywords.some((word) => text.includes(word));
   }
 
   async function handleGeminiProcess(customInstructions = null) {
