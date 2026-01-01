@@ -55,10 +55,9 @@
       return;
     }
 
-    uploadButton.addEventListener("click", () => {
+    uploadButton.addEventListener("click", (e) => {
       // Allow upload without floor plan
-      // Check if gallery exists, if not create it (No Floor Plan Mode)
-      ensureGalleryExists();
+      // On mobile, ensure immediate execution for file picker
       fileInput.click();
     });
 
