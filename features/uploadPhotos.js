@@ -55,11 +55,29 @@
       return;
     }
 
+    // Mobile-friendly direct binding
+    const triggerUpload = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Reset value to ensure change event fires even if same file selected
+        fileInput.value = "";
+        
+        // Direct click
+        fileInput.click();
+    };
+
+    // Use both click and touchend for maximum compatibility
+    uploadButton.addEventListener("click", triggerUpload);
+    uploadButton.addEventListener("touchend", triggerUpload);
+
+    /* Original listener removed to prevent duplicate binding
     uploadButton.addEventListener("click", (e) => {
       // Allow upload without floor plan
       // On mobile, ensure immediate execution for file picker
       fileInput.click();
     });
+    */
 
     function ensureGalleryExists() {
         const workspace = document.querySelector(".app-workspace");

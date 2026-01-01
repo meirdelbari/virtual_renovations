@@ -314,8 +314,14 @@
           <button class="op-btn" type="button" data-role="gemini-tweak" data-i18n-title="tooltips.ops.custom" data-i18n="ops.custom">Custom</button>
           <button class="op-btn op-btn-reset" type="button" data-i18n="ops.reset" data-i18n-title="tooltips.ops.reset">Reset</button>
           <button class="op-btn guide-btn" type="button" data-role="guide-me" data-i18n-title="tooltips.ops.guide" data-i18n="ops.guide">Guide Me</button>
-          <input id="photo-file-input" type="file" accept="image/*" multiple style="visibility: hidden; position: absolute; width: 1px; height: 1px; opacity: 0;" />
-          <input id="floor-plan-file-input" type="file" accept=".json,application/pdf,image/*" style="visibility: hidden; position: absolute; width: 1px; height: 1px; opacity: 0;" />
+          <!-- Important: label wrapping input to improve mobile hit area and compatibility -->
+          <label for="photo-file-input" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;">
+              <input id="photo-file-input" type="file" accept="image/*" multiple />
+          </label>
+          
+          <label for="floor-plan-file-input" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;">
+              <input id="floor-plan-file-input" type="file" accept=".json,application/pdf,image/*" />
+          </label>
         </section>
 
         <div id="selection-summary" class="selection-summary is-hidden" aria-live="polite">
