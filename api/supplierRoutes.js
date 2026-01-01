@@ -143,6 +143,45 @@ router.post('/products', requireAuth, requireSupplier, requireNotBlockedSupplier
     res.status(201).json(product);
 }));
 
+// Update a product (New)
+router.put('/products/:id', requireAuth, requireSupplier, requireNotBlockedSupplier, asyncHandler(async (req, res) => {
+    const supplier = req.supplier;
+    const productId = req.params.id;
+    const updates = req.body;
+
+    // Verify ownership
+    const products = await db.products.getBySupplierId(supplier.id);
+    const existing = products.find(p => p.id === productId);
+    
+    if (!existing) {
+        return res.status(404).json({ error: "Product not found or not owned by you" });
+    }
+
+    // Prepare safe updates
+    const safeUpdates = {
+        name: updates.name,
+        description: updates.description,
+        price: updates.price,
+        category: updates.category,
+        style: updates.style,
+        imageUrl: updates.imageUrl,
+        purchaseLink: updates.purchaseLink,
+        // Reset status to pending on significant edits if desired, or keep as is?
+        // Let's reset to pending to ensure re-approval if critical info changes.
+        // Actually, let's reset status only if image or name changes. 
+        // For now, let's keep it simple: Resetting status to 'pending' is safer.
+        status: "pending", 
+        statusUpdatedAt: new Date().toISOString(),
+        statusReason: "" // clear previous rejections
+    };
+
+    // Remove undefined keys
+    Object.keys(safeUpdates).forEach(key => safeUpdates[key] === undefined && delete safeUpdates[key]);
+
+    const updatedProduct = await db.products.updateById(productId, safeUpdates);
+    res.json(updatedProduct);
+}));
+
 // Delete a product
 router.delete('/products/:id', requireAuth, requireSupplier, requireNotBlockedSupplier, asyncHandler(async (req, res) => {
     const supplier = req.supplier;
@@ -239,4 +278,3 @@ router.get('/admin/suppliers/:id/products', requireAuth, requireAdmin, asyncHand
 }));
 
 module.exports = router;
-

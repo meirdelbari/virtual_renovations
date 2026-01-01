@@ -622,7 +622,10 @@ function renderProducts(products) {
                 <p class="text-gray-500 text-sm mt-2 line-clamp-2">${p.description}</p>
                 <div class="mt-4 flex justify-between items-center">
                     <span class="font-bold text-gray-900">$${p.price || '0'}</span>
-                    <a href="${p.purchaseLink || '#'}" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-sm">View Link</a>
+                    <div class="flex gap-2 items-center">
+                         <a href="${p.purchaseLink || '#'}" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-sm mr-2">View Link</a>
+                         <button onclick='showUploadModal(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="text-gray-600 hover:text-indigo-600 text-sm font-medium border border-gray-300 rounded px-2 py-1">Edit</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -631,14 +634,52 @@ function renderProducts(products) {
 }
 
 // Upload Logic
-function showUploadModal() {
-    document.getElementById('upload-modal').classList.remove('hidden');
+// EDIT MODE STATE
+let editingProductId = null;
+
+function showUploadModal(editProduct = null) {
+    const modal = document.getElementById('upload-modal');
+    const title = document.getElementById('upload-modal-title');
+    const btn = document.getElementById('submit-prod-btn');
+
+    if (editProduct) {
+        editingProductId = editProduct.id;
+        if (title) title.textContent = "Edit Product";
+        btn.textContent = "Save Changes";
+
+        // Populate Form
+        document.getElementById('prod-name').value = editProduct.name || "";
+        document.getElementById('prod-category').value = editProduct.category || "Flooring";
+        document.getElementById('prod-style').value = editProduct.style || "modern";
+        document.getElementById('prod-price').value = editProduct.price || "";
+        document.getElementById('prod-desc').value = editProduct.description || "";
+        document.getElementById('prod-link').value = editProduct.purchaseLink || "";
+        
+        // Show existing image preview if available
+        const imgPreview = document.getElementById('image-preview');
+        if (editProduct.imageUrl) {
+             imgPreview.src = editProduct.imageUrl;
+             imgPreview.classList.remove('hidden');
+        } else {
+             imgPreview.classList.add('hidden');
+        }
+
+    } else {
+        editingProductId = null;
+        if (title) title.textContent = "Add New Product";
+        btn.textContent = "Upload Product";
+        document.getElementById('product-form').reset();
+        document.getElementById('image-preview').classList.add('hidden');
+    }
+
+    modal.classList.remove('hidden');
 }
 
 function hideUploadModal() {
     document.getElementById('upload-modal').classList.add('hidden');
     document.getElementById('product-form').reset();
     document.getElementById('image-preview').classList.add('hidden');
+    editingProductId = null; // reset
 }
 
 function previewImage(input) {
@@ -656,19 +697,32 @@ function previewImage(input) {
 document.getElementById('product-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submit-prod-btn');
-    btn.textContent = "Uploading...";
+    const originalText = btn.textContent;
+    btn.textContent = editingProductId ? "Saving..." : "Uploading...";
     btn.disabled = true;
 
     try {
         const fileInput = document.getElementById('prod-file');
-        if (!fileInput.files[0]) throw new Error("Please select an image");
-
-        // Convert image to base64
-        const base64Img = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(fileInput.files[0]);
-        });
+        
+        let imageUrl = null;
+        
+        // If editing and no new file, keep existing image
+        if (editingProductId && (!fileInput.files || !fileInput.files[0])) {
+            const existing = allProducts.find(p => p.id === editingProductId);
+            imageUrl = existing ? existing.imageUrl : null;
+        } 
+        
+        // If file selected, process it
+        if (fileInput.files && fileInput.files[0]) {
+             // Convert image to base64
+            imageUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(fileInput.files[0]);
+            });
+        }
+        
+        if (!imageUrl) throw new Error("Please select an image");
 
         const data = {
             name: document.getElementById('prod-name').value,
@@ -676,20 +730,27 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
             style: document.getElementById('prod-style').value,
             price: document.getElementById('prod-price').value,
             description: document.getElementById('prod-desc').value,
-            imageUrl: base64Img,
+            imageUrl: imageUrl,
             purchaseLink: document.getElementById('prod-link').value
         };
 
-        await apiCall('/products', 'POST', data);
+        if (editingProductId) {
+             // UPDATE
+             await apiCall(`/products/${editingProductId}`, 'PUT', data);
+             showStatusBanner("Product updated ✅");
+        } else {
+             // CREATE
+             await apiCall('/products', 'POST', data);
+             showStatusBanner("Product submitted ✅ Waiting for admin approval.");
+        }
         
         hideUploadModal();
         loadProducts();
-        showStatusBanner("Product submitted ✅ Waiting for admin approval before it appears in the app.");
         setTimeout(() => hideStatusBanner(), 8000);
     } catch (err) {
-        alert("Upload failed: " + err.message);
+        alert("Operation failed: " + err.message);
     } finally {
-        btn.textContent = "Upload Product";
+        btn.textContent = originalText;
         btn.disabled = false;
     }
 });
