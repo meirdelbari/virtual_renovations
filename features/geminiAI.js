@@ -364,6 +364,23 @@
         }
     }
 
+    // NEW: Refresh 'match' from the latest state to ensure it points to the currently active photo in Working Area
+    // The previous logic relied on 'matches.find' using last.photoId, which might be stale if the user
+    // clicked a different photo in the gallery but didn't trigger a full focus event, or if chaining updates.
+    // We explicitly re-fetch the photo object corresponding to window.lastFocusedRoomPhoto.photoId
+    if (window.lastFocusedRoomPhoto && window.lastFocusedRoomPhoto.photoId) {
+         const activeId = window.lastFocusedRoomPhoto.photoId;
+         const freshMatch = matches.find(m => m.id === activeId);
+         if (freshMatch) {
+             last = {
+                 photoId: freshMatch.id,
+                 url: freshMatch.url,
+                 roomId: freshMatch.roomId,
+                 originalName: freshMatch.originalName
+             };
+         }
+    }
+
     // Find the photo to process
     const match =
       matches.find((m) => m.id === last.photoId) || {
