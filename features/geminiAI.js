@@ -212,7 +212,10 @@
                         <div style="flex: 1;">
                             <div style="font-weight: 600; color: #111827;">${escapeHtml(p.name)}</div>
                             <div style="color: #4b5563; font-size: 13px; margin-top: 2px;">${escapeHtml(p.supplierName || 'Supplier')}</div>
-                            <div style="font-weight: 600; color: #4f46e5; margin-top: 4px;">$${p.price}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                                <div style="font-weight: 600; color: #4f46e5;">$${p.price}</div>
+                                ${p.purchaseLink ? `<a href="${p.purchaseLink}" target="_blank" rel="noopener noreferrer" style="color: #4f46e5; font-size: 12px; text-decoration: none; border: 1px solid #4f46e5; padding: 2px 6px; border-radius: 4px; hover:background: #eef2ff;">View Product ↗</a>` : ''}
+                            </div>
                             ${p.description ? `<div style="color: #6b7280; font-size: 12px; margin-top: 4px; line-height: 1.4; border-top: 1px solid #eee; padding-top: 4px;">${escapeHtml(p.description)}</div>` : ''}
                         </div>
                     </div>
