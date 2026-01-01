@@ -44,30 +44,43 @@
   }
 
   function initUploadPhotos() {
+    // UPDATED: Support both label (new mobile fix) and button (legacy)
+    const uploadLabel = document.querySelector('label[for="photo-file-input"]');
     const uploadButton = document.querySelector('[data-role="upload-photos"]');
     const fileInput = document.getElementById("photo-file-input");
-    const floorPlanViewer = document.getElementById("floor-plan-viewer"); // Optional now
+    const floorPlanViewer = document.getElementById("floor-plan-viewer");
 
-    if (!uploadButton || !fileInput) {
+    if ((!uploadLabel && !uploadButton) || !fileInput) {
       console.warn(
         "[UploadPhotos] Missing DOM elements; feature will not initialize."
       );
       return;
     }
 
-    /* 
-       MOBILE FIX: We removed the programmatic click listeners for "upload-photos".
-       Instead, we replaced the button with a <label for="photo-file-input"> in the HTML.
-       This ensures native behavior on iOS without relying on JS event handling nuances.
-    */
-    
-    // We still need to reset the value so the same file can be selected again
-    // But we do it on click of the label, NOT preventing default.
-    const labelBtn = document.querySelector('label[for="photo-file-input"]');
-    if (labelBtn) {
-        labelBtn.addEventListener("click", () => {
-            // Safe to reset value immediately before the browser processes the file input trigger
-            fileInput.value = "";
+    // MOBILE FIX: If we have the label, use it with stopPropagation
+    if (uploadLabel) {
+        uploadLabel.addEventListener("click", (e) => {
+             // 1. Stop bubbling so the parent dropdown menu doesn't close immediately.
+             // If it closes (display: none), iOS kills the file picker.
+             e.stopPropagation();
+             
+             // 2. Reset input value to allow re-selecting the same file
+             fileInput.value = "";
+             
+             // 3. Ensure gallery containers exist (visual feedback)
+             ensureGalleryExists();
+             
+             // 4. Manually close the menu after a safe delay
+             setTimeout(() => {
+                const menu = document.getElementById("upload-dropdown-menu");
+                if (menu) menu.classList.remove("is-open");
+             }, 800);
+        });
+    } else if (uploadButton) {
+        // Fallback for old button structure
+        uploadButton.addEventListener("click", () => {
+            ensureGalleryExists();
+            fileInput.click();
         });
     }
 
@@ -75,23 +88,18 @@
         const workspace = document.querySelector(".app-workspace");
         const viewer = document.getElementById("floor-plan-viewer");
         
-        // Robustly ensure photos-container exists in the correct position (under floor plan and table)
+        // Robustly ensure photos-container exists in the correct position (after viewer, before table)
         let photosContainer = document.getElementById("photos-container");
         if (!photosContainer && workspace) {
             photosContainer = document.createElement("div");
             photosContainer.id = "photos-container";
             
-            const table = document.getElementById("measurements-table-container");
-            
-            // Insert strictly after measurements table if it exists
-            if (table && table.parentNode === workspace) {
-                table.insertAdjacentElement('afterend', photosContainer);
-            } else if (viewer && viewer.parentNode === workspace) {
-                // Fallback: after viewer
+            // Insert strictly after floor-plan-viewer
+            if (viewer && viewer.parentNode === workspace) {
                 viewer.insertAdjacentElement('afterend', photosContainer);
             } else {
-                // If viewer is missing or weird, append to ensure it's at the bottom
-                workspace.appendChild(photosContainer);
+                // If viewer is missing or weird, prepend to ensure it's above potential bottom elements
+                workspace.prepend(photosContainer);
             }
         }
         
