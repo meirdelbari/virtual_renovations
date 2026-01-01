@@ -233,10 +233,17 @@
             img.style.opacity = "1";
         }
     } else {
-        // Revert to original if no product
+        // Revert to original if no product (and check we are not in 'renovated' view mode that might want to keep it)
         // Only revert if we are currently showing a data URL (likely the collage) 
         // and we have the original URL
         if (img.src !== url && img.src.startsWith("data:")) {
+             // ... existing revert logic ...
+             // BUT, if we just finished processing (handled below), we might want to keep the product panel visible 
+             // if the resulting image is indeed the renovated one.
+             
+             // However, this block runs inside updateWorkingAreaWithCollage which is for PREVIEW.
+             // The Post-Processing display logic is separate (in handleGeminiProcess).
+             
             console.log("[GeminiAI] Reverting working area to original photo.");
             img.src = url;
              const caption = container.querySelector(".working-area-caption");
@@ -575,6 +582,56 @@ CRITICAL CONSTRAINTS:
       const processedGallery = document.getElementById("processed-gallery");
       if (processedGallery) {
           processedGallery.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      // --- SHOW PRODUCT DETAILS AFTER PROCESSING ---
+      // If we just processed a product integration, ensure the details panel remains visible 
+      // under the NEW renovated photo in the working area.
+      if (window.currentProductSelection) {
+           const workingArea = document.getElementById("photo-working-area");
+           if (workingArea) {
+                // The openInWorkingArea call above (via addProcessedPhotoToGallery) might have reset the content.
+                // We need to re-inject the product details panel.
+                
+                let detailsPanel = workingArea.querySelector(".product-details-panel");
+                if (!detailsPanel) {
+                    detailsPanel = document.createElement("div");
+                    detailsPanel.className = "product-details-panel";
+                    detailsPanel.style.marginTop = "12px";
+                    detailsPanel.style.textAlign = "left";
+                    detailsPanel.style.background = "#f9fafb";
+                    detailsPanel.style.padding = "12px";
+                    detailsPanel.style.borderRadius = "8px";
+                    detailsPanel.style.fontSize = "14px";
+                    detailsPanel.style.border = "1px solid #e5e7eb";
+                    
+                    const caption = workingArea.querySelector(".working-area-caption");
+                    if (caption) {
+                         caption.parentNode.insertBefore(detailsPanel, caption.nextSibling);
+                    } else {
+                         workingArea.appendChild(detailsPanel);
+                    }
+                }
+                
+                const p = window.currentProductSelection;
+                detailsPanel.innerHTML = `
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <img src="${p.imageUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #111827;">${escapeHtml(p.name)}</div>
+                            <div style="margin-top: 2px;">
+                                ${p.purchaseLink 
+                                    ? `<a href="${p.purchaseLink}" target="_blank" rel="noopener noreferrer" style="color: #4f46e5; font-size: 13px; text-decoration: underline; font-weight: 500;">${escapeHtml(p.supplierName || 'Supplier')}</a>`
+                                    : `<span style="color: #4b5563; font-size: 13px;">${escapeHtml(p.supplierName || 'Supplier')}</span>`
+                                }
+                            </div>
+                            <div style="font-weight: 600; color: #4f46e5; margin-top: 4px;">$${p.price}</div>
+                            ${p.description ? `<div style="color: #6b7280; font-size: 12px; margin-top: 4px; line-height: 1.4; border-top: 1px solid #eee; padding-top: 4px;">${escapeHtml(p.description)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+                detailsPanel.style.display = "block";
+           }
       }
 
     } catch (error) {
