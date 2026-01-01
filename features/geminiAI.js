@@ -184,6 +184,41 @@
                     caption.style.color = "#4285f4";
                     caption.style.fontWeight = "600";
                 }
+
+                // --- SHOW PRODUCT DETAILS PANEL ---
+                let detailsPanel = container.querySelector(".product-details-panel");
+                if (!detailsPanel) {
+                    detailsPanel = document.createElement("div");
+                    detailsPanel.className = "product-details-panel";
+                    detailsPanel.style.marginTop = "12px";
+                    detailsPanel.style.textAlign = "left";
+                    detailsPanel.style.background = "#f9fafb";
+                    detailsPanel.style.padding = "12px";
+                    detailsPanel.style.borderRadius = "8px";
+                    detailsPanel.style.fontSize = "14px";
+                    detailsPanel.style.border = "1px solid #e5e7eb";
+                    
+                    if (caption) {
+                         caption.parentNode.insertBefore(detailsPanel, caption.nextSibling);
+                    } else {
+                         container.appendChild(detailsPanel);
+                    }
+                }
+                
+                const p = window.currentProductSelection;
+                detailsPanel.innerHTML = `
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <img src="${p.imageUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #111827;">${escapeHtml(p.name)}</div>
+                            <div style="color: #4b5563; font-size: 13px; margin-top: 2px;">${escapeHtml(p.supplierName || 'Supplier')}</div>
+                            <div style="font-weight: 600; color: #4f46e5; margin-top: 4px;">$${p.price}</div>
+                            ${p.description ? `<div style="color: #6b7280; font-size: 12px; margin-top: 4px; line-height: 1.4; border-top: 1px solid #eee; padding-top: 4px;">${escapeHtml(p.description)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+                detailsPanel.style.display = "block";
+
             } else {
                 console.error("[GeminiAI] Collage generation returned null.");
             }
@@ -204,6 +239,12 @@
                 caption.textContent = tr("upload.workingAreaReady", null, "Ready to Renovate");
                 caption.style.color = "#6b7280";
                 caption.style.fontWeight = "normal";
+            }
+            
+            // Hide product panel if exists
+            const detailsPanel = container.querySelector(".product-details-panel");
+            if (detailsPanel) {
+                detailsPanel.style.display = "none";
             }
         }
     }
@@ -794,7 +835,7 @@ CRITICAL CONSTRAINTS:
         const price = (p.price || p.price === 0) ? `\n- Price: $${p.price}` : "";
 
         // Dedicated block used by the specific templates below (esp. furniture staging)
-        supplierProductBlock = `\n\nSUPPLIER PRODUCT REFERENCE:\n- The INPUT IMAGE is a COLLAGE.\n- LEFT SIDE: The room to modify.\n- RIGHT SIDE: The Reference Product ("${p.name}") to insert.\n\nINSTRUCTIONS:\n1. IGNORE the right side panel in the final output.\n2. INSERT the product from the RIGHT into the room on the LEFT.\n3. PRESERVE the existing room details (walls, floor, windows, ceiling) and EXISTING FURNITURE as much as possible. Only move/remove items if they physically conflict with the new product's placement.\n4. Make it look photorealistic: match lighting, perspective, and shadows.\n5. The final result must ONLY show the room (left side) with the product integrated.`;
+        supplierProductBlock = `\n\nSUPPLIER PRODUCT REFERENCE:\n- The INPUT IMAGE is a COLLAGE.\n- LEFT SIDE: The room to modify.\n- RIGHT SIDE: The Reference Product ("${p.name}") to insert.${desc}${supplier}${price}\n\nINSTRUCTIONS:\n1. IGNORE the right side panel in the final output.\n2. INSERT the product from the RIGHT into the room on the LEFT.\n3. PRESERVE the existing room details (walls, floor, windows, ceiling) and EXISTING FURNITURE as much as possible. Only move/remove items if they physically conflict with the new product's placement.\n4. Make it look photorealistic: match lighting, perspective, and shadows.\n5. The final result must ONLY show the room (left side) with the product integrated.`;
 
         // Also reinforce the generic renovationText so the non-special templates still include it
         renovationText = `Task: ADD the Reference Product shown on the RIGHT side into the room on the LEFT.\nDo not re-stage the entire room. Keep existing elements.\nContext: ${renovationText}`;
