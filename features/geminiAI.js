@@ -176,6 +176,44 @@
             if (collageInfo && collageInfo.dataUrl) {
                 // Update Image
                 img.src = collageInfo.dataUrl;
+
+                // --- BIG MERGE HINT BANNER (above the collage image) ---
+                try {
+                  const wrapper = img.parentElement; // the inline-block container around the <img>
+                  if (wrapper && wrapper.parentElement) {
+                    let banner = container.querySelector(".merge-hint-banner");
+                    if (!banner) {
+                      banner = document.createElement("div");
+                      banner.className = "merge-hint-banner";
+                      banner.style.margin = "0 0 10px 0";
+                      banner.style.padding = "10px 14px";
+                      banner.style.borderRadius = "10px";
+                      banner.style.border = "1px solid rgba(66,133,244,0.25)";
+                      banner.style.background = "linear-gradient(90deg, rgba(66,133,244,0.10), rgba(52,168,83,0.10), rgba(251,188,4,0.10), rgba(234,67,53,0.10))";
+                      banner.style.fontSize = "18px";
+                      banner.style.fontWeight = "700";
+                      banner.style.lineHeight = "1.25";
+                      banner.style.color = "#111827";
+                      banner.style.textAlign = "center";
+
+                      // insert above the image wrapper
+                      wrapper.parentElement.insertBefore(banner, wrapper);
+                    }
+
+                    const hintText = tr("products.mergeHint", null, "Click AlgoreitAI to merge the product into the photo");
+                    const locale = (window.i18n && typeof window.i18n.getLocale === "function")
+                      ? window.i18n.getLocale()
+                      : "";
+                    banner.dir = String(locale).toLowerCase().startsWith("he") ? "rtl" : "ltr";
+
+                    // Render with brand gradient on AlgoreitAI word
+                    banner.innerHTML = escapeHtml(hintText).replace(
+                      /AlgoreitAI/g,
+                      `<span style="background: linear-gradient(90deg, #4285f4, #34a853, #fbbc04, #ea4335); -webkit-background-clip: text; background-clip: text; color: transparent;">AlgoreitAI</span>`
+                    );
+                    banner.style.display = "block";
+                  }
+                } catch (_) {}
                 
                 // Optional: Update caption/title to indicate preview mode
                 const caption = container.querySelector(".working-area-caption");
@@ -258,6 +296,10 @@
             if (detailsPanel) {
                 detailsPanel.style.display = "none";
             }
+
+            // Hide merge hint banner if exists
+            const banner = container.querySelector(".merge-hint-banner");
+            if (banner) banner.style.display = "none";
         }
     }
   };
@@ -1091,44 +1133,10 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
         const drawH = Math.round(ph * scale);
         const dx = roomW + pad + Math.round((boxW - drawW) / 2);
     
-        // Title
+        // Title (keep the collage clean; the big hint is rendered ABOVE the collage in the UI)
         ctx.fillStyle = "#111827";
         ctx.font = "bold 28px Inter, system-ui, -apple-system, Segoe UI, Arial";
         ctx.fillText("Reference Product", roomW + pad, 36);
-
-        // Hint (translated) UNDER title, with AlgoreitAI word in brand gradient
-        const hintText = tr("products.mergeHint", null, "Operate AlgoreitAI to merge it");
-        const brandWord = "AlgoreitAI";
-        const hintY = 68;
-        ctx.font = "600 20px Inter, system-ui, -apple-system, Segoe UI, Arial";
-
-        const idx = String(hintText || "").indexOf(brandWord);
-        if (idx === -1) {
-          ctx.fillStyle = "#4b5563";
-          ctx.fillText(hintText, roomW + pad, hintY);
-        } else {
-          const pre = hintText.slice(0, idx);
-          const post = hintText.slice(idx + brandWord.length);
-
-          // Pre
-          ctx.fillStyle = "#4b5563";
-          ctx.fillText(pre, roomW + pad, hintY);
-          const preW = ctx.measureText(pre).width;
-
-          // Brand word (gradient matches button: blue→green→yellow→red)
-          const brandW = ctx.measureText(brandWord).width;
-          const grad = ctx.createLinearGradient(roomW + pad + preW, 0, roomW + pad + preW + brandW, 0);
-          grad.addColorStop(0.0, "#4285f4");
-          grad.addColorStop(0.33, "#34a853");
-          grad.addColorStop(0.66, "#fbbc04");
-          grad.addColorStop(1.0, "#ea4335");
-          ctx.fillStyle = grad;
-          ctx.fillText(brandWord, roomW + pad + preW, hintY);
-
-          // Post
-          ctx.fillStyle = "#4b5563";
-          ctx.fillText(post, roomW + pad + preW + brandW, hintY);
-        }
     
         // Draw product
         ctx.drawImage(productImg, dx, dy, drawW, drawH);
