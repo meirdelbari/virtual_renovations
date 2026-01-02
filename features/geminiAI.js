@@ -1097,11 +1097,11 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
 
         // Subtitle / CTA (translated)
         ctx.fillStyle = "#4b5563";
-        ctx.font = "16px Inter, system-ui, -apple-system, Segoe UI, Arial";
+        ctx.font = "600 20px Inter, system-ui, -apple-system, Segoe UI, Arial";
         ctx.fillText(
           tr("products.mergeHint", null, "Operate AlgoreitAI to merge the Photo"),
           roomW + pad,
-          60
+          68
         );
     
         // Draw product
