@@ -38,6 +38,21 @@
 
     const SELECTION_RULES = [
         {
+            role: "product-selector",
+            label: "Products",
+            condition: (state) => {
+                // Require a main photo in the Working Area before browsing/choosing products
+                if (!isPhotoInWorkingArea()) {
+                    return {
+                        allowed: false,
+                        messageKey: "alerts.selectPhotoFirst",
+                        messageDefault: "Please upload and select a photo to the working area first."
+                    };
+                }
+                return { allowed: true };
+            }
+        },
+        {
             role: "renovate-selector",
             label: "Renovate",
             condition: (state) => {
