@@ -1079,8 +1079,10 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
     
         // Fit product image inside right panel with padding
         const pad = 24;
+        const headerH = 108; // space for hint + title
         const boxW = productPanelW - pad * 2;
-        const boxH = productPanelH - pad * 2 - 64;
+        const dy = pad + headerH;
+        const boxH = productPanelH - dy - pad;
     
         const pw = productImg.naturalWidth || productImg.width;
         const ph = productImg.naturalHeight || productImg.height;
@@ -1088,21 +1090,20 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
         const drawW = Math.round(pw * scale);
         const drawH = Math.round(ph * scale);
         const dx = roomW + pad + Math.round((boxW - drawW) / 2);
-        const dy = pad + 44;
     
-        // Title
-        ctx.fillStyle = "#111827";
-        ctx.font = "bold 28px Inter, system-ui, -apple-system, Segoe UI, Arial";
-        ctx.fillText("Reference Product", roomW + pad, 36);
-
-        // Subtitle / CTA (translated)
-        ctx.fillStyle = "#4b5563";
-        ctx.font = "600 20px Inter, system-ui, -apple-system, Segoe UI, Arial";
+        // Hint (translated) ABOVE title
+        ctx.fillStyle = "#374151";
+        ctx.font = "700 22px Inter, system-ui, -apple-system, Segoe UI, Arial";
         ctx.fillText(
           tr("products.mergeHint", null, "Operate AlgoreitAI to merge the Photo"),
           roomW + pad,
-          68
+          34
         );
+
+        // Title
+        ctx.fillStyle = "#111827";
+        ctx.font = "bold 28px Inter, system-ui, -apple-system, Segoe UI, Arial";
+        ctx.fillText("Reference Product", roomW + pad, 66);
     
         // Draw product
         ctx.drawImage(productImg, dx, dy, drawW, drawH);
