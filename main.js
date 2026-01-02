@@ -140,40 +140,12 @@ function initOpsGuard() {
   const operationsBar = document.querySelector(".operations-bar");
   if (!operationsBar) return;
 
-  // Manual explicit listener for Product Selector
-  const prodBtn = operationsBar.querySelector('[data-role="product-selector"]');
-  if (prodBtn) {
-      prodBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          console.log("Direct Click Product Selector");
-          if (window.productSelector && typeof window.productSelector.open === 'function') {
-              window.productSelector.open();
-          } else {
-              alert("Product selector not loaded");
-          }
-      });
-  }
-
   operationsBar.addEventListener(
     "click",
     (e) => {
       const btn = e.target.closest("button");
       if (!btn) return;
       const role = btn.getAttribute("data-role") || "";
-      
-      if (role === "product-selector") {
-          console.log("Clicked Product Selector button");
-          // Add fallback loading if init hasn't completed yet
-          if (window.productSelector && typeof window.productSelector.open === 'function') {
-              window.productSelector.open();
-          } else {
-              console.error("Product Selector module not loaded or open function missing");
-              // Try to reload module? No, just alert for now.
-              alert("Product selector module is not ready. Please refresh.");
-          }
-          return;
-      }
 
       // Allow Reset at any time
       if (btn.classList.contains("op-btn-reset")) return;
@@ -197,6 +169,18 @@ function initOpsGuard() {
         }
       }
       // -------------------------------
+
+      // Products: after passing centralized guard, open selector
+      if (role === "product-selector") {
+        console.log("Clicked Product Selector button");
+        if (window.productSelector && typeof window.productSelector.open === "function") {
+          window.productSelector.open();
+        } else {
+          console.error("Product Selector module not loaded or open function missing");
+          alert("Product selector module is not ready. Please refresh.");
+        }
+        return;
+      }
 
       const lock = window.flowLock && window.flowLock.active ? window.flowLock : null;
 
