@@ -1079,7 +1079,7 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
     
         // Fit product image inside right panel with padding
         const pad = 24;
-        const headerH = 108; // space for hint + title
+        const headerH = 120; // space for title + hint
         const boxW = productPanelW - pad * 2;
         const dy = pad + headerH;
         const boxH = productPanelH - dy - pad;
@@ -1091,19 +1091,44 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
         const drawH = Math.round(ph * scale);
         const dx = roomW + pad + Math.round((boxW - drawW) / 2);
     
-        // Hint (translated) ABOVE title
-        ctx.fillStyle = "#374151";
-        ctx.font = "700 22px Inter, system-ui, -apple-system, Segoe UI, Arial";
-        ctx.fillText(
-          tr("products.mergeHint", null, "Operate AlgoreitAI to merge the Photo"),
-          roomW + pad,
-          34
-        );
-
         // Title
         ctx.fillStyle = "#111827";
         ctx.font = "bold 28px Inter, system-ui, -apple-system, Segoe UI, Arial";
-        ctx.fillText("Reference Product", roomW + pad, 66);
+        ctx.fillText("Reference Product", roomW + pad, 36);
+
+        // Hint (translated) UNDER title, with AlgoreitAI word in brand gradient
+        const hintText = tr("products.mergeHint", null, "Operate AlgoreitAI to merge it");
+        const brandWord = "AlgoreitAI";
+        const hintY = 68;
+        ctx.font = "600 20px Inter, system-ui, -apple-system, Segoe UI, Arial";
+
+        const idx = String(hintText || "").indexOf(brandWord);
+        if (idx === -1) {
+          ctx.fillStyle = "#4b5563";
+          ctx.fillText(hintText, roomW + pad, hintY);
+        } else {
+          const pre = hintText.slice(0, idx);
+          const post = hintText.slice(idx + brandWord.length);
+
+          // Pre
+          ctx.fillStyle = "#4b5563";
+          ctx.fillText(pre, roomW + pad, hintY);
+          const preW = ctx.measureText(pre).width;
+
+          // Brand word (gradient matches button: blue→green→yellow→red)
+          const brandW = ctx.measureText(brandWord).width;
+          const grad = ctx.createLinearGradient(roomW + pad + preW, 0, roomW + pad + preW + brandW, 0);
+          grad.addColorStop(0.0, "#4285f4");
+          grad.addColorStop(0.33, "#34a853");
+          grad.addColorStop(0.66, "#fbbc04");
+          grad.addColorStop(1.0, "#ea4335");
+          ctx.fillStyle = grad;
+          ctx.fillText(brandWord, roomW + pad + preW, hintY);
+
+          // Post
+          ctx.fillStyle = "#4b5563";
+          ctx.fillText(post, roomW + pad + preW + brandW, hintY);
+        }
     
         // Draw product
         ctx.drawImage(productImg, dx, dy, drawW, drawH);
