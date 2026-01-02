@@ -134,7 +134,8 @@ window.productSelector = (function() {
         filtered.forEach(p => {
             const el = document.createElement('div');
             el.className = `border rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition ${selectedProduct?.id === p.id ? 'ring-2 ring-indigo-600' : ''}`;
-            el.onclick = () => select(p);
+            el.dataset.prodId = String(p.id || "");
+            el.addEventListener("click", () => select(p, el));
             el.innerHTML = `
                 <div class="h-32 bg-gray-200">
                     <img src="${p.imageUrl}" class="w-full h-full object-cover">
@@ -152,12 +153,20 @@ window.productSelector = (function() {
         });
     }
 
-    function select(product) {
+    function select(product, el = null) {
         selectedProduct = product;
-        // Re-render to show selection ring, preserving current filters
-        const activeCatBtn = document.querySelector('.filter-btn.bg-indigo-600');
-        const currentCat = activeCatBtn ? activeCatBtn.dataset.cat : 'All';
-        renderProducts(currentCat, window.currentStyleFilter); 
+        // Update ring highlight without re-rendering (prevents flaky selection / extra clicks)
+        try {
+            document.querySelectorAll('#ps-grid > div').forEach(card => {
+                card.classList.remove('ring-2', 'ring-indigo-600');
+            });
+            if (el) {
+                el.classList.add('ring-2', 'ring-indigo-600');
+            } else if (product && product.id) {
+                const hit = document.querySelector(`#ps-grid > div[data-prod-id="${CSS.escape(String(product.id))}"]`);
+                if (hit) hit.classList.add('ring-2', 'ring-indigo-600');
+            }
+        } catch (_) {}
         
         document.getElementById('ps-selection-bar').classList.remove('hidden');
         document.getElementById('ps-selected-name').textContent = product.name;
