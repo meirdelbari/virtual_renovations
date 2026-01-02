@@ -103,11 +103,14 @@
     "text": "AlgoreitAI needs the backend to run on <code>http://localhost:4000</code>.<br/><strong>Fix:</strong> run <code>npm start</code> in this project folder, then open <a href=\"http://localhost:4000\" target=\"_blank\" rel=\"noreferrer\">http://localhost:4000</a>."
   },
   "alerts": {
+    "selectPhotoFirst": "Please upload and select a photo to the working area first.",
     "selectRenovationOrFurniture": "Please select Renovation or Furniture",
     "selectStyleThenAlgoreit": "Please select Style and then apply AlgoreitAI",
     "selectSomethingFirst": "Please select Renovation, Furniture, Enhance Quality or Custom",
     "completeStageFlow": "Please select Style and apply AlgoreitAI",
     "completeRenovationFlow": "Please complete Renovation by select Style and apply AlgoreitAI",
+    "styleNotNeeded": "Style selection is not needed when a specific Product is selected.",
+    "styleNotNeededForEnhance": "Style selection is not needed for Enhance Quality.",
     "noPhotosUploadedYet": "No photos uploaded yet. Please upload photos first.",
     "noPhotosMatchedYet": "No photos are matched yet. Upload and match photos to rooms before using the Room button.",
     "noRoomsHavePhotos": "No rooms currently have photos assigned. Use the Upload Photos feature to match photos to rooms.",

@@ -103,11 +103,14 @@
     "text": "כדי ש־AlgoreitAI יעבוד צריך שהשרת ירוץ על <code>http://localhost:4000</code>.<br/><strong>פתרון:</strong> הרץ/י <code>npm start</code> בתיקיית הפרויקט, ואז פתח/י <a href=\"http://localhost:4000\" target=\"_blank\" rel=\"noreferrer\">http://localhost:4000</a>."
   },
   "alerts": {
+    "selectPhotoFirst": "נא להעלות ולבחור תמונה לאזור העבודה קודם.",
     "selectRenovationOrFurniture": "נא לבחור שיפוץ או ריהוט",
     "selectStyleThenAlgoreit": "נא לבחור סגנון ואז להפעיל AlgoreitAI",
     "selectSomethingFirst": "נא לבחור שיפוץ, ריהוט, שיפור איכות או מותאם",
     "completeStageFlow": "נא לבחור סגנון ולהפעיל AlgoreitAI",
     "completeRenovationFlow": "נא להשלים שיפוץ: לבחור סגנון ולהפעיל AlgoreitAI",
+    "styleNotNeeded": "בחירת סגנון אינה נחוצה כאשר נבחר מוצר ספציפי.",
+    "styleNotNeededForEnhance": "בחירת סגנון אינה נחוצה עבור שיפור איכות.",
     "noPhotosUploadedYet": "עדיין לא הועלו תמונות. נא להעלות תמונות קודם.",
     "noPhotosMatchedYet": "עדיין לא שויכו תמונות. העלה/י ושייך/י תמונות לחדרים לפני שימוש בכפתור 'חדר'.",
     "noRoomsHavePhotos": "אין חדרים עם תמונות משויכות. השתמש/י ב'העלה תמונות' כדי לשייך תמונות לחדרים.",
