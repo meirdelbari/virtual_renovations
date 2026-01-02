@@ -52,6 +52,9 @@
     "reset": "איפוס",
     "guide": "מדריך"
   },
+  "products": {
+    "mergeHint": "הפעילו את AlgoreitAI כדי למזג את התמונה"
+  },
   "tooltips": {
     "ops": {
       "uploadMenu": "העלאת תמונות או תכנית דירה",

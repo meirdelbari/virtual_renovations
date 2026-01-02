@@ -52,6 +52,9 @@
     "reset": "Reset",
     "guide": "Guide Me"
   },
+  "products": {
+    "mergeHint": "Operate AlgoreitAI to merge the Photo"
+  },
   "tooltips": {
     "ops": {
       "uploadMenu": "Upload photos or floor plans",

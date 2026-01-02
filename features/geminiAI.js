@@ -378,7 +378,7 @@
                  roomId: freshMatch.roomId,
                  originalName: freshMatch.originalName
              };
-         }
+        }
     }
 
     // Find the photo to process
@@ -1094,6 +1094,15 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
         ctx.fillStyle = "#111827";
         ctx.font = "bold 28px Inter, system-ui, -apple-system, Segoe UI, Arial";
         ctx.fillText("Reference Product", roomW + pad, 36);
+
+        // Subtitle / CTA (translated)
+        ctx.fillStyle = "#4b5563";
+        ctx.font = "16px Inter, system-ui, -apple-system, Segoe UI, Arial";
+        ctx.fillText(
+          tr("products.mergeHint", null, "Operate AlgoreitAI to merge the Photo"),
+          roomW + pad,
+          60
+        );
     
         // Draw product
         ctx.drawImage(productImg, dx, dy, drawW, drawH);
