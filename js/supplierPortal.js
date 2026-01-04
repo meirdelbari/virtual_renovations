@@ -714,12 +714,12 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
         
         // If file selected, process it
         if (fileInput.files && fileInput.files[0]) {
-             // Convert image to base64
+        // Convert image to base64
             imageUrl = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.readAsDataURL(fileInput.files[0]);
-            });
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(fileInput.files[0]);
+        });
         }
         
         if (!imageUrl) throw new Error("Please select an image");
@@ -740,7 +740,7 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
              showStatusBanner("Product updated ✅");
         } else {
              // CREATE
-             await apiCall('/products', 'POST', data);
+        await apiCall('/products', 'POST', data);
              showStatusBanner("Product submitted ✅ Waiting for admin approval.");
         }
         

@@ -313,6 +313,21 @@ body {
   stroke-width: 2.5; /* Slightly thicker */
 }
 
+/* RTL: keep the visual flow consistent in Hebrew (arrows should point right-to-left) */
+html[dir="rtl"] .steps-grid {
+  direction: rtl;
+}
+
+/* Flip the connector arrows (more reliable to transform the container than the SVG itself) */
+html[dir="rtl"] .steps-grid .step-arrow {
+  transform: scaleX(-1) !important;
+  transform-origin: center;
+}
+
+html[dir="rtl"] .steps-grid .step-arrow svg {
+  display: block;
+}
+
 .step-card {
   padding: 0 8px; /* Reduced horizontal padding from 12px to 8px */
   display: flex;
