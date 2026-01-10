@@ -456,19 +456,15 @@
     }
 
     if (tableContainer) {
-        // 1) Persistent Areas panel (always under floor plan)
-        const areasPanelHtml = renderAreasPanelHtmlFromRooms(normalizedPlan.rooms);
-        tableContainer.innerHTML = areasPanelHtml + tableHtml;
+        // Render table to separate container at the bottom
+        tableContainer.innerHTML = tableHtml;
         tableContainer.style.display = "block";
         tableContainer.style.marginTop = "20px";
         enableMeasurementEditing(tableContainer);
-        enableAreasEditing(tableContainer);
     } else {
         // Extreme fallback
-        container.insertAdjacentHTML("beforeend", renderAreasPanelHtmlFromRooms(normalizedPlan.rooms));
         container.insertAdjacentHTML("beforeend", tableHtml);
         enableMeasurementEditing(container);
-        enableAreasEditing(container);
     }
 
     // Virtual Tour Button Logic - DISABLED
@@ -535,13 +531,8 @@
         // Only show if we have a plan or image
         if (normalizedPlan || backgroundImageUrl) {
             view3dBtn.style.display = "flex";
-            view3dBtn.onclick = () =>
-              reviewAreasThenGenerate3DView(
-                backgroundImageUrl,
-                (editablePlanData && Array.isArray(editablePlanData.rooms))
-                  ? editablePlanData.rooms
-                  : (normalizedPlan ? normalizedPlan.rooms : [])
-              );
+            // Pass empty array to skip list usage in prompt (per user request to remove list)
+            view3dBtn.onclick = () => generate3DView(backgroundImageUrl, []);
         }
     }
   }
