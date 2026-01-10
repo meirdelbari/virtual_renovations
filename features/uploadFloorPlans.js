@@ -1156,7 +1156,11 @@
             ${roomSummary}
 
             Key requirements:
-            1. Maintain the exact layout, walls, and room proportions shown in the image and described in the data.
+            1. Use BOTH inputs:
+               - The uploaded floor plan IMAGE is the ground truth for geometry: layout, walls, doors, and proportions.
+               - The FLOOR PLAN DATA above is user-corrected metadata: area names, locations, items, and windows.
+               If there is any conflict, follow the IMAGE for geometry and follow the DATA for labels/windows/items.
+            2. Maintain the exact layout, walls, and room proportions shown in the image and described in the data.
             2. Extrude walls to show depth.
             3. Apply realistic materials: wood flooring in living areas, tiles in wet areas.
             4. Furnish rooms with modern furniture according to the room labels and descriptions above.
