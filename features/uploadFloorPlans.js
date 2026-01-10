@@ -3,6 +3,19 @@
 // - Renders the rooms as a simple table in the workspace area
 
 (function () {
+  function tr(key, vars, fallback) {
+    try {
+      if (typeof window.t === "function") {
+        // Support both historical and current signatures.
+        const v1 = window.t(key, vars || null, fallback);
+        if (typeof v1 === "string" && v1 && v1 !== key) return v1;
+        const v2 = window.t(key, vars || null, { defaultValue: fallback });
+        if (typeof v2 === "string" && v2) return v2;
+      }
+    } catch (_) {}
+    return fallback || key;
+  }
+
   // Shared context so other features (e.g. photo upload) can see
   // the current floor plan title and room names.
   window.currentFloorPlanContext =
@@ -93,13 +106,11 @@
     };
 
     const analyzingText =
-      window.t
-        ? window.t(
-            "floorPlan.analyzing",
-            null,
-            "✨ Analyzing floor plan with AI... Please wait."
-          )
-        : "✨ Analyzing floor plan with AI... Please wait.";
+      tr(
+        "floorPlan.analyzing",
+        null,
+        "✨ Analyzing floor plan with AI... Please wait."
+      );
 
     // Initial state: Analyzing
     container.innerHTML = `
@@ -127,14 +138,8 @@
         console.error("Analysis failed:", error);
         const subtitle = container.querySelector(".floor-plan-subtitle");
         if (subtitle) {
-            const failedText =
-              window.t
-                ? window.t("floorPlan.analysisFailed", null, "Analysis failed.")
-                : "Analysis failed.";
-            const retryLabel =
-              window.t
-                ? window.t("floorPlan.retryAi", null, "Retry AI Analysis")
-                : "Retry AI Analysis";
+            const failedText = tr("floorPlan.analysisFailed", null, "Analysis failed.");
+            const retryLabel = tr("floorPlan.retryAi", null, "Retry AI Analysis");
 
             subtitle.innerHTML = `
                 <div class="floor-plan-status floor-plan-status--error" role="status" aria-live="polite">
@@ -146,14 +151,7 @@
             const retryBtn = document.getElementById("retry-pdf-btn");
             if (retryBtn) {
                 retryBtn.addEventListener("click", () => {
-                    const retryingText =
-                      window.t
-                        ? window.t(
-                            "floorPlan.retrying",
-                            null,
-                            "✨ Retrying analysis..."
-                          )
-                        : "✨ Retrying analysis...";
+                    const retryingText = tr("floorPlan.retrying", null, "✨ Retrying analysis...");
                     subtitle.innerHTML = `
                       <div class="floor-plan-status floor-plan-status--processing" role="status" aria-live="polite">
                         <span class="floor-plan-status-spinner" aria-hidden="true"></span>
@@ -338,18 +336,16 @@
     // Use the original image if provided (from PDF analysis), otherwise generate SVG
     let layoutHtml;
     if (backgroundImageUrl) {
-        const visualRefText =
-          window.t
-            ? window.t(
-                "floorPlan.visualReference",
-                null,
-                "AI-Analyzed Floor Plan (Visual Reference)"
-              )
-            : "AI-Analyzed Floor Plan (Visual Reference)";
-        const visualRefAlt =
-          window.t
-            ? window.t("floorPlan.visualReferenceAlt", null, "Floor Plan Analysis Source")
-            : "Floor Plan Analysis Source";
+        const visualRefText = tr(
+          "floorPlan.visualReference",
+          null,
+          "AI-Analyzed Floor Plan (Visual Reference)"
+        );
+        const visualRefAlt = tr(
+          "floorPlan.visualReferenceAlt",
+          null,
+          "Floor Plan Analysis Source"
+        );
         layoutHtml = `
         <div class="floor-plan-layout" style="text-align: center; background: #f9fafb; padding: 10px; border-radius: 12px; border: 1px solid var(--color-border-subtle); overflow: hidden;">
             <img src="${backgroundImageUrl}" style="width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="${escapeHtml(visualRefAlt)}" />
@@ -510,21 +506,234 @@
         // Only show if we have a plan or image
         if (normalizedPlan || backgroundImageUrl) {
             view3dBtn.style.display = "flex";
-            view3dBtn.onclick = () => generate3DView(backgroundImageUrl, normalizedPlan ? normalizedPlan.rooms : []);
+            view3dBtn.onclick = () =>
+              reviewAreasThenGenerate3DView(
+                backgroundImageUrl,
+                (editablePlanData && Array.isArray(editablePlanData.rooms))
+                  ? editablePlanData.rooms
+                  : (normalizedPlan ? normalizedPlan.rooms : [])
+              );
         }
     }
   }
 
+  function openAreasReviewModal({ rooms = [], title = "" } = {}) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement("div");
+      overlay.className = "guide-modal-overlay";
+      overlay.style.zIndex = "2100";
+      // Allow ESC handling via keydown by making overlay focusable.
+      overlay.tabIndex = -1;
+
+      const modal = document.createElement("div");
+      modal.className = "guide-modal";
+      modal.style.maxWidth = "720px";
+      modal.style.width = "92%";
+      modal.style.padding = "18px";
+
+      const modalTitle = tr(
+        "floorPlan.reviewAreasTitle",
+        null,
+        "Review detected areas"
+      );
+      const modalDesc = tr(
+        "floorPlan.reviewAreasDesc",
+        null,
+        "Before generating the 3D view, confirm the room/area names we detected from your floor plan. You can edit, remove, or add areas."
+      );
+      const addLabel = tr("floorPlan.addArea", null, "+ Add area");
+      const cancelLabel = tr("common.cancel", null, "Cancel");
+      const continueLabel = tr(
+        "floorPlan.continueTo3d",
+        null,
+        "Continue to 3D"
+      );
+      const placeholder = tr(
+        "floorPlan.areaNamePlaceholder",
+        null,
+        "e.g., Living Room"
+      );
+      const removeLabel = tr("floorPlan.removeArea", null, "Remove");
+      const noneDetected = tr(
+        "floorPlan.noAreasDetected",
+        null,
+        "No areas detected yet. Add the areas you want to appear in the 3D generation."
+      );
+
+      // Keep a copy so we can preserve extra fields (dims/features) for the prompt.
+      const originalRooms = Array.isArray(rooms) ? rooms : [];
+
+      function rowHtml(name, idx) {
+        const safeVal = escapeHtml((name || "").trim());
+        const indexAttr = typeof idx === "number" ? ` data-room-index="${idx}"` : "";
+        return `
+          <div class="fp-area-row" style="display:flex; gap:10px; align-items:center; margin: 8px 0;">
+            <input class="fp-area-input" type="text" ${indexAttr} value="${safeVal}" placeholder="${escapeHtml(placeholder)}" style="flex:1; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
+            <button type="button" class="op-btn fp-area-remove" style="padding: 8px 10px;">${escapeHtml(removeLabel)}</button>
+          </div>
+        `;
+      }
+
+      const rows = originalRooms.length
+        ? originalRooms
+            .map((r, idx) => rowHtml(r && r.name ? String(r.name) : "", idx))
+            .join("")
+        : `<div class="app-placeholder" style="margin: 10px 0;">${escapeHtml(noneDetected)}</div>`;
+
+      const planName = title || (window.currentFloorPlanContext && window.currentFloorPlanContext.title) || "";
+      const planLine = planName
+        ? `<div style="font-size:12px; color:#6b7280; margin-top:4px;">${escapeHtml(planName)}</div>`
+        : "";
+
+      modal.innerHTML = `
+        <div style="text-align:left;">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap: 12px;">
+            <div>
+              <h2 style="margin:0;">${escapeHtml(modalTitle)}</h2>
+              ${planLine}
+              <p style="margin:10px 0 0 0; color:#4b5563;">${escapeHtml(modalDesc)}</p>
+            </div>
+            <button type="button" class="op-btn op-btn-reset fp-areas-close" style="height: 36px;">✕</button>
+          </div>
+
+          <div class="fp-areas-list" style="margin-top: 14px;">
+            ${rows}
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; gap: 10px; margin-top: 14px;">
+            <button type="button" class="op-btn fp-area-add">${escapeHtml(addLabel)}</button>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+              <button type="button" class="op-btn op-btn-reset fp-areas-cancel">${escapeHtml(cancelLabel)}</button>
+              <button type="button" class="op-btn op-btn-accent fp-areas-continue">${escapeHtml(continueLabel)}</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      try {
+        overlay.focus();
+      } catch (_) {}
+
+      function cleanup(result) {
+        try {
+          if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        } catch (_) {}
+        resolve(result);
+      }
+
+      function bindRowEvents(rowEl) {
+        const rmBtn = rowEl.querySelector(".fp-area-remove");
+        if (rmBtn) {
+          rmBtn.addEventListener("click", () => {
+            try {
+              rowEl.parentNode && rowEl.parentNode.removeChild(rowEl);
+            } catch (_) {}
+          });
+        }
+      }
+
+      // Bind existing rows
+      modal.querySelectorAll(".fp-area-row").forEach(bindRowEvents);
+
+      const listEl = modal.querySelector(".fp-areas-list");
+      const addBtn = modal.querySelector(".fp-area-add");
+      if (addBtn && listEl) {
+        addBtn.addEventListener("click", () => {
+          // If list currently has placeholder, clear it.
+          const placeholderEl = listEl.querySelector(".app-placeholder");
+          if (placeholderEl) placeholderEl.remove();
+
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = rowHtml("", null).trim();
+          const row = wrapper.firstElementChild;
+          if (row) {
+            listEl.appendChild(row);
+            bindRowEvents(row);
+            const input = row.querySelector(".fp-area-input");
+            if (input) input.focus();
+          }
+        });
+      }
+
+      const closeBtn = modal.querySelector(".fp-areas-close");
+      const cancelBtn = modal.querySelector(".fp-areas-cancel");
+      const continueBtn = modal.querySelector(".fp-areas-continue");
+
+      function cancel() {
+        cleanup(null);
+      }
+
+      function confirm() {
+        const inputs = Array.from(modal.querySelectorAll(".fp-area-input"));
+        const confirmed = [];
+        inputs.forEach((input) => {
+          const name = String(input.value || "").trim();
+          if (!name) return;
+          const idxRaw = input.getAttribute("data-room-index");
+          const idx = idxRaw !== null ? Number.parseInt(idxRaw, 10) : NaN;
+          if (Number.isFinite(idx) && originalRooms[idx]) {
+            confirmed.push({ ...originalRooms[idx], name });
+          } else {
+            confirmed.push({ name });
+          }
+        });
+        cleanup(confirmed);
+      }
+
+      if (closeBtn) closeBtn.addEventListener("click", cancel);
+      if (cancelBtn) cancelBtn.addEventListener("click", cancel);
+      if (continueBtn) continueBtn.addEventListener("click", confirm);
+
+      // Close on click outside
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) cancel();
+      });
+
+      // Keyboard: ESC cancels, Enter continues (unless user is typing multiline — inputs are single-line)
+      overlay.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          cancel();
+        }
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          confirm();
+        }
+      });
+    });
+  }
+
+  async function reviewAreasThenGenerate3DView(sourceImageUrl, rooms = []) {
+    if (!sourceImageUrl) {
+      const msg = tr(
+        "floorPlan.noSourceImage",
+        null,
+        "No source image available to generate 3D view. Please upload a floor plan image or PDF first."
+      );
+      alert(msg);
+      return;
+    }
+
+    const confirmedRooms = await openAreasReviewModal({
+      rooms,
+      title:
+        (window.currentFloorPlanContext && window.currentFloorPlanContext.title) ||
+        ""
+    });
+
+    if (!confirmedRooms) return; // Cancelled
+    await generate3DView(sourceImageUrl, confirmedRooms);
+  }
+
   async function generate3DView(sourceImageUrl, rooms = []) {
       if (!sourceImageUrl) {
-          const msg =
-            window.t
-              ? window.t(
-                  "floorPlan.noSourceImage",
-                  null,
-                  "No source image available to generate 3D view. Please upload a floor plan image or PDF first."
-                )
-              : "No source image available to generate 3D view. Please upload a floor plan image or PDF first.";
+          const msg = tr(
+            "floorPlan.noSourceImage",
+            null,
+            "No source image available to generate 3D view. Please upload a floor plan image or PDF first."
+          );
           alert(msg);
           return;
       }
@@ -542,19 +751,15 @@
       modal.style.textAlign = "center";
       
       const genTitle =
-        window.t
-          ? window.t("floorPlan.generating3dTitle", null, "✨ Generating 3D Floor Plan...")
-          : "✨ Generating 3D Floor Plan...";
+        tr("floorPlan.generating3dTitle", null, "✨ Generating 3D Floor Plan...");
       const genDesc =
-        window.t
-          ? window.t(
-              "floorPlan.generating3dDesc",
-              null,
-              "Converting your 2D plan into a realistic 3D isometric view. This may take 10-20 seconds."
-            )
-          : "Converting your 2D plan into a realistic 3D isometric view. This may take 10-20 seconds.";
+        tr(
+          "floorPlan.generating3dDesc",
+          null,
+          "Converting your 2D plan into a realistic 3D isometric view. This may take 10-20 seconds."
+        );
       const cancelLabel =
-        window.t ? window.t("common.cancel", null, "Cancel") : "Cancel";
+        tr("common.cancel", null, "Cancel");
 
       modal.innerHTML = `
           <h2 style="margin-top:0;">${escapeHtml(genTitle)}</h2>
@@ -619,17 +824,13 @@
           if (data.imageDataUrl) {
               // Success! Show result.
               const readyTitle =
-                window.t
-                  ? window.t("floorPlan.ready3dTitle", null, "✨ 3D Floor Plan Ready")
-                  : "✨ 3D Floor Plan Ready";
+                tr("floorPlan.ready3dTitle", null, "✨ 3D Floor Plan Ready");
               const closeLabel2 =
-                window.t ? window.t("common.close", null, "Close") : "Close";
+                tr("common.close", null, "Close");
               const editLabel =
-                window.t
-                  ? window.t("floorPlan.editInWorkingArea", null, "Edit in Working Area")
-                  : "Edit in Working Area";
+                tr("floorPlan.editInWorkingArea", null, "Edit in Working Area");
               const downloadLabel =
-                window.t ? window.t("common.download", null, "Download") : "Download";
+                tr("common.download", null, "Download");
 
               modal.innerHTML = `
                   <h2 style="margin-top:0;">${escapeHtml(readyTitle)}</h2>
@@ -637,9 +838,9 @@
                       <img src="${data.imageDataUrl}" style="max-width: 100%; max-height: 60vh; display: block; margin: 0 auto;" />
                   </div>
                   <div style="display: flex; gap: 10px; justify-content: center;">
-                      <button class="op-btn close-3d-btn" title="${escapeHtml(window.t ? window.t("floorPlan.tooltipClose3d", null, "Close this window without saving.") : "Close this window without saving.")}">${escapeHtml(closeLabel2)}</button>
-                      <button class="op-btn op-btn-accent edit-3d-btn" title="${escapeHtml(window.t ? window.t("floorPlan.tooltipEdit3d", null, "Load this 3D image into the main workspace to renovate or edit it.") : "Load this 3D image into the main workspace to renovate or edit it.")}">${escapeHtml(editLabel)}</button>
-                      <button class="op-btn op-btn-accent download-3d-btn" title="${escapeHtml(window.t ? window.t("floorPlan.tooltipDownload3d", null, "Save this 3D floor plan image to your computer.") : "Save this 3D floor plan image to your computer.")}">⬇️ ${escapeHtml(downloadLabel)}</button>
+                      <button class="op-btn close-3d-btn" title="${escapeHtml(tr("floorPlan.tooltipClose3d", null, "Close this window without saving."))}">${escapeHtml(closeLabel2)}</button>
+                      <button class="op-btn op-btn-accent edit-3d-btn" title="${escapeHtml(tr("floorPlan.tooltipEdit3d", null, "Load this 3D image into the main workspace to renovate or edit it."))}">${escapeHtml(editLabel)}</button>
+                      <button class="op-btn op-btn-accent download-3d-btn" title="${escapeHtml(tr("floorPlan.tooltipDownload3d", null, "Save this 3D floor plan image to your computer."))}">⬇️ ${escapeHtml(downloadLabel)}</button>
                   </div>
               `;
               

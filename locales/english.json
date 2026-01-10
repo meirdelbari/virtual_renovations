@@ -99,7 +99,14 @@
     "tooltipEdit3d": "Load this 3D image into the main workspace to renovate or edit it.",
     "tooltipDownload3d": "Save this 3D floor plan image to your computer.",
     "virtualTour": "Start Virtual Tour",
-    "generate3d": "Generate 3D View"
+    "generate3d": "Generate 3D View",
+    "reviewAreasTitle": "Review detected areas",
+    "reviewAreasDesc": "Before generating the 3D view, confirm the room/area names we detected from your floor plan. You can edit, remove, or add areas.",
+    "areaNamePlaceholder": "e.g., Living Room",
+    "addArea": "+ Add area",
+    "removeArea": "Remove",
+    "continueTo3d": "Continue to 3D",
+    "noAreasDetected": "No areas detected yet. Add the areas you want to appear in the 3D generation."
   },
   "fileMode": {
     "title": "Local mode detected (file://)",
