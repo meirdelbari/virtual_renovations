@@ -37,6 +37,11 @@
   let editablePlanData = null;
   let lastLayoutMode = null;
   let measurementHandlersBound = false;
+  let areasHandlersBound = false;
+
+  // Persistent (until refresh/reset) editable list shown under the floor plan.
+  // This is the single source of truth for 3D generation "areas list".
+  window.currentFloorPlanAreas = window.currentFloorPlanAreas || [];
 
   function initUploadFloorPlans() {
     const uploadButton = document.querySelector(
@@ -446,14 +451,19 @@
     }
 
     if (tableContainer) {
-        tableContainer.innerHTML = tableHtml;
+        // 1) Persistent Areas panel (always under floor plan)
+        const areasPanelHtml = renderAreasPanelHtmlFromRooms(normalizedPlan.rooms);
+        tableContainer.innerHTML = areasPanelHtml + tableHtml;
         tableContainer.style.display = "block";
         tableContainer.style.marginTop = "20px";
         enableMeasurementEditing(tableContainer);
+        enableAreasEditing(tableContainer);
     } else {
         // Extreme fallback
+        container.insertAdjacentHTML("beforeend", renderAreasPanelHtmlFromRooms(normalizedPlan.rooms));
         container.insertAdjacentHTML("beforeend", tableHtml);
         enableMeasurementEditing(container);
+        enableAreasEditing(container);
     }
 
     // Virtual Tour Button Logic - DISABLED
@@ -531,6 +541,241 @@
     }
   }
 
+  function isOutsideArea(room) {
+    if (!room) return false;
+    if (room.is_outside === true) return true;
+    const kind = (room.kind || room.area_kind || "").toString().toLowerCase();
+    if (kind === "outside" || kind === "exterior" || kind === "outdoor") return true;
+    const name = (room.name || "").toString().toLowerCase();
+    return /(yard|garden|patio|terrace|balcony|plaza|driveway|outdoor|exterior|courtyard)/i.test(
+      name
+    );
+  }
+
+  function normalizeItemsForInput(items) {
+    if (!items) return "";
+    if (Array.isArray(items)) return items.map((x) => String(x)).filter(Boolean).join(", ");
+    return String(items);
+  }
+
+  function buildPersistentAreasFromRooms(rooms) {
+    const list = Array.isArray(rooms) ? rooms : [];
+    return list.map((r, idx) => {
+      const outside = isOutsideArea(r);
+      return {
+        ...r,
+        // Stable-ish id if present, otherwise create one.
+        id: (r && r.id) ? String(r.id) : `R${idx + 1}`,
+        name: r && r.name ? String(r.name) : `Room ${idx + 1}`,
+        is_outside: outside,
+        include: outside ? false : true,
+        location_on_plan: r && r.location_on_plan ? String(r.location_on_plan) : "",
+        windows_location: r && r.windows_location ? String(r.windows_location) : "",
+        items_noticed: Array.isArray(r && r.items_noticed) ? r.items_noticed : []
+      };
+    });
+  }
+
+  function renderAreasPanelHtmlFromAreas(areas) {
+    // Does NOT mutate global state; pure render from the provided areas array.
+    const list = Array.isArray(areas) ? areas : [];
+
+    const title = tr("floorPlan.areasPanelTitle", null, "Areas (editable)");
+    const desc = tr(
+      "floorPlan.areasPanelDesc",
+      null,
+      "Review and correct detected areas before generating 3D. Changes stay until you refresh or press Reset."
+    );
+    const addLabel = tr("floorPlan.addArea", null, "+ Add area");
+    const removeLabel = tr("floorPlan.removeArea", null, "Remove");
+    const includeLabel = tr("floorPlan.includeArea", null, "Include");
+    const outsideBadge = tr("floorPlan.outsideBadge", null, "Outside");
+    const outsideHint = tr(
+      "floorPlan.outsideHint",
+      null,
+      "Outside areas are excluded by default. You can include them if you want."
+    );
+    const placeholder = tr(
+      "floorPlan.areaNamePlaceholder",
+      null,
+      "e.g., Living Room"
+    );
+    const itemsPlaceholder = tr(
+      "floorPlan.itemsPlaceholder",
+      null,
+      "e.g., sink, toilet, shower"
+    );
+    const locationPlaceholder = tr(
+      "floorPlan.locationPlaceholder",
+      null,
+      "e.g., top-left"
+    );
+    const windowsPlaceholder = tr(
+      "floorPlan.windowsPlaceholder",
+      null,
+      "e.g., two windows on north wall"
+    );
+    const locationLabel = tr("floorPlan.locationLabel", null, "Location");
+    const itemsLabel = tr("floorPlan.itemsLabel", null, "Items noticed");
+    const windowsLabel = tr("floorPlan.windowsLabel", null, "Windows");
+
+    function rowHtml(area, idx) {
+      const safeName = escapeHtml((area && area.name ? area.name : "").trim());
+      const safeLoc = escapeHtml((area && area.location_on_plan ? area.location_on_plan : "").trim());
+      const safeWindows = escapeHtml((area && area.windows_location ? area.windows_location : "").trim());
+      const safeItems = escapeHtml(normalizeItemsForInput(area && area.items_noticed).trim());
+      const outside = !!(area && area.is_outside);
+      const checked = area && area.include !== false ? "checked" : "";
+      const badge = outside
+        ? `<span style="display:inline-block; margin-left:8px; font-size:12px; padding:2px 8px; border:1px solid #f59e0b; color:#92400e; background:#fffbeb; border-radius:999px;">${escapeHtml(outsideBadge)}</span>`
+        : "";
+      return `
+        <div class="fp-area-row" data-area-index="${idx}" style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; margin: 10px 0; background: #fff;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap: 10px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#374151;">
+              <input class="fp-area-include" type="checkbox" ${checked} />
+              <span>${escapeHtml(includeLabel)}</span>
+            </label>
+            <div style="display:flex; align-items:center; gap: 10px;">
+              ${badge}
+              <button type="button" class="op-btn fp-area-remove" style="padding: 8px 10px;">${escapeHtml(removeLabel)}</button>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <div>
+              <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">Room / Area</div>
+              <input class="fp-area-name" type="text" value="${safeName}" placeholder="${escapeHtml(placeholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
+            </div>
+            <div>
+              <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">${escapeHtml(locationLabel)}</div>
+              <input class="fp-area-location" type="text" value="${safeLoc}" placeholder="${escapeHtml(locationPlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <div>
+              <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">${escapeHtml(itemsLabel)}</div>
+              <input class="fp-area-items" type="text" value="${safeItems}" placeholder="${escapeHtml(itemsPlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
+            </div>
+            <div>
+              <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">${escapeHtml(windowsLabel)}</div>
+              <input class="fp-area-windows" type="text" value="${safeWindows}" placeholder="${escapeHtml(windowsPlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const rows = list
+      .map((a, idx) => rowHtml(a, idx))
+      .join("");
+
+    return `
+      <div id="floorplan-areas-panel" style="margin: 0 0 16px 0;">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap: 12px;">
+          <div>
+            <div style="font-weight: 700; font-size: 16px; color:#111827;">${escapeHtml(title)}</div>
+            <div style="margin-top:6px; font-size:13px; color:#4b5563;">${escapeHtml(desc)}</div>
+            <div style="margin-top:6px; font-size:12px; color:#6b7280;">${escapeHtml(outsideHint)}</div>
+          </div>
+          <button type="button" class="op-btn fp-area-add" style="white-space: nowrap;">${escapeHtml(addLabel)}</button>
+        </div>
+        <div class="fp-areas-list" style="margin-top: 12px;">
+          ${rows}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderAreasPanelHtmlFromRooms(rooms) {
+    // Reset persistent list on each new floor plan render.
+    window.currentFloorPlanAreas = buildPersistentAreasFromRooms(rooms);
+    return renderAreasPanelHtmlFromAreas(window.currentFloorPlanAreas);
+  }
+
+  function enableAreasEditing(container) {
+    if (!container || areasHandlersBound) return;
+    container.addEventListener("click", handleAreasClick);
+    container.addEventListener("input", handleAreasInput);
+    container.addEventListener("change", handleAreasInput);
+    areasHandlersBound = true;
+  }
+
+  function handleAreasClick(event) {
+    const target = event.target;
+    if (!target) return;
+    if (target.classList && target.classList.contains("fp-area-add")) {
+      const listEl = document.querySelector("#floorplan-areas-panel .fp-areas-list");
+      if (!listEl) return;
+      const next = {
+        id: `U${Date.now()}`,
+        name: "",
+        is_outside: false,
+        include: true,
+        location_on_plan: "",
+        windows_location: "",
+        items_noticed: []
+      };
+      window.currentFloorPlanAreas = Array.isArray(window.currentFloorPlanAreas)
+        ? [...window.currentFloorPlanAreas, next]
+        : [next];
+      // Re-render panel (cheap enough)
+      const panel = document.getElementById("floorplan-areas-panel");
+      if (panel && panel.parentNode) {
+        panel.outerHTML = renderAreasPanelHtmlFromAreas(window.currentFloorPlanAreas);
+      }
+      return;
+    }
+    if (target.classList && target.classList.contains("fp-area-remove")) {
+      const row = target.closest(".fp-area-row");
+      if (!row) return;
+      const idx = Number.parseInt(row.getAttribute("data-area-index") || "", 10);
+      if (!Number.isFinite(idx)) return;
+      if (!Array.isArray(window.currentFloorPlanAreas)) return;
+      window.currentFloorPlanAreas.splice(idx, 1);
+      // Remove row and re-index by re-render
+      const panel = document.getElementById("floorplan-areas-panel");
+      if (panel) panel.outerHTML = renderAreasPanelHtmlFromAreas(window.currentFloorPlanAreas);
+      return;
+    }
+  }
+
+  function handleAreasInput(event) {
+    const target = event.target;
+    if (!target) return;
+    const row = target.closest && target.closest(".fp-area-row");
+    if (!row) return;
+    const idx = Number.parseInt(row.getAttribute("data-area-index") || "", 10);
+    if (!Number.isFinite(idx)) return;
+    if (!Array.isArray(window.currentFloorPlanAreas) || !window.currentFloorPlanAreas[idx]) return;
+
+    const area = window.currentFloorPlanAreas[idx];
+    if (target.classList.contains("fp-area-include")) {
+      area.include = !!target.checked;
+      return;
+    }
+    if (target.classList.contains("fp-area-name")) {
+      area.name = String(target.value || "");
+      return;
+    }
+    if (target.classList.contains("fp-area-location")) {
+      area.location_on_plan = String(target.value || "");
+      return;
+    }
+    if (target.classList.contains("fp-area-windows")) {
+      area.windows_location = String(target.value || "");
+      return;
+    }
+    if (target.classList.contains("fp-area-items")) {
+      const raw = String(target.value || "").trim();
+      area.items_noticed = raw
+        ? raw.split(",").map((x) => x.trim()).filter(Boolean)
+        : [];
+      return;
+    }
+  }
+
   function openAreasReviewModal({ rooms = [], title = "" } = {}) {
     return new Promise((resolve) => {
       const overlay = document.createElement("div");
@@ -601,23 +846,6 @@
 
       // Keep a copy so we can preserve extra fields (dims/features) for the prompt.
       const originalRooms = Array.isArray(rooms) ? rooms : [];
-
-      function isOutsideArea(room) {
-        if (!room) return false;
-        if (room.is_outside === true) return true;
-        const kind = (room.kind || room.area_kind || "").toString().toLowerCase();
-        if (kind === "outside" || kind === "exterior" || kind === "outdoor") return true;
-        const name = (room.name || "").toString().toLowerCase();
-        return /(yard|garden|patio|terrace|balcony|plaza|driveway|outdoor|exterior|courtyard)/i.test(
-          name
-        );
-      }
-
-      function normalizeItemsForInput(items) {
-        if (!items) return "";
-        if (Array.isArray(items)) return items.map((x) => String(x)).filter(Boolean).join(", ");
-        return String(items);
-      }
 
       function rowHtml(room, idx) {
         const name = room && room.name ? String(room.name) : "";
@@ -838,15 +1066,14 @@
       return;
     }
 
-    const confirmedRooms = await openAreasReviewModal({
-      rooms,
-      title:
-        (window.currentFloorPlanContext && window.currentFloorPlanContext.title) ||
-        ""
-    });
-
-    if (!confirmedRooms) return; // Cancelled
-    const included = (confirmedRooms || []).filter((r) => r && r.include !== false);
+    // Use the persistent under-floorplan editor if present; fall back to provided rooms.
+    const sourceAreas =
+      Array.isArray(window.currentFloorPlanAreas) && window.currentFloorPlanAreas.length
+        ? window.currentFloorPlanAreas
+        : rooms;
+    const included = (Array.isArray(sourceAreas) ? sourceAreas : []).filter(
+      (r) => r && r.include !== false
+    );
     await generate3DView(sourceImageUrl, included);
   }
 

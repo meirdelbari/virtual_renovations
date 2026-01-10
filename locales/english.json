@@ -114,6 +114,8 @@
     "locationLabel": "Location",
     "itemsLabel": "Items noticed",
     "windowsLabel": "Windows",
+    "areasPanelTitle": "Areas (editable)",
+    "areasPanelDesc": "Review and correct detected areas before generating 3D. Changes stay until you refresh or press Reset.",
     "continueTo3d": "Continue to 3D",
     "noAreasDetected": "No areas detected yet. Add the areas you want to appear in the 3D generation."
   },
