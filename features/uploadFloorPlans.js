@@ -633,6 +633,12 @@
     const locationLabel = tr("floorPlan.locationLabel", null, "Location");
     const itemsLabel = tr("floorPlan.itemsLabel", null, "Items noticed");
     const windowsLabel = tr("floorPlan.windowsLabel", null, "Windows");
+    const styleLabel = tr("floorPlan.styleLabel", null, "Style / Custom Instructions");
+    const stylePlaceholder = tr(
+      "floorPlan.stylePlaceholder",
+      null,
+      "e.g. Modern Scandinavian with light oak floors..."
+    );
 
     function rowHtml(area, idx) {
       const safeName = escapeHtml((area && area.name ? area.name : "").trim());
@@ -707,6 +713,12 @@
           </div>
           <button type="button" class="op-btn fp-area-add" style="white-space: nowrap;">${escapeHtml(addLabel)}</button>
         </div>
+        
+        <div style="margin-top: 12px;">
+            <div style="font-size: 12px; font-weight: 600; color:#374151; margin-bottom: 4px;">${escapeHtml(styleLabel)}</div>
+            <textarea class="fp-custom-instructions" placeholder="${escapeHtml(stylePlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px; min-height: 60px; font-family: inherit;">${escapeHtml(window.currentFloorPlanInstructions || "")}</textarea>
+        </div>
+
         <div class="fp-areas-list" style="margin-top: 12px;">
           ${rows}
         </div>
@@ -775,6 +787,12 @@
     if (target.classList && target.classList.contains("fp-use-areas-list")) {
       window.currentFloorPlanUseAreasListFor3D = !!target.checked;
       return;
+    }
+
+    // Custom instructions live in the panel but not in a row
+    if (target.classList && target.classList.contains("fp-custom-instructions")) {
+        window.currentFloorPlanInstructions = String(target.value || "");
+        return;
     }
 
     const row = target.closest && target.closest(".fp-area-row");
@@ -1166,9 +1184,11 @@
       closeBtn.onclick = () => overlay.remove();
 
       try {
-          // Construct room list summary for the prompt
           let roomSummary = "";
+          let useData = false;
+          
           if (rooms && rooms.length > 0) {
+              useData = true;
               roomSummary =
                 "The floor plan contains the following areas (user-confirmed):\n" +
                 rooms
@@ -1188,26 +1208,48 @@
                   .join("\n");
           }
 
-          const prompt = `
-            Convert this 2D floor plan into a high-quality 3D isometric rendered floor plan.
-            
-            FLOOR PLAN DATA:
-            ${roomSummary}
+          // Custom Style Instructions (User Input)
+          const customInstructions = window.currentFloorPlanInstructions 
+            ? `\nCUSTOM STYLE/INSTRUCTIONS: ${window.currentFloorPlanInstructions}` 
+            : "";
 
-            Key requirements:
-            1. Use BOTH inputs:
-               - The uploaded floor plan IMAGE is the ground truth for geometry: layout, walls, doors, and proportions.
-               - The FLOOR PLAN DATA above is user-corrected metadata: area names, locations, items, and windows.
-               If FLOOR PLAN DATA is empty, use the IMAGE only.
-               If there is any conflict, follow the IMAGE for geometry and follow the DATA for labels/windows/items.
-            2. Maintain the exact layout, walls, and room proportions shown in the image and described in the data.
-            2. Extrude walls to show depth.
-            3. Apply realistic materials: wood flooring in living areas, tiles in wet areas.
-            4. Furnish rooms with modern furniture according to the room labels and descriptions above.
-            5. Use soft, warm, photorealistic lighting.
-            6. View angle: Classic isometric top-down (45 degrees).
-            7. High resolution, architectural visualization style.
-          `;
+          let prompt;
+          
+          if (useData) {
+            // Prompt WITH detailed room data
+            prompt = `
+              Convert this 2D floor plan into a high-quality 3D isometric rendered floor plan.
+              
+              FLOOR PLAN DATA:
+              ${roomSummary}
+              ${customInstructions}
+  
+              Key requirements:
+              1. Use the floor plan IMAGE for the geometry, layout, and walls.
+              2. Use the FLOOR PLAN DATA above for the room labels, furniture types, and windows.
+              3. Extrude walls to show depth.
+              4. Apply realistic materials: wood flooring in living areas, tiles in wet areas.
+              5. Furnish rooms with modern furniture according to the descriptions above.
+              6. Use soft, warm, photorealistic lighting.
+              7. View angle: Classic isometric top-down (45 degrees).
+              8. High resolution, architectural visualization style.
+            `;
+          } else {
+             // Simple Prompt (NO DATA) - Restoration of the original stable prompt
+             prompt = `
+                Convert this 2D floor plan into a high-quality 3D isometric rendered floor plan.
+                ${customInstructions}
+                
+                Key requirements:
+                1. Maintain the exact layout, walls, and room proportions shown in the image.
+                2. Extrude walls to show depth.
+                3. Apply realistic materials: wood flooring in living areas, tiles in wet areas.
+                4. Furnish rooms with modern furniture appropriate for each room type inferred from the image.
+                5. Use soft, warm, photorealistic lighting.
+                6. View angle: Classic isometric top-down (45 degrees).
+                7. High resolution, architectural visualization style.
+             `;
+          }
 
           const response = await fetch(getApiUrl("/api/gemini/process-photo"), {
               method: "POST",

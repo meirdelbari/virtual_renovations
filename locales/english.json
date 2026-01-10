@@ -114,6 +114,8 @@
     "locationLabel": "Location",
     "itemsLabel": "Items noticed",
     "windowsLabel": "Windows",
+    "styleLabel": "Style / Custom Instructions",
+    "stylePlaceholder": "e.g. Modern Scandinavian with light oak floors...",
     "areasPanelTitle": "Areas (editable)",
     "areasPanelDesc": "Review and correct detected areas before generating 3D. Changes stay until you refresh or press Reset.",
     "useAreasListFor3d": "Use this list for 3D generation",
