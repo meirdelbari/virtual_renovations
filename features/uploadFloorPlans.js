@@ -200,24 +200,37 @@
 
     // 3. Send to AlgoreitAI for analysis
     const prompt = `
-      Analyze this floor plan image. Identify all the rooms and detailed features to create a 3D visualization.
-      CRITICAL: Extract specific architectural details that define the room's look.
-      Return ONLY a valid JSON object with this structure:
+      Analyze this floor plan image and extract a structured list of areas for 3D visualization.
+
+      IMPORTANT RULES:
+      - Focus on areas INSIDE the home (rooms, hallway, stairs, closets, etc).
+      - If you also notice OUTSIDE areas (yard, garden, patio, paved plaza, driveway, balcony/terrace), you MAY include them, but you MUST mark them as outside so the app can exclude them by default.
+      - For EACH area, provide:
+        1) A clean name (no duplicates if possible)
+        2) Items noticed in that area (fixtures/furniture/major elements)
+        3) Location on the floor plan (relative, e.g. "top-left", "top-center", "center-right", "bottom-left", etc)
+        4) Windows locations within that area (e.g. "north wall", "two windows on east wall", or "none")
+
+      Return ONLY a valid JSON object with EXACTLY this structure:
       {
         "label": "Floor Plan",
         "rooms": [
-          { 
-            "name": "Living Room", 
-            "width": 5.0, 
-            "length": 4.0, 
+          {
+            "id": "R1",
+            "name": "Living Room",
+            "is_outside": false,
+            "location_on_plan": "center-left",
+            "items_noticed": ["sofa", "tv", "dining table"],
+            "windows_location": "Two large windows on the north wall",
+            "doors_location": "Door to hallway on south",
+            "width": 5.0,
+            "length": 4.0,
             "ceiling_height": 2.8,
             "layout_shape": "Rectangular",
             "flooring_guess": "Wood parquet",
-            "windows_location": "Two large windows on the north wall",
-            "doors_location": "Double door entry from hallway on south",
             "connecting_rooms": "Hallway (South), Dining (East)",
             "furniture_location": "Sofa in center facing east wall",
-            "architectural_features": "Fireplace on east wall, Coffered ceiling",
+            "architectural_features": "Fireplace on east wall, coffered ceiling",
             "item_relations": "Coffee table between sofa and TV unit",
             "furniture_type": "Modern sectional sofa, glass coffee table",
             "kitchen_shape": null,
@@ -226,7 +239,8 @@
         ],
         "units": "meters"
       }
-      Do not include any markdown formatting or explanation, just the raw JSON string.
+
+      Output must be raw JSON only (no markdown, no explanations).
     `;
 
     const response = await fetch(getApiUrl("/api/gemini/analyze-photo"), {
@@ -553,30 +567,114 @@
         null,
         "e.g., Living Room"
       );
+      const itemsPlaceholder = tr(
+        "floorPlan.itemsPlaceholder",
+        null,
+        "e.g., sink, toilet, shower"
+      );
+      const locationPlaceholder = tr(
+        "floorPlan.locationPlaceholder",
+        null,
+        "e.g., top-left"
+      );
+      const windowsPlaceholder = tr(
+        "floorPlan.windowsPlaceholder",
+        null,
+        "e.g., two windows on north wall"
+      );
       const removeLabel = tr("floorPlan.removeArea", null, "Remove");
       const noneDetected = tr(
         "floorPlan.noAreasDetected",
         null,
         "No areas detected yet. Add the areas you want to appear in the 3D generation."
       );
+      const includeLabel = tr("floorPlan.includeArea", null, "Include");
+      const outsideBadge = tr("floorPlan.outsideBadge", null, "Outside");
+      const locationLabel = tr("floorPlan.locationLabel", null, "Location");
+      const itemsLabel = tr("floorPlan.itemsLabel", null, "Items noticed");
+      const windowsLabel = tr("floorPlan.windowsLabel", null, "Windows");
+      const excludeHint = tr(
+        "floorPlan.outsideHint",
+        null,
+        "Outside areas are excluded by default. You can include them if you want."
+      );
 
       // Keep a copy so we can preserve extra fields (dims/features) for the prompt.
       const originalRooms = Array.isArray(rooms) ? rooms : [];
 
-      function rowHtml(name, idx) {
-        const safeVal = escapeHtml((name || "").trim());
+      function isOutsideArea(room) {
+        if (!room) return false;
+        if (room.is_outside === true) return true;
+        const kind = (room.kind || room.area_kind || "").toString().toLowerCase();
+        if (kind === "outside" || kind === "exterior" || kind === "outdoor") return true;
+        const name = (room.name || "").toString().toLowerCase();
+        return /(yard|garden|patio|terrace|balcony|plaza|driveway|outdoor|exterior|courtyard)/i.test(
+          name
+        );
+      }
+
+      function normalizeItemsForInput(items) {
+        if (!items) return "";
+        if (Array.isArray(items)) return items.map((x) => String(x)).filter(Boolean).join(", ");
+        return String(items);
+      }
+
+      function rowHtml(room, idx) {
+        const name = room && room.name ? String(room.name) : "";
+        const loc = room && room.location_on_plan ? String(room.location_on_plan) : "";
+        const windows = room && room.windows_location ? String(room.windows_location) : "";
+        const items = normalizeItemsForInput(room && room.items_noticed);
+        const safeName = escapeHtml(name.trim());
+        const safeLoc = escapeHtml(loc.trim());
+        const safeWindows = escapeHtml(windows.trim());
+        const safeItems = escapeHtml(items.trim());
         const indexAttr = typeof idx === "number" ? ` data-room-index="${idx}"` : "";
+        const outside = isOutsideArea(room);
+        const defaultInclude = outside ? "" : "checked";
+        const badge = outside
+          ? `<span style="display:inline-block; margin-left:8px; font-size:12px; padding:2px 8px; border:1px solid #f59e0b; color:#92400e; background:#fffbeb; border-radius:999px;">${escapeHtml(outsideBadge)}</span>`
+          : "";
         return `
-          <div class="fp-area-row" style="display:flex; gap:10px; align-items:center; margin: 8px 0;">
-            <input class="fp-area-input" type="text" ${indexAttr} value="${safeVal}" placeholder="${escapeHtml(placeholder)}" style="flex:1; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
-            <button type="button" class="op-btn fp-area-remove" style="padding: 8px 10px;">${escapeHtml(removeLabel)}</button>
+          <div class="fp-area-row" style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; margin: 10px 0; background: #fff;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap: 10px;">
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#374151;">
+                <input class="fp-area-include" type="checkbox" ${defaultInclude} />
+                <span>${escapeHtml(includeLabel)}</span>
+              </label>
+              <div style="display:flex; align-items:center; gap: 10px;">
+                ${badge}
+                <button type="button" class="op-btn fp-area-remove" style="padding: 8px 10px;">${escapeHtml(removeLabel)}</button>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+              <div>
+                <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">Room / Area</div>
+                <input class="fp-area-input" type="text" ${indexAttr} value="${safeName}" placeholder="${escapeHtml(placeholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
+              </div>
+              <div>
+                <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">${escapeHtml(locationLabel)}</div>
+                <input class="fp-area-location" type="text" value="${safeLoc}" placeholder="${escapeHtml(locationPlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+              <div>
+                <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">${escapeHtml(itemsLabel)}</div>
+                <input class="fp-area-items" type="text" value="${safeItems}" placeholder="${escapeHtml(itemsPlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
+              </div>
+              <div>
+                <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">${escapeHtml(windowsLabel)}</div>
+                <input class="fp-area-windows" type="text" value="${safeWindows}" placeholder="${escapeHtml(windowsPlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
+              </div>
+            </div>
           </div>
         `;
       }
 
       const rows = originalRooms.length
         ? originalRooms
-            .map((r, idx) => rowHtml(r && r.name ? String(r.name) : "", idx))
+            .map((r, idx) => rowHtml(r || {}, idx))
             .join("")
         : `<div class="app-placeholder" style="margin: 10px 0;">${escapeHtml(noneDetected)}</div>`;
 
@@ -592,6 +690,7 @@
               <h2 style="margin:0;">${escapeHtml(modalTitle)}</h2>
               ${planLine}
               <p style="margin:10px 0 0 0; color:#4b5563;">${escapeHtml(modalDesc)}</p>
+              <div style="margin-top:8px; font-size:12px; color:#6b7280;">${escapeHtml(excludeHint)}</div>
             </div>
             <button type="button" class="op-btn op-btn-reset fp-areas-close" style="height: 36px;">✕</button>
           </div>
@@ -646,7 +745,7 @@
           if (placeholderEl) placeholderEl.remove();
 
           const wrapper = document.createElement("div");
-          wrapper.innerHTML = rowHtml("", null).trim();
+          wrapper.innerHTML = rowHtml({}, null).trim();
           const row = wrapper.firstElementChild;
           if (row) {
             listEl.appendChild(row);
@@ -666,18 +765,41 @@
       }
 
       function confirm() {
-        const inputs = Array.from(modal.querySelectorAll(".fp-area-input"));
         const confirmed = [];
-        inputs.forEach((input) => {
-          const name = String(input.value || "").trim();
+        const rows = Array.from(modal.querySelectorAll(".fp-area-row"));
+
+        rows.forEach((rowEl) => {
+          const includeEl = rowEl.querySelector(".fp-area-include");
+          const nameEl = rowEl.querySelector(".fp-area-input");
+          const locEl = rowEl.querySelector(".fp-area-location");
+          const itemsEl = rowEl.querySelector(".fp-area-items");
+          const windowsEl = rowEl.querySelector(".fp-area-windows");
+
+          const include = includeEl ? !!includeEl.checked : true;
+          const name = nameEl ? String(nameEl.value || "").trim() : "";
           if (!name) return;
-          const idxRaw = input.getAttribute("data-room-index");
+
+          const location_on_plan = locEl ? String(locEl.value || "").trim() : "";
+          const windows_location = windowsEl ? String(windowsEl.value || "").trim() : "";
+          const itemsRaw = itemsEl ? String(itemsEl.value || "").trim() : "";
+          const items_noticed = itemsRaw
+            ? itemsRaw.split(",").map((x) => x.trim()).filter(Boolean)
+            : [];
+
+          const idxRaw = nameEl ? nameEl.getAttribute("data-room-index") : null;
           const idx = idxRaw !== null ? Number.parseInt(idxRaw, 10) : NaN;
-          if (Number.isFinite(idx) && originalRooms[idx]) {
-            confirmed.push({ ...originalRooms[idx], name });
-          } else {
-            confirmed.push({ name });
-          }
+
+          const base =
+            Number.isFinite(idx) && originalRooms[idx] ? { ...originalRooms[idx] } : {};
+
+          confirmed.push({
+            ...base,
+            name,
+            include,
+            location_on_plan,
+            windows_location,
+            items_noticed
+          });
         });
         cleanup(confirmed);
       }
@@ -724,7 +846,8 @@
     });
 
     if (!confirmedRooms) return; // Cancelled
-    await generate3DView(sourceImageUrl, confirmedRooms);
+    const included = (confirmedRooms || []).filter((r) => r && r.include !== false);
+    await generate3DView(sourceImageUrl, included);
   }
 
   async function generate3DView(sourceImageUrl, rooms = []) {
@@ -780,11 +903,23 @@
           // Construct room list summary for the prompt
           let roomSummary = "";
           if (rooms && rooms.length > 0) {
-              roomSummary = "The floor plan contains the following rooms:\n" + rooms.map(r => {
-                  const dims = (r.width && r.length) ? ` (${r.width}m x ${r.length}m)` : "";
-                  const feats = r.furniture_type ? `, furnished as: ${r.furniture_type}` : "";
-                  return `- ${r.name || "Room"}${dims}${feats}`;
-              }).join("\n");
+              roomSummary =
+                "The floor plan contains the following areas (user-confirmed):\n" +
+                rooms
+                  .map((r) => {
+                    const dims =
+                      r && r.width && r.length ? ` (${r.width}m x ${r.length}m)` : "";
+                    const loc = r && r.location_on_plan ? `, location: ${r.location_on_plan}` : "";
+                    const windows =
+                      r && r.windows_location ? `, windows: ${r.windows_location}` : "";
+                    const items =
+                      r && Array.isArray(r.items_noticed) && r.items_noticed.length
+                        ? `, items: ${r.items_noticed.join(", ")}`
+                        : "";
+                    const feats = r && r.furniture_type ? `, furnished as: ${r.furniture_type}` : "";
+                    return `- ${(r && r.name) || "Room"}${dims}${loc}${windows}${items}${feats}`;
+                  })
+                  .join("\n");
           }
 
           const prompt = `
