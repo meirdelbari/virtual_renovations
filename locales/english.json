@@ -116,6 +116,8 @@
     "windowsLabel": "Windows",
     "areasPanelTitle": "Areas (editable)",
     "areasPanelDesc": "Review and correct detected areas before generating 3D. Changes stay until you refresh or press Reset.",
+    "useAreasListFor3d": "Use this list for 3D generation",
+    "useAreasListFor3dHint": "If off, the 3D view will be generated from the floorplan image only.",
     "continueTo3d": "Continue to 3D",
     "noAreasDetected": "No areas detected yet. Add the areas you want to appear in the 3D generation."
   },

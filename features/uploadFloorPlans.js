@@ -42,6 +42,11 @@
   // Persistent (until refresh/reset) editable list shown under the floor plan.
   // This is the single source of truth for 3D generation "areas list".
   window.currentFloorPlanAreas = window.currentFloorPlanAreas || [];
+  // User control: whether 3D generation should use the corrected areas list.
+  window.currentFloorPlanUseAreasListFor3D =
+    window.currentFloorPlanUseAreasListFor3D !== undefined
+      ? window.currentFloorPlanUseAreasListFor3D
+      : true;
 
   function initUploadFloorPlans() {
     const uploadButton = document.querySelector(
@@ -586,6 +591,16 @@
       null,
       "Review and correct detected areas before generating 3D. Changes stay until you refresh or press Reset."
     );
+    const useListLabel = tr(
+      "floorPlan.useAreasListFor3d",
+      null,
+      "Use this list for 3D generation"
+    );
+    const useListHint = tr(
+      "floorPlan.useAreasListFor3dHint",
+      null,
+      "If off, the 3D view will be generated from the floorplan image only."
+    );
     const addLabel = tr("floorPlan.addArea", null, "+ Add area");
     const removeLabel = tr("floorPlan.removeArea", null, "Remove");
     const includeLabel = tr("floorPlan.includeArea", null, "Include");
@@ -678,6 +693,17 @@
             <div style="font-weight: 700; font-size: 16px; color:#111827;">${escapeHtml(title)}</div>
             <div style="margin-top:6px; font-size:13px; color:#4b5563;">${escapeHtml(desc)}</div>
             <div style="margin-top:6px; font-size:12px; color:#6b7280;">${escapeHtml(outsideHint)}</div>
+            <div style="margin-top:10px;">
+              <label style="display:flex; align-items:flex-start; gap:10px; font-size:13px; color:#374151; user-select:none;">
+                <input class="fp-use-areas-list" type="checkbox" ${
+                  window.currentFloorPlanUseAreasListFor3D ? "checked" : ""
+                } />
+                <span>
+                  <div style="font-weight:600;">${escapeHtml(useListLabel)}</div>
+                  <div style="margin-top:2px; font-size:12px; color:#6b7280;">${escapeHtml(useListHint)}</div>
+                </span>
+              </label>
+            </div>
           </div>
           <button type="button" class="op-btn fp-area-add" style="white-space: nowrap;">${escapeHtml(addLabel)}</button>
         </div>
@@ -744,6 +770,13 @@
   function handleAreasInput(event) {
     const target = event.target;
     if (!target) return;
+
+    // Global toggle lives in the panel header (not inside a row)
+    if (target.classList && target.classList.contains("fp-use-areas-list")) {
+      window.currentFloorPlanUseAreasListFor3D = !!target.checked;
+      return;
+    }
+
     const row = target.closest && target.closest(".fp-area-row");
     if (!row) return;
     const idx = Number.parseInt(row.getAttribute("data-area-index") || "", 10);
@@ -1066,7 +1099,13 @@
       return;
     }
 
-    // Use the persistent under-floorplan editor if present; fall back to provided rooms.
+    // If the user disables the list, generate using the floorplan image only.
+    if (window.currentFloorPlanUseAreasListFor3D === false) {
+      await generate3DView(sourceImageUrl, []);
+      return;
+    }
+
+    // Otherwise use the persistent under-floorplan editor if present; fall back to provided rooms.
     const sourceAreas =
       Array.isArray(window.currentFloorPlanAreas) && window.currentFloorPlanAreas.length
         ? window.currentFloorPlanAreas
@@ -1159,6 +1198,7 @@
             1. Use BOTH inputs:
                - The uploaded floor plan IMAGE is the ground truth for geometry: layout, walls, doors, and proportions.
                - The FLOOR PLAN DATA above is user-corrected metadata: area names, locations, items, and windows.
+               If FLOOR PLAN DATA is empty, use the IMAGE only.
                If there is any conflict, follow the IMAGE for geometry and follow the DATA for labels/windows/items.
             2. Maintain the exact layout, walls, and room proportions shown in the image and described in the data.
             2. Extrude walls to show depth.
