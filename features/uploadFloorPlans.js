@@ -643,8 +643,9 @@
     function rowHtml(area, idx) {
       const safeName = escapeHtml((area && area.name ? area.name : "").trim());
       const safeLoc = escapeHtml((area && area.location_on_plan ? area.location_on_plan : "").trim());
-      const safeWindows = escapeHtml((area && area.windows_location ? area.windows_location : "").trim());
-      const safeItems = escapeHtml(normalizeItemsForInput(area && area.items_noticed).trim());
+      // We'll hide items/windows from UI to prevent "ruining" the 3D generation with over-specifics
+      // const safeWindows = escapeHtml((area && area.windows_location ? area.windows_location : "").trim());
+      // const safeItems = escapeHtml(normalizeItemsForInput(area && area.items_noticed).trim());
       const outside = !!(area && area.is_outside);
       const checked = area && area.include !== false ? "checked" : "";
       const badge = outside
@@ -671,17 +672,6 @@
             <div>
               <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">${escapeHtml(locationLabel)}</div>
               <input class="fp-area-location" type="text" value="${safeLoc}" placeholder="${escapeHtml(locationPlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
-            <div>
-              <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">${escapeHtml(itemsLabel)}</div>
-              <input class="fp-area-items" type="text" value="${safeItems}" placeholder="${escapeHtml(itemsPlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
-            </div>
-            <div>
-              <div style="font-size: 12px; color:#6b7280; margin-bottom: 4px;">${escapeHtml(windowsLabel)}</div>
-              <input class="fp-area-windows" type="text" value="${safeWindows}" placeholder="${escapeHtml(windowsPlaceholder)}" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;" />
             </div>
           </div>
         </div>
@@ -1193,17 +1183,8 @@
                 "The floor plan contains the following areas (user-confirmed):\n" +
                 rooms
                   .map((r) => {
-                    const dims =
-                      r && r.width && r.length ? ` (${r.width}m x ${r.length}m)` : "";
                     const loc = r && r.location_on_plan ? `, location: ${r.location_on_plan}` : "";
-                    const windows =
-                      r && r.windows_location ? `, windows: ${r.windows_location}` : "";
-                    const items =
-                      r && Array.isArray(r.items_noticed) && r.items_noticed.length
-                        ? `, items: ${r.items_noticed.join(", ")}`
-                        : "";
-                    const feats = r && r.furniture_type ? `, furnished as: ${r.furniture_type}` : "";
-                    return `- ${(r && r.name) || "Room"}${dims}${loc}${windows}${items}${feats}`;
+                    return `- ${(r && r.name) || "Room"}${loc}`;
                   })
                   .join("\n");
           }
@@ -1216,23 +1197,20 @@
           let prompt;
           
           if (useData) {
-            // Prompt WITH detailed room data
+            // Prompt WITH simplified room list (Name + Location only) to prevent conflicting geometry
             prompt = `
               Convert this 2D floor plan into a high-quality 3D isometric rendered floor plan.
               
-              FLOOR PLAN DATA:
+              ROOM LABELS & LOCATIONS:
               ${roomSummary}
               ${customInstructions}
   
               Key requirements:
-              1. Use the floor plan IMAGE for the geometry, layout, and walls.
-              2. Use the FLOOR PLAN DATA above for the room labels, furniture types, and windows.
-              3. Extrude walls to show depth.
-              4. Apply realistic materials: wood flooring in living areas, tiles in wet areas.
-              5. Furnish rooms with modern furniture according to the descriptions above.
-              6. Use soft, warm, photorealistic lighting.
-              7. View angle: Classic isometric top-down (45 degrees).
-              8. High resolution, architectural visualization style.
+              1. Geometry & Layout: Strictly follow the floor plan IMAGE.
+              2. Labelling: Use the list above to understand which room is which.
+              3. Style: Modern, clean, photorealistic.
+              4. View angle: Classic isometric top-down (45 degrees).
+              5. High resolution, architectural visualization style.
             `;
           } else {
              // Simple Prompt (NO DATA) - Restoration of the original stable prompt
