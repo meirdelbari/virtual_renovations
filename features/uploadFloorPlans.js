@@ -1207,6 +1207,7 @@
               3. Style: Modern, clean, photorealistic.
               4. View angle: Classic isometric top-down (45 degrees).
               5. High resolution, architectural visualization style.
+              6. NO TEXT: Do not render any text, labels, or dimensions in the final image. Pure 3D geometry only.
             `;
           } else {
              // Simple Prompt (NO DATA) - Restoration of the original stable prompt
@@ -1222,6 +1223,7 @@
                 5. Use soft, warm, photorealistic lighting.
                 6. View angle: Classic isometric top-down (45 degrees).
                 7. High resolution, architectural visualization style.
+                8. NO TEXT: Do not render any text, labels, or dimensions in the final image. Pure 3D geometry only.
              `;
           }
 
