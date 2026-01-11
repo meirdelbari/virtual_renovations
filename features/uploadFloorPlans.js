@@ -1210,16 +1210,23 @@
               6. NO TEXT: Do not render any text, labels, or dimensions in the final image. Pure 3D geometry only.
             `;
           } else {
-             // Simple Prompt (NO DATA) - Restoration of the original stable prompt
+             // Simple Prompt (NO DATA) - Improved for Text Reading
              prompt = `
                 Convert this 2D floor plan into a high-quality 3D isometric rendered floor plan.
                 ${customInstructions}
                 
                 Key requirements:
-                1. Maintain the exact layout, walls, and room proportions shown in the image.
-                2. Extrude walls to show depth.
-                3. Apply realistic materials: wood flooring in living areas, tiles in wet areas.
-                4. Furnish rooms with modern furniture appropriate for each room type inferred from the image.
+                1. Geometry & Layout: STRICTLY follow the lines in the image.
+                2. Labelling & Materials: READ the text labels in the image (including Hebrew) to determine materials.
+                   - "דשא" = Grass (Green Lawn).
+                   - "מרפסת" = Balcony (Tiles/Deck).
+                   - "חניה" = Parking (Paved/Concrete).
+                   - "חדר שינה" = Bedroom (Wood floor).
+                   - "סלון" = Living Room (Wood/Tile).
+                   - "מטבח" = Kitchen.
+                   - "ממ״ד" = Safe Room/Office.
+                3. Extrude walls to show depth.
+                4. Furnish rooms with modern furniture appropriate for each room type.
                 5. Use soft, warm, photorealistic lighting.
                 6. View angle: Classic isometric top-down (45 degrees).
                 7. High resolution, architectural visualization style.
