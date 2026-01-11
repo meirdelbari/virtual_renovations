@@ -184,7 +184,7 @@
         const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
         const page = await pdf.getPage(1);
         
-        const scale = 2.0; // Higher scale for better text recognition
+        const scale = 3.0; // Higher scale for sharper lines and better AI recognition
         const viewport = page.getViewport({ scale });
         
         const canvas = document.createElement("canvas");
@@ -2041,7 +2041,7 @@
     }
 
     // If empty or pure white, return original
-    if (bottom <= top) return canvas.toDataURL("image/jpeg", 0.8);
+    if (bottom <= top) return canvas.toDataURL("image/png");
 
     // Add padding
     const padding = 20;
@@ -2067,7 +2067,7 @@
       0, 0, w, cropHeight    // Dest x, y, w, h
     );
 
-    return cropped.toDataURL("image/jpeg", 0.9);
+    return cropped.toDataURL("image/png");
   }
 
   function computeArea(width, length) {
