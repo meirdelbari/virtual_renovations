@@ -1220,15 +1220,11 @@
              `;
           }
 
-          // Use Contrast Booster to stabilize geometry
-          // This creates a clean B&W version of the plan for the AI
-          const cleanImageUrl = await getHighContrastFloorPlan(sourceImageUrl);
-
           const response = await fetch(getApiUrl("/api/gemini/process-photo"), {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                  imageDataUrl: cleanImageUrl, // Send the boosted image
+                  imageDataUrl: sourceImageUrl,
                   instructions: prompt,
                   // We omit userId to bypass strict credit checks for this demo feature,
                   // similar to how virtual tour works. Or pass it if you want to charge.
@@ -1349,46 +1345,6 @@
           const errCloseBtn = modal.querySelector(".close-3d-btn");
           errCloseBtn.onclick = () => overlay.remove();
       }
-  }
-
-  // --- CONTRAST BOOSTER HELPER ---
-  // Converts image to high-contrast B&W to stabilize AI geometry
-  function getHighContrastFloorPlan(sourceImageUrl) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.onload = () => {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
-            
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            
-            // Simple thresholding
-            // If pixel is light enough, make it pure white. Otherwise pure black.
-            // This removes faint grid lines, shadows, and noise.
-            const threshold = 200; // 0-255, relatively high to catch light grays as white
-            
-            for (let i = 0; i < data.length; i += 4) {
-                // Greyscale value
-                const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                const val = avg > threshold ? 255 : 0;
-                
-                data[i] = val;     // R
-                data[i + 1] = val; // G
-                data[i + 2] = val; // B
-                // Alpha (data[i+3]) remains unchanged
-            }
-            
-            ctx.putImageData(imageData, 0, 0);
-            resolve(canvas.toDataURL("image/png"));
-        };
-        img.onerror = (e) => reject(e);
-        img.src = sourceImageUrl;
-    });
   }
 
   async function generateFloorPlanPdf(plan) {
