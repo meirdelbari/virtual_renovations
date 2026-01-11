@@ -35,7 +35,7 @@ async function processImageWithGemini({ imageBase64, instructions, meta = {} }) 
   }
 
   // Correct model ID for "Nano Banana" according to documentation
-  const modelId = "gemini-1.5-flash"; 
+  const modelId = "gemini-2.5-flash-image"; 
   
   // Correct payload format for Image Editing (Text + Image -> Image)
   const payload = {
