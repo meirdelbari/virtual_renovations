@@ -181,7 +181,12 @@
     if (isPdf) {
         // 1. Render first page of PDF to image
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        // Enable Hebrew/Arabic support via CMaps
+        const pdf = await pdfjsLib.getDocument({
+            data: arrayBuffer,
+            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+            cMapPacked: true
+        }).promise;
         const page = await pdf.getPage(1);
         
         const scale = 3.0; // Higher scale for sharper lines and better AI recognition
