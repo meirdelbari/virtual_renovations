@@ -1210,20 +1210,18 @@
               6. NO TEXT: Do not render any text, labels, or dimensions in the final image. Pure 3D geometry only.
             `;
           } else {
-             // Simple Prompt (NO DATA) - Simplified for Quality
+             // Simple Prompt (NO DATA) - Improved for Text Reading
              prompt = `
-                Generate a high-quality 3D isometric architectural visualization of this floor plan.
+                Convert this 2D floor plan into a high-quality 3D isometric rendered floor plan.
                 ${customInstructions}
                 
-                Directives:
-                1. Structure: Follow the wall layout exactly. Extrude walls to 3D.
-                2. Style: Photorealistic, modern interior design, warm lighting, soft shadows.
-                3. Materials: 
-                   - Interpret Hebrew text "דשא" as a Green Grass Lawn.
-                   - Interpret "מרפסת" as a Balcony with outdoor flooring.
-                   - Use wood or tile for interior rooms.
-                4. Furnishing: Add modern furniture suitable for each room (beds, sofas, tables).
-                5. Output: Pure 3D geometry only. DO NOT include any text, labels, or dimensions in the final image.
+                Key requirements:
+                1. Geometry & Layout: STRICTLY follow the lines in the image.
+                2. Extrude walls to show depth.
+                3. Furnish rooms with modern furniture appropriate for each room type.
+                4. Use soft, warm, photorealistic lighting.
+                5. View angle: Classic isometric top-down (45 degrees).
+                6. High resolution, architectural visualization style.
              `;
           }
 
