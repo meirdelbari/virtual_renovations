@@ -4,7 +4,7 @@ const cors = require("cors");
 const OpenAI = require("openai");
 const geminiClient = require("./geminiClient");
 const paymentService = require("./paymentService");
-
+const productScraper = require("./productScraper");
 const supplierRoutes = require("./supplierRoutes");
 
 const app = express();
@@ -44,6 +44,25 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // Mount Supplier Routes
 console.log("Mounting Supplier Routes at /api/suppliers");
 app.use("/api/suppliers", supplierRoutes);
+
+// Product Scraper Endpoint
+app.post("/api/scrape-products", async (req, res) => {
+  const { url } = req.body;
+  if (!url) {
+    return res.status(400).json({ error: "URL is required" });
+  }
+  
+  try {
+    const result = await productScraper.scrapeProducts(url);
+    if (result.error) {
+        return res.status(422).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    console.error("Scrape Error:", err);
+    res.status(500).json({ error: "Internal scraper error" });
+  }
+});
 
 app.get("/api/auth-config", (req, res) => {
   const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE || process.env.CLERK_PUBLISHABLE_KEY || process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
@@ -443,6 +462,232 @@ app.post("/api/gemini/generate-view", async (req, res) => {
 
 // Serve static files from the root directory (Local + Vercel Monolith Support)
 const path = require("path");
+
+// ============================================================================
+// DEMO PROXY: "Copy" a website and inject our features
+// ============================================================================
+app.get("/api/demo-proxy", async (req, res) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) {
+    return res.status(400).send("Missing 'url' query parameter");
+  }
+
+  try {
+    // 1. Fetch the target website
+    const response = await fetch(targetUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${targetUrl}: ${response.statusText}`);
+    }
+    const html = await response.text();
+
+    // 2. Resolve relative URLs to absolute URLs
+    // This is a naive implementation but works for most static assets in a demo context
+    const urlObj = new URL(targetUrl);
+    const origin = urlObj.origin;
+    
+    // Replace src="/..." with src="https://site.com/..."
+    let modifiedHtml = html.replace(/(src|href|action)="\/(?!\/)/gi, `$1="${origin}/`);
+    
+    // Replace src="./..." or src="foo.jpg" (tricky, but let's try basic)
+    // A better approach is using the <base> tag, but that breaks hash links often.
+    // Let's inject a <base> tag as a backup, but script injection usually handles it.
+    // modifiedHtml = modifiedHtml.replace('<head>', `<head><base href="${origin}/">`);
+    
+    // Note: <base> tag is powerful but can break in-page anchors. 
+    // For a visual demo, it's usually the best way to load images/css correctly.
+    if (!modifiedHtml.includes("<base")) {
+        modifiedHtml = modifiedHtml.replace("<head>", `<head><base href="${targetUrl}">`);
+    }
+
+    // 3. Inject our "Virtual Renovations" Widget
+    // We inject a script that adds a floating button
+    const widgetScript = `
+      <script>
+        (function() {
+          console.log("AlgoreitAI Demo Widget Loaded");
+
+          const BUTTON_LABEL = "AlgoreitAI";
+          const BUTTON_HTML = "<span class=\\"algoreit-emoji\\">✨</span><span>AlgoreitAI</span>";
+          
+          // Inject button styles to match the main app
+          const style = document.createElement("style");
+          style.textContent = [
+            ":root {",
+            "  --color-border-subtle: #e0e0ea;",
+            "  --color-text-main: #111827;",
+            "}",
+            ".op-btn {",
+            "  position: relative;",
+            "  display: inline-flex;",
+            "  align-items: center;",
+            "  justify-content: center;",
+            "  padding: 8px 18px;",
+            "  border-radius: 999px;",
+            "  border: 1px solid var(--color-border-subtle);",
+            "  background: #ffffff;",
+            "  color: var(--color-text-main);",
+            "  font-size: 14px;",
+            "  font-weight: 500;",
+            "  cursor: pointer;",
+            "  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease, border-color 0.15s ease;",
+            "  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
+            "}",
+            ".op-btn:hover {",
+            "  background: #f9fafb;",
+            "  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);",
+            "}",
+            ".op-btn:active {",
+            "  transform: translateY(1px);",
+            "  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);",
+            "}",
+            ".op-btn-gemini {",
+            "  background: linear-gradient(135deg, #4285f4, #34a853, #fbbc04, #ea4335);",
+            "  color: #ffffff;",
+            "  border-color: transparent;",
+            "  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);",
+            "  font-weight: 600;",
+              "  direction: ltr;",
+              "  unicode-bidi: isolate;",
+              "  flex-direction: row;",
+            "}",
+            ".op-btn-gemini:hover {",
+            "  background: linear-gradient(135deg, #3367d6, #2d8e47, #f9ab00, #d33b2c);",
+            "  box-shadow: 0 6px 16px rgba(66, 133, 244, 0.4);",
+            "}",
+            ".op-btn-gemini:disabled {",
+            "  opacity: 0.7;",
+            "  cursor: not-allowed;",
+            "  transform: none;",
+            "}",
+            ".algoreit-emoji {",
+            "  display: inline-flex;",
+            "  align-items: center;",
+            "  margin-right: 6px;",
+            "}",
+          ].join("\\n");
+          document.head.appendChild(style);
+
+          // Create Button
+          const btn = document.createElement("button");
+          btn.className = "op-btn op-btn-gemini";
+          btn.id = "algoreit-demo-btn";
+          btn.innerHTML = BUTTON_HTML;
+          btn.setAttribute("aria-label", "AlgoreitAI");
+          btn.style.position = "fixed";
+          btn.style.bottom = "20px";
+          btn.style.right = "20px";
+          btn.style.zIndex = "999999";
+
+          // Keep the label consistent if any host scripts mutate it
+          const enforceLabel = () => {
+            if (btn.innerHTML !== BUTTON_HTML) {
+              btn.innerHTML = BUTTON_HTML;
+            }
+          };
+          const observer = new MutationObserver(enforceLabel);
+          observer.observe(btn, { childList: true, characterData: true, subtree: true });
+
+          // Replace any legacy "Renovate with AI" labels on the page (demo only)
+          const normalizeLegacyButtons = () => {
+            const nodes = document.querySelectorAll("button, a, span, div");
+            nodes.forEach((el) => {
+              if (el === btn) return;
+              const text = (el.textContent || "").trim();
+              if (!text) return;
+              if (/renovate with ai/i.test(text)) {
+                el.textContent = BUTTON_LABEL;
+                el.classList.add("op-btn", "op-btn-gemini");
+              }
+            });
+          };
+          normalizeLegacyButtons();
+          const legacyObserver = new MutationObserver(normalizeLegacyButtons);
+          legacyObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+          
+          // Create Modal Overlay
+          const modal = document.createElement("div");
+          modal.style.position = "fixed";
+          modal.style.top = "0";
+          modal.style.left = "0";
+          modal.style.width = "100vw";
+          modal.style.height = "100vh";
+          modal.style.backgroundColor = "rgba(0,0,0,0.5)";
+          modal.style.zIndex = "999998";
+          modal.style.display = "none";
+          modal.style.justifyContent = "center";
+          modal.style.alignItems = "center";
+          modal.style.backdropFilter = "blur(5px)";
+          
+          // Iframe Container
+          const container = document.createElement("div");
+          container.style.width = "90%";
+          container.style.height = "90%";
+          container.style.maxWidth = "1200px";
+          container.style.backgroundColor = "white";
+          container.style.borderRadius = "12px";
+          container.style.overflow = "hidden";
+          container.style.position = "relative";
+          container.style.boxShadow = "0 20px 50px rgba(0,0,0,0.3)";
+          
+          // Close Button
+          const closeBtn = document.createElement("button");
+          closeBtn.innerHTML = "×";
+          closeBtn.style.position = "absolute";
+          closeBtn.style.top = "10px";
+          closeBtn.style.right = "10px";
+          closeBtn.style.background = "white";
+          closeBtn.style.border = "none";
+          closeBtn.style.fontSize = "24px";
+          closeBtn.style.cursor = "pointer";
+          closeBtn.style.width = "40px";
+          closeBtn.style.height = "40px";
+          closeBtn.style.borderRadius = "50%";
+          closeBtn.style.zIndex = "1000001";
+          
+          closeBtn.onclick = () => {
+             modal.style.display = "none";
+             // Optional: reset iframe source to stop video/audio?
+          };
+
+          // The Iframe (Points to OUR app)
+          const iframe = document.createElement("iframe");
+          // Use absolute URL to ensure it points to localhost:4000 even if proxy URL structure is weird
+          // Also added 'allow' attributes for camera/microphone which might be needed
+          iframe.src = "http://localhost:4000/index.html?mode=embed"; 
+          iframe.allow = "camera; microphone; clipboard-write";
+          iframe.style.width = "100%";
+          iframe.style.height = "100%";
+          iframe.style.border = "none";
+          
+          container.appendChild(closeBtn);
+          container.appendChild(iframe);
+          modal.appendChild(container);
+          
+          document.body.appendChild(btn);
+          document.body.appendChild(modal);
+          
+          btn.onclick = () => {
+            modal.style.display = "flex";
+          };
+          
+        })();
+      </script>
+    `;
+
+    // Inject before body close
+    modifiedHtml = modifiedHtml.replace("</body>", `${widgetScript}</body>`);
+
+    res.set("Cache-Control", "no-store, max-age=0, must-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+    res.send(modifiedHtml);
+
+  } catch (error) {
+    console.error("Proxy Error:", error);
+    res.status(500).send(`Failed to proxy website: ${error.message}`);
+  }
+});
+
 app.use(express.static(path.join(__dirname, "..")));
 
 // For local development

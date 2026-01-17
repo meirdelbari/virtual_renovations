@@ -132,7 +132,50 @@
                 <div class="flex items-center gap-3">
                     <a id="admin-back-link" href="supplier_admin.html" class="hidden text-sm text-gray-500 hover:text-gray-700">← Back to Admin</a>
                     <button id="add-product-btn" onclick="showUploadModal()" class="btn-primary">+ Add New Product</button>
+                    <button id="clear-products-btn" type="button" class="px-3 py-2 rounded-md border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50">
+                        Clear all products
+                    </button>
                 </div>
+            </div>
+
+            <!-- Import Products (NEW) -->
+            <div class="card" id="import-card">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-semibold">Import Products from Website</h2>
+                        <p class="text-sm text-gray-500">Automatically copy product images + details from your website into the catalog (best with Shopify/Wix sites that include schema.org).</p>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <label class="text-sm text-gray-700 flex items-center gap-2">
+                            <input id="import-download-images" type="checkbox" class="rounded" checked>
+                            Copy images into AlgoreitAI
+                        </label>
+                        <label class="text-sm text-gray-700 flex items-center gap-2">
+                            <input id="import-deep-scan" type="checkbox" class="rounded" checked>
+                            Deep scan (WordPress/WooCommerce)
+                        </label>
+                        <label class="text-sm text-gray-700 flex items-center gap-2">
+                            <input id="import-replace-existing" type="checkbox" class="rounded">
+                            Replace existing imports
+                        </label>
+                        <label class="text-sm text-gray-700 flex items-center gap-2">
+                            <input id="import-update-existing" type="checkbox" class="rounded" checked>
+                            Update existing items
+                        </label>
+                        <select id="import-max-products" class="border rounded-md p-2 text-sm">
+                            <option value="10">10</option>
+                            <option value="30" selected>30</option>
+                            <option value="50">50</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                        <button id="import-products-btn" type="button" class="btn-primary">Import</button>
+                    </div>
+                </div>
+                <div class="mt-3 flex flex-col md:flex-row gap-2">
+                    <input id="import-website-url" type="url" placeholder="Leave empty to use your saved Website in profile" class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                </div>
+                <div id="import-status" class="mt-3 text-sm text-gray-600 hidden"></div>
             </div>
 
             <!-- Supplier Profile -->
@@ -412,7 +455,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/supplierPortal.js"></script>
+    <script src="js/supplierPortal.js?v=20260113"></script>
+    <script src="js/productImportUI.js?v=20260113"></script>
 </body>
 </html>
 

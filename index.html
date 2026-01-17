@@ -16,9 +16,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <!-- Google Fonts for a more professional look -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- i18n (runtime translations) -->
     <script src="js/i18n.js"></script>
+    <script>
+      // Embed Mode: Hide Headers/Footers if ?mode=embed is present
+      (function() {
+        if (new URLSearchParams(window.location.search).get("mode") === "embed") {
+          const style = document.createElement("style");
+          style.innerHTML = `
+            .landing-nav, .app-header, .landing-footer { display: none !important; }
+            .landing-page { padding-top: 20px !important; }
+            .app-main { height: 100vh !important; padding-top: 10px !important; }
+          `;
+          document.head.appendChild(style);
+        }
+      })();
+    </script>
   </head>
   <body>
     <script>
@@ -315,7 +329,7 @@
           <button class="op-btn" type="button" data-role="furniture-selector" data-i18n="ops.furniture" data-i18n-title="tooltips.ops.furniture">Furniture ▾</button>
           <button class="op-btn" type="button" data-role="product-selector" data-i18n-title="tooltips.ops.products" data-i18n="ops.products">🛍️ Products</button>
           <button class="op-btn" type="button" data-role="style-selector" data-i18n="ops.style" data-i18n-title="tooltips.ops.style">Style ▾</button>
-          <button class="op-btn op-btn-gemini" type="button" data-role="gemini-ai" data-i18n-title="tooltips.ops.algoreit" data-i18n="ops.algoreit">✨ AlgoreitAI</button>
+          <button class="op-btn op-btn-gemini" type="button" data-role="gemini-ai" data-i18n-title="tooltips.ops.algoreit" data-i18n="ops.algoreit" data-i18n-html="true"><span class="algoreit-emoji">✨</span><span>AlgoreitAI</span></button>
           <button class="op-btn" type="button" data-role="gemini-tweak" data-i18n-title="tooltips.ops.custom" data-i18n="ops.custom">Custom</button>
           <button class="op-btn op-btn-reset" type="button" data-i18n="ops.reset" data-i18n-title="tooltips.ops.reset">Reset</button>
           <button class="op-btn guide-btn" type="button" data-role="guide-me" data-i18n-title="tooltips.ops.guide" data-i18n="ops.guide">Guide Me</button>

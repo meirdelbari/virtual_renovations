@@ -72,8 +72,11 @@ Language selection is done at runtime via a dropdown in the UI, and persisted in
 
 ## Project Structure
 
-*   `api/`: Contains the backend logic (Serverless Functions).
-*   `features/`: Frontend JavaScript modules.
+*   `api/`: Backend (Express app exported for Vercel + runnable locally via `npm start`).
+*   `features/`: Main frontend feature modules (plain JS).
+*   `js/`: Shared frontend utilities (i18n, supplier portal tooling).
+*   `locales/`: Runtime translations.
+*   `Docs/`: Specs and internal docs.
 *   `index.html`: Main entry point.
-*   `vercel.json`: Vercel configuration.
+*   `vercel.json`: Vercel rewrites for `/api/*`.
 

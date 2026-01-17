@@ -270,7 +270,7 @@
           return `
             <div class="renovate-category">
                 <button class="renovate-category-toggle">
-                    ${tr(`renovate.groups.${group.id.split('_')[1]}`, null, group.label)}
+                    ${tr(`renovate.groups.${group.id}`, null, group.label)}
                     <span class="arrow">▼</span>
                 </button>
                 <div class="renovate-category-content">

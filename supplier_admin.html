@@ -81,6 +81,19 @@
     </div>
   </main>
 
+  <!-- Image Preview Modal -->
+  <div id="image-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-[90%] max-h-[90%] p-4">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-sm font-semibold text-gray-700">Product Image</h3>
+        <button id="image-modal-close" class="text-gray-500 hover:text-gray-700">✕</button>
+      </div>
+      <div class="flex items-center justify-center">
+        <img id="image-modal-img" src="" alt="Product" class="max-h-[70vh] w-auto object-contain rounded">
+      </div>
+    </div>
+  </div>
+
   <script src="js/supplierAdmin.js"></script>
 </body>
 </html>

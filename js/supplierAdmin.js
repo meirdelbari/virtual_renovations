@@ -5,6 +5,13 @@
 let clerk;
 let currentUser = null;
 
+function activateDevMode() {
+  // Matches supplier portal dev id so both pages operate on the same test supplier.
+  currentUser = { id: "user_mock_local_dev", firstName: "Local", lastName: "Dev" };
+  const el = document.getElementById("user-button");
+  if (el) el.innerHTML = "<div class='bg-gray-200 px-3 py-1 rounded text-sm font-bold'>Dev User</div>";
+}
+
 function setLoadingError(message, details = "") {
   const el = document.getElementById("loading");
   if (!el) return;
@@ -86,6 +93,15 @@ function badge(status) {
   return `${base} bg-yellow-100 text-yellow-800`; // pending/default
 }
 
+function escapeAttr(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function setTableHead(mode) {
   const row = document.getElementById("table-head-row");
   if (!row) return;
@@ -101,6 +117,7 @@ function setTableHead(mode) {
   } else {
     row.innerHTML = `
       <th class="text-left p-3">Product</th>
+      <th class="text-left p-3">Image</th>
       <th class="text-left p-3">Supplier</th>
       <th class="text-left p-3">Status</th>
       <th class="text-left p-3">Created</th>
@@ -217,8 +234,19 @@ async function loadProducts() {
       const tr = document.createElement("tr");
       tr.className = "border-t";
       const portalHref = `supplier.html?adminSupplierId=${encodeURIComponent(p.supplierId || "")}`;
+      const imageUrl = p.imageUrl || "";
+      const safeImageUrl = escapeAttr(imageUrl);
+      const imageCell = imageUrl
+        ? `
+          <div class="flex items-center gap-2">
+            <img src="${safeImageUrl}" alt="Product" class="h-10 w-10 rounded object-cover border" />
+            <button class="prod-image-btn text-xs text-indigo-600 hover:underline" data-image="${safeImageUrl}">Enlarge</button>
+          </div>
+        `
+        : `<span class="text-xs text-gray-400">No image</span>`;
       tr.innerHTML = `
         <td class="p-3 font-medium text-gray-900">${p.name || ""}<div class="text-xs text-gray-500">${p.category || ""}</div></td>
+        <td class="p-3">${imageCell}</td>
         <td class="p-3 text-gray-700">
           ${p.supplierId ? `<a class="text-indigo-600 hover:underline" href="${portalHref}" target="_blank" rel="noopener noreferrer">${p.supplierName || ""}</a>` : (p.supplierName || "")}
         </td>
@@ -233,6 +261,14 @@ async function loadProducts() {
         </td>
       `;
       tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll(".prod-image-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const url = btn.dataset.image || "";
+        if (!url) return;
+        showImageModal(url);
+      });
     });
 
     document.querySelectorAll(".prod-approve-btn").forEach((btn) => {
@@ -278,13 +314,51 @@ async function loadProducts() {
   }
 }
 
+function showImageModal(url) {
+  const modal = document.getElementById("image-modal");
+  const img = document.getElementById("image-modal-img");
+  if (!modal || !img) return;
+  img.src = url;
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function hideImageModal() {
+  const modal = document.getElementById("image-modal");
+  const img = document.getElementById("image-modal-img");
+  if (!modal || !img) return;
+  img.src = "";
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+}
+
 async function init() {
   try {
     const res = await fetch("/api/auth-config");
     const config = await res.json();
-    await ensureClerk(config.publishableKey);
+    try {
+      await ensureClerk(config.publishableKey);
+    } catch (e) {
+      // Clerk often fails on localhost when using production keys.
+      if (window.location.hostname === "localhost") {
+        console.warn("Clerk failed on localhost; using Dev Admin mode.", e?.message || String(e));
+        activateDevMode();
+      } else {
+        throw e;
+      }
+    }
 
-    if (!clerk.user) {
+    // If Clerk user missing on localhost, fall back to dev mode
+    if ((!clerk || !clerk.user) && window.location.hostname === "localhost") {
+      activateDevMode();
+    }
+
+    if (!currentUser && clerk && clerk.user) {
+      currentUser = clerk.user;
+      mountUserButton();
+    }
+
+    if (!currentUser) {
       document.getElementById("loading").innerHTML = `
         <div class="text-center">
           <p class="mb-4 text-gray-600">Please sign in to access Supplier Admin.</p>
@@ -296,9 +370,6 @@ async function init() {
       });
       return;
     }
-
-    currentUser = clerk.user;
-    mountUserButton();
 
     const viewSelect = document.getElementById("admin-view");
     const statusSelect = document.getElementById("status-filter");
@@ -316,6 +387,15 @@ async function init() {
     document.getElementById("refresh-btn").addEventListener("click", refresh);
     statusSelect.addEventListener("change", refresh);
     if (viewSelect) viewSelect.addEventListener("change", refresh);
+
+    const modal = document.getElementById("image-modal");
+    const closeBtn = document.getElementById("image-modal-close");
+    if (closeBtn) closeBtn.addEventListener("click", hideImageModal);
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) hideImageModal();
+      });
+    }
 
     // Load data first; only then reveal the UI so failures aren't silent
     await refresh();

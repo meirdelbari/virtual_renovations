@@ -2,6 +2,10 @@ AlgoreitAI (Nano Banana) Integration Log
 =======================================
 Date: November 29, 2025
 
+NOTE (2026): This file is a historical log and may reference older paths (e.g. `backend/...`).
+Current implementation lives under `api/` and local secrets go in the repo root `.env`.
+See `QUICKSTART.md` and `Docs/PROJECT_STRUCTURE.md` for the up-to-date setup.
+
 Summary
 -------
 Successfully integrated AlgoreitAI, built on Google's "Nano Banana" (Gemini 2.5 Flash Image) model, for AI-powered room renovations. The application now supports sending room photos with natural language instructions to Google's state-of-the-art image generation model.

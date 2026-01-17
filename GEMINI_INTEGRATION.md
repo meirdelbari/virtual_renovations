@@ -33,7 +33,7 @@ Whether you are using a floor plan (Option A) or not (Option B), the application
 ## Technical Implementation
 
 - **Frontend**: `features/geminiAI.js` handles the UI logic, prompt construction, and gallery updates.
-- **Backend**: `backend/geminiClient.js` communicates with Google's API.
+- **Backend**: `api/geminiClient.js` communicates with Google's API (used by `api/index.js`).
 - **Models**:
   - Renovation: `gemini-2.5-flash-image`
   - Analysis: `gemini-2.0-flash-exp` (or similar vision-capable model)
@@ -49,3 +49,8 @@ Whether you are using a floor plan (Option A) or not (Option B), the application
     *   **Renovate ▾**: Choose an element to change (e.g., Wood Floor).
 4.  **Process**: Click the **✨ AlgoreitAI** button.
 5.  **Result**: The renovated photo is added to the **Renovation Photos** row above your original photos.
+
+## Local vs Vercel
+
+- **Local**: run `npm start` (starts `api/index.js` on `http://localhost:4000`)
+- **Vercel**: requests to `/api/*` are rewritten to `api/index.js` via `vercel.json`

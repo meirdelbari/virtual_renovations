@@ -92,6 +92,29 @@ const db = {
       return true;
     }
     ,
+    deleteAllBySupplierId: async (supplierId) => {
+      const products = await db.products.getAll();
+      const filtered = products.filter((p) => p.supplierId !== supplierId);
+      const removed = products.length - filtered.length;
+      if (removed > 0) await store.setProducts(filtered);
+      return { removed };
+    },
+    deleteImportedBySupplierId: async (supplierId, opts = {}) => {
+      const websiteUrl = opts.websiteUrl ? String(opts.websiteUrl) : "";
+      const products = await db.products.getAll();
+      const filtered = products.filter((p) => {
+        if (p.supplierId !== supplierId) return true;
+        const meta = p.importMeta || null;
+        if (!meta) return true; // keep manually added products
+        if (websiteUrl) {
+          return String(meta.websiteUrl || "") !== websiteUrl;
+        }
+        return false; // remove all imported products for this supplier
+      });
+      const removed = products.length - filtered.length;
+      if (removed > 0) await store.setProducts(filtered);
+      return { removed };
+    },
     updateById: async (id, updates) => {
       const products = await db.products.getAll();
       const index = products.findIndex((p) => p.id === id);

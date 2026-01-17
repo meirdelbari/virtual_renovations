@@ -46,7 +46,7 @@
     "furniture": "Furniture ▾",
     "products": "Products",
     "style": "Style ▾",
-    "algoreit": "✨ AlgoreitAI",
+    "algoreit": "<span class=\"algoreit-emoji\">✨</span><span>AlgoreitAI</span>",
     "clickToProcess": "✨ Click to Process",
     "custom": "Custom",
     "reset": "Reset",
@@ -195,7 +195,8 @@
       "room": "Room",
       "bathroom": "Bathroom",
       "kitchen": "Kitchen",
-      "exterior": "Exterior"
+      "exterior": "Exterior",
+      "garden": "Garden"
     },
     "groups": {
       "room_floor": "Floor",
@@ -208,7 +209,10 @@
       "bathroom_floor": "Floor",
       "bathroom_walls": "Walls",
       "bathroom_ceiling": "Ceiling",
+      "bathroom_vanity": "Vanity",
       "bathroom_sink": "Sink",
+      "bathroom_shower": "Shower",
+      "bathroom_bathtub": "Bathtub",
       "bathroom_bath": "Bath",
       "bathroom_toilet": "Toilet",
       "bathroom_windows": "Windows",
@@ -224,7 +228,11 @@
       "exterior_doors": "Doors",
       "exterior_roof": "Roof",
       "exterior_garden": "Garden",
-      "exterior_structure": "Structure"
+      "exterior_structure": "Structure",
+      "garden_floor": "Floor",
+      "garden_pool": "Pool",
+      "garden_landscaping": "Landscaping",
+      "garden_furniture": "Furniture"
     },
     "options": {
       "hardwood": "Hardwood",
@@ -235,8 +243,17 @@
       "carpet": "Carpet",
       "painting": "Painting",
       "aluminum": "Aluminum",
+      "quartz": "Quartz",
+      "granite": "Granite",
+      "marble": "Marble",
+      "deck": "Deck",
+      "paving": "Paving",
+      "grass": "Grass",
+      "trees": "Trees",
+      "plants": "Plants",
       "replace": "Replace",
       "add": "Add",
+      "remove": "Remove",
       "clear": "Clear",
       "gardening": "Gardening"
     }
@@ -257,6 +274,27 @@
     "home_exterior": "Home Exterior",
     "garden": "Garden",
     "other": "Other"
+  },
+  "productSelector": {
+    "title": "Select a Product",
+    "categoryLabel": "Category",
+    "styleLabel": "Style",
+    "anyStyle": "Any Style",
+    "anyStyleShort": "Any",
+    "selectedLabel": "Selected",
+    "none": "None",
+    "useProduct": "Use This Product",
+    "showAllStyles": "Show all styles",
+    "empty": "No products found in this category",
+    "emptyStyleMatch": " matching '{{style}}' style",
+    "supplierFallback": "Supplier",
+    "categories": {
+      "all": "All",
+      "flooring": "Flooring",
+      "paint": "Paint",
+      "furniture": "Furniture",
+      "lighting": "Lighting"
+    }
   },
   "gemini": {
     "processingBtn": "Processing with AlgoreitAI...",

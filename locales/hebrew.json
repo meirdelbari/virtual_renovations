@@ -46,7 +46,7 @@
     "furniture": "ריהוט ▾",
     "products": "מוצרים",
     "style": "סגנון ▾",
-    "algoreit": "✨ AlgoreitAI",
+    "algoreit": "<span class=\"algoreit-emoji\">✨</span><span>AlgoreitAI</span>",
     "clickToProcess": "✨ לחץ/י כדי לעבד",
     "custom": "מותאם",
     "reset": "איפוס",
@@ -195,7 +195,8 @@
       "room": "חדר",
       "bathroom": "חדר רחצה",
       "kitchen": "מטבח",
-      "exterior": "חוץ"
+      "exterior": "חוץ",
+      "garden": "גינה"
     },
     "groups": {
       "room_floor": "רצפה",
@@ -208,7 +209,10 @@
       "bathroom_floor": "רצפה",
       "bathroom_walls": "קירות",
       "bathroom_ceiling": "תקרה",
+      "bathroom_vanity": "ארון אמבטיה",
       "bathroom_sink": "כיור/ארון",
+      "bathroom_shower": "מקלחת",
+      "bathroom_bathtub": "אמבטיה",
       "bathroom_bath": "אמבטיה",
       "bathroom_toilet": "אסלה",
       "bathroom_windows": "חלונות",
@@ -224,7 +228,11 @@
       "exterior_doors": "דלתות",
       "exterior_roof": "גג",
       "exterior_garden": "גינה",
-      "exterior_structure": "מבנה"
+      "exterior_structure": "מבנה",
+      "garden_floor": "רצפה",
+      "garden_pool": "בריכה",
+      "garden_landscaping": "גינון",
+      "garden_furniture": "ריהוט"
     },
     "options": {
       "hardwood": "פרקט עץ",
@@ -235,8 +243,17 @@
       "carpet": "שטיח מקיר לקיר",
       "painting": "צביעה",
       "aluminum": "אלומיניום",
+      "quartz": "קוורץ",
+      "granite": "גרניט",
+      "marble": "שיש",
+      "deck": "דק",
+      "paving": "ריצוף",
+      "grass": "דשא",
+      "trees": "עצים",
+      "plants": "צמחים",
       "replace": "החלפה",
       "add": "הוספה",
+      "remove": "הסרה",
       "clear": "ניקוי",
       "gardening": "גינון"
     }
@@ -257,6 +274,27 @@
     "home_exterior": "חוץ הבית",
     "garden": "גינה",
     "other": "אחר"
+  },
+  "productSelector": {
+    "title": "בחר/י מוצר",
+    "categoryLabel": "קטגוריה",
+    "styleLabel": "סגנון",
+    "anyStyle": "כל סגנון",
+    "anyStyleShort": "כללי",
+    "selectedLabel": "נבחר",
+    "none": "ללא",
+    "useProduct": "השתמש/י במוצר",
+    "showAllStyles": "הצג/י את כל הסגנונות",
+    "empty": "לא נמצאו מוצרים בקטגוריה הזו",
+    "emptyStyleMatch": " בסגנון '{{style}}'",
+    "supplierFallback": "ספק",
+    "categories": {
+      "all": "הכול",
+      "flooring": "ריצוף",
+      "paint": "צבע",
+      "furniture": "ריהוט",
+      "lighting": "תאורה"
+    }
   },
   "gemini": {
     "processingBtn": "מעבד עם AlgoreitAI...",

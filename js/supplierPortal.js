@@ -7,6 +7,70 @@ let currentCategory = 'All'; // Track active category filter
 let isAdminView = false;
 let adminSupplierId = null;
 
+function setImportStatus(message, isError = false) {
+    const el = document.getElementById("import-status");
+    if (!el) return;
+    el.classList.remove("hidden");
+    el.classList.toggle("text-red-600", !!isError);
+    el.classList.toggle("text-gray-600", !isError);
+    el.textContent = message;
+}
+
+function initImportHandlers() {
+    // We now have a dedicated importer UI module (`js/productImportUI.js`).
+    // Avoid double-binding which can cause confusing "Skipped" messages.
+    try {
+        if (window.VR_IMPORT_UI_BOUND) return;
+    } catch (_) {}
+
+    const btn = document.getElementById("import-products-btn");
+    if (!btn) return;
+
+    btn.addEventListener("click", async () => {
+        if (isAdminView) {
+            alert("Import is disabled in admin view.");
+            return;
+        }
+        if (!currentSupplier) {
+            alert("Supplier profile not loaded yet.");
+            return;
+        }
+
+        const url = (document.getElementById("import-website-url")?.value || "").trim();
+        const maxProducts = Number(document.getElementById("import-max-products")?.value || "30");
+        const downloadImages = !!document.getElementById("import-download-images")?.checked;
+
+        btn.disabled = true;
+        const prev = btn.textContent;
+        btn.textContent = "Importing...";
+        setImportStatus("Reading your website and extracting products... (this may take ~10-30 seconds)");
+
+        try {
+            const payload = {
+                websiteUrl: url || undefined,
+                maxProducts,
+                downloadImages,
+            };
+
+            const result = await apiCall("/products/import", "POST", payload);
+            const note = result.note ? `\nNote: ${result.note}` : "";
+
+            setImportStatus(
+                `Imported ${result.importedCount} products. Skipped ${result.skippedCount}.${note}`
+            );
+            showStatusBanner(`Imported ${result.importedCount} products ✅ Waiting for admin approval.`);
+            // Refresh
+            await loadProducts();
+        } catch (err) {
+            console.error(err);
+            setImportStatus("Import failed: " + (err.message || String(err)), true);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = prev;
+        }
+    });
+}
+
 function setLoadingError(message, details = "") {
     const el = document.getElementById('loading');
     if (!el) return;
@@ -310,12 +374,22 @@ function showDashboard() {
     // Toggle admin UI bits
     const back = document.getElementById("admin-back-link");
     const addBtn = document.getElementById("add-product-btn");
+    const clearBtn = document.getElementById("clear-products-btn");
     if (isAdminView) {
         if (back) back.classList.remove("hidden");
         if (addBtn) addBtn.classList.add("hidden");
+        if (clearBtn) clearBtn.classList.add("hidden");
     } else {
         if (back) back.classList.add("hidden");
         if (addBtn) addBtn.classList.remove("hidden");
+        if (clearBtn) clearBtn.classList.remove("hidden");
+    }
+
+    // Import UI should only be available for the supplier themselves (not admin read-only view)
+    const importCard = document.getElementById("import-card");
+    if (importCard) {
+        if (isAdminView) importCard.classList.add("hidden");
+        else importCard.classList.remove("hidden");
     }
 
     renderSupplierProfile();
@@ -765,6 +839,30 @@ async function deleteProduct(id) {
     }
 }
 
+async function clearAllProducts() {
+    if (isAdminView) return;
+    const msg =
+        "This will permanently delete ALL products in your supplier catalog.\n\n" +
+        "If you only want to remove imported items, use 'Replace existing imports' and re-import.\n\n" +
+        "Continue?";
+    if (!confirm(msg)) return;
+    try {
+        await apiCall(`/products?confirm=true`, "DELETE");
+        showStatusBanner("All products removed ✅");
+        await loadProducts();
+        setTimeout(() => hideStatusBanner(), 6000);
+    } catch (err) {
+        alert("Failed to clear products: " + (err.message || String(err)));
+    }
+}
+
 // Start
 init();
 initProfileHandlers();
+initImportHandlers();
+
+// Bind clear button (if present)
+try {
+    const btn = document.getElementById("clear-products-btn");
+    if (btn) btn.addEventListener("click", clearAllProducts);
+} catch (_) {}

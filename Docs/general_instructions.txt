@@ -2,8 +2,9 @@ General Instructions (Vercel Deployment Edition)
 ----------------------------------------------
 
 1. Architecture & Code Organization
-   - **Frontend**: Plain HTML/JS in `features/` folder.
-   - **Backend**: Serverless Functions in `api/` folder (Express.js adapted for Vercel).
+   - **Frontend**: Plain HTML/CSS/JS. Main feature modules live in `features/`.
+   - **Shared frontend utilities**: `js/` (e.g., i18n, supplier portal tooling).
+   - **Backend**: `api/` (Express app exported for Vercel + runnable locally).
    - **Configuration**: `vercel.json` handles routing; `.env` handles local secrets.
    - Each feature (button or UI module) must be implemented as an independent, self-contained component.
 
@@ -15,8 +16,8 @@ General Instructions (Vercel Deployment Edition)
 
 3. Local Development
    - Run `npm install` to get dependencies.
-   - Run `npm start` to launch the local server at `http://localhost:4000`.
-   - Ensure `.env` file is present in the root directory with valid API keys.
+   - Run `npm start` to launch the local server at `http://localhost:4000` (runs `api/index.js`).
+   - Ensure `.env` is present in the **repo root** with valid API keys.
 
 4. User Workflow Modes
    - **Option A (Floor Plan First):** Users upload a JSON/PDF floor plan, then upload photos and link them to specific rooms. Best for full projects.

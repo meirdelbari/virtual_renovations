@@ -6,6 +6,13 @@ window.productSelector = (function() {
     let selectedProduct = null;
     let modal = null;
 
+    function tr(key, vars, fallback) {
+        try {
+            if (typeof window.t === "function") return window.t(key, vars, { defaultValue: fallback });
+        } catch (_) {}
+        return fallback || key;
+    }
+
     const PRODUCT_STYLES = [
         { id: "modern", label: "Modern" },
         { id: "traditional", label: "Traditional" },
@@ -19,7 +26,7 @@ window.productSelector = (function() {
     function getStyleLabel(styleId) {
         if (!styleId) return "";
         const hit = PRODUCT_STYLES.find(s => s.id === styleId);
-        return hit ? hit.label : String(styleId);
+        return hit ? tr(`styles.${hit.id}`, null, hit.label) : String(styleId);
     }
 
     async function init() {
@@ -49,27 +56,27 @@ window.productSelector = (function() {
         div.innerHTML = `
             <div class="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col p-6 m-4">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold">Select a Product</h2>
+                    <h2 class="text-xl font-bold">${tr("productSelector.title", null, "Select a Product")}</h2>
                     <button onclick="window.productSelector.close()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
                 </div>
                 
                 <div class="flex flex-col gap-2 mb-4">
                     <!-- Category Filters -->
                     <div class="flex space-x-2 overflow-x-auto pb-1 ps-category-row">
-                        <span class="text-xs font-semibold text-gray-500 uppercase self-center mr-2">Category:</span>
-                        <button onclick="window.productSelector.filter('All')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn active" data-cat="All">All</button>
-                        <button onclick="window.productSelector.filter('Flooring')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Flooring">Flooring</button>
-                        <button onclick="window.productSelector.filter('Paint')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Paint">Paint</button>
-                        <button onclick="window.productSelector.filter('Furniture')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Furniture">Furniture</button>
-                        <button onclick="window.productSelector.filter('Lighting')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Lighting">Lighting</button>
+                        <span class="text-xs font-semibold text-gray-500 uppercase self-center mr-2 ps-category-label">${tr("productSelector.categoryLabel", null, "Category")}:</span>
+                        <button onclick="window.productSelector.filter('All')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn active" data-cat="All">${tr("productSelector.categories.all", null, "All")}</button>
+                        <button onclick="window.productSelector.filter('Flooring')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Flooring">${tr("productSelector.categories.flooring", null, "Flooring")}</button>
+                        <button onclick="window.productSelector.filter('Paint')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Paint">${tr("productSelector.categories.paint", null, "Paint")}</button>
+                        <button onclick="window.productSelector.filter('Furniture')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Furniture">${tr("productSelector.categories.furniture", null, "Furniture")}</button>
+                        <button onclick="window.productSelector.filter('Lighting')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Lighting">${tr("productSelector.categories.lighting", null, "Lighting")}</button>
                     </div>
 
                     <!-- Style Filters -->
                     <div class="flex space-x-2 overflow-x-auto pb-1 items-center ps-style-row">
-                        <span class="text-xs font-semibold text-gray-500 uppercase self-center mr-2">Style:</span>
-                        <button onclick="window.productSelector.filterStyle(null)" class="px-3 py-1.5 text-sm bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 transition style-btn active" data-style="all">Any Style</button>
+                        <span class="text-xs font-semibold text-gray-500 uppercase self-center mr-2 ps-style-label">${tr("productSelector.styleLabel", null, "Style")}:</span>
+                        <button onclick="window.productSelector.filterStyle(null)" class="px-3 py-1.5 text-sm bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 transition style-btn active" data-style="all">${tr("productSelector.anyStyle", null, "Any Style")}</button>
                         ${PRODUCT_STYLES.map(s => `
-                            <button onclick="window.productSelector.filterStyle('${s.id}')" class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition style-btn" data-style="${s.id}">${s.label}</button>
+                            <button onclick="window.productSelector.filterStyle('${s.id}')" class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition style-btn" data-style="${s.id}">${tr(`styles.${s.id}`, null, s.label)}</button>
                         `).join('')}
                     </div>
                 </div>
@@ -80,11 +87,11 @@ window.productSelector = (function() {
                 
                 <div class="mt-4 pt-4 border-t flex justify-between items-center hidden" id="ps-selection-bar">
                    <div class="flex items-center">
-                       <span class="text-sm text-gray-500">Selected:</span>
-                       <span id="ps-selected-name" class="font-bold ml-1">None</span>
+                       <span class="text-sm text-gray-500 ps-selected-label">${tr("productSelector.selectedLabel", null, "Selected")}:</span>
+                       <span id="ps-selected-name" class="font-bold ml-1">${tr("productSelector.none", null, "None")}</span>
                        <span id="ps-selected-style" class="ml-3 text-xs font-medium px-2.5 py-0.5 rounded bg-indigo-100 text-indigo-800 hidden"></span>
                    </div>
-                   <button onclick="window.productSelector.confirm()" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Use This Product</button>
+                   <button id="ps-use-product-btn" onclick="window.productSelector.confirm()" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">${tr("productSelector.useProduct", null, "Use This Product")}</button>
                 </div>
             </div>
         `;
@@ -126,8 +133,8 @@ window.productSelector = (function() {
         }
 
         if (filtered.length === 0) {
-            const styleMsg = style ? ` matching '${getStyleLabel(style)}' style` : '';
-            grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500">No products found in this category${styleMsg}. <br><span class="text-xs text-indigo-500 cursor-pointer" onclick="window.productSelector.clearStyleFilter()">Show all styles</span></div>`;
+            const styleMsg = style ? tr("productSelector.emptyStyleMatch", { style: getStyleLabel(style) }, ` matching '${getStyleLabel(style)}' style`) : '';
+            grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500">${tr("productSelector.empty", null, "No products found in this category")}${styleMsg}. <br><span class="text-xs text-indigo-500 cursor-pointer" onclick="window.productSelector.clearStyleFilter()">${tr("productSelector.showAllStyles", null, "Show all styles")}</span></div>`;
             return;
         }
 
@@ -143,8 +150,8 @@ window.productSelector = (function() {
                 <div class="p-3">
                     <h3 class="font-bold text-sm truncate">${p.name}</h3>
                     <div class="flex justify-between items-center mt-1">
-                        <p class="text-xs text-gray-500 truncate max-w-[60%]">${p.supplierName || 'Supplier'}</p>
-                        <span class="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 truncate">${p.style || 'Any'}</span>
+                        <p class="text-xs text-gray-500 truncate max-w-[60%]">${p.supplierName || tr("productSelector.supplierFallback", null, "Supplier")}</p>
+                        <span class="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 truncate">${p.style || tr("productSelector.anyStyleShort", null, "Any")}</span>
                     </div>
                     <p class="text-indigo-600 font-bold text-sm mt-1">$${p.price}</p>
                 </div>
@@ -227,9 +234,45 @@ window.productSelector = (function() {
         });
         
         const header = modal.querySelector('h2');
-        header.innerHTML = `Select a Product`;
+        header.innerHTML = tr("productSelector.title", null, "Select a Product");
+        applyTranslations();
         
         renderProducts(cat || 'All', style);
+    }
+
+    function applyTranslations() {
+        if (!modal) return;
+        const categoryLabel = modal.querySelector(".ps-category-label");
+        if (categoryLabel) categoryLabel.textContent = `${tr("productSelector.categoryLabel", null, "Category")}:`;
+        const styleLabel = modal.querySelector(".ps-style-label");
+        if (styleLabel) styleLabel.textContent = `${tr("productSelector.styleLabel", null, "Style")}:`;
+        const selectedLabel = modal.querySelector(".ps-selected-label");
+        if (selectedLabel) selectedLabel.textContent = `${tr("productSelector.selectedLabel", null, "Selected")}:`;
+        const useProductBtn = modal.querySelector("#ps-use-product-btn");
+        if (useProductBtn) useProductBtn.textContent = tr("productSelector.useProduct", null, "Use This Product");
+
+        const categoryTextMap = {
+            All: tr("productSelector.categories.all", null, "All"),
+            Flooring: tr("productSelector.categories.flooring", null, "Flooring"),
+            Paint: tr("productSelector.categories.paint", null, "Paint"),
+            Furniture: tr("productSelector.categories.furniture", null, "Furniture"),
+            Lighting: tr("productSelector.categories.lighting", null, "Lighting")
+        };
+        modal.querySelectorAll(".filter-btn").forEach((btn) => {
+            const key = btn.dataset.cat;
+            if (key && categoryTextMap[key]) btn.textContent = categoryTextMap[key];
+        });
+
+        modal.querySelectorAll(".style-btn").forEach((btn) => {
+            const styleId = btn.dataset.style;
+            if (styleId === "all") {
+                btn.textContent = tr("productSelector.anyStyle", null, "Any Style");
+            } else if (styleId) {
+                const hit = PRODUCT_STYLES.find((s) => s.id === styleId);
+                const fallback = hit ? hit.label : styleId;
+                btn.textContent = tr(`styles.${styleId}`, null, fallback);
+            }
+        });
     }
 
     function clearStyleFilter() {

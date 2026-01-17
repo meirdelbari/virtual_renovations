@@ -137,7 +137,7 @@
         "Error: " + sanitizedMessage + "\n\n" +
         "Please check:\n" +
         "- Backend server is running (http://localhost:4000)\n" +
-        "- GOOGLE_GEMINI_API_KEY is configured in backend/.env\n" +
+        "- GOOGLE_GEMINI_API_KEY is configured in the repo root .env\n" +
         "- Your AlgoreitAI API key is valid (get one at https://ai.google.dev/)"
       );
     } finally {
