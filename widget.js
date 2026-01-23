@@ -2,8 +2,15 @@
     // 1. Configuration
     // In production, this would be your actual domain (e.g., https://app.algoreitai.com)
     // We try to auto-detect the domain based on where this script was loaded from.
-    var scriptSource = document.currentScript ? document.currentScript.src : 'http://localhost:4000/widget.js';
-    var baseUrl = new URL(scriptSource).origin; 
+    var scriptEl = document.currentScript;
+    var scriptSource = scriptEl ? scriptEl.src : 'http://localhost:4000/widget.js';
+    var scriptUrlObj = new URL(scriptSource);
+    var baseUrl = scriptUrlObj.origin; 
+    
+    // Parse configuration from script URL parameters
+    var config = {
+        supplierId: scriptUrlObj.searchParams.get("supplierId") || null
+    }; 
     
     // Prevent double loading
     if (document.getElementById('algoreit-ai-root')) return;
@@ -166,7 +173,20 @@
             iframe = document.createElement('iframe');
             iframe.className = 'algoreit-iframe';
             // Add mode=embed to hide headers if supported by app
-            iframe.src = baseUrl + '/index.html?mode=embed';
+            var params = new URLSearchParams();
+            params.set('mode', 'embed');
+            
+            // Pass supplierId if configured in script tag
+            if (config.supplierId) {
+                params.set('supplierId', config.supplierId);
+            }
+
+            try {
+                if (window.location && window.location.hostname) {
+                    params.set('supplierHost', window.location.hostname);
+                }
+            } catch (_) {}
+            iframe.src = baseUrl + '/index.html?' + params.toString();
             iframe.allow = "camera; microphone; clipboard-write; clipboard-read";
             modalContent.appendChild(iframe);
         }

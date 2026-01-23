@@ -2,7 +2,8 @@
   "app": {
     "brand": "AlgoreitAI",
     "title": "AlgoreitAI - Virtual Renovations & Staging",
-    "appTitle": "AlgoreitAI-Virtual Renovations & Staging"
+    "appTitle": "AlgoreitAI-Virtual Renovations & Staging",
+    "supplierAppTitle": "Select and Add Our Products"
   },
   "lang": {
     "english": "🇺🇸 English",

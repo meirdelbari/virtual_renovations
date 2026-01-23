@@ -1141,10 +1141,6 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
         // Draw product
         ctx.drawImage(productImg, dx, dy, drawW, drawH);
     
-        // Footer hint
-        ctx.fillStyle = "#374151";
-        ctx.font = "16px Inter, system-ui, -apple-system, Segoe UI, Arial";
-        ctx.fillText("Use the product on the right in the room on the left.", roomW + pad, roomH - 18);
     
         // Calculate split ratio for later cropping
         const splitRatio = roomW / totalW;

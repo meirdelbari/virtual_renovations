@@ -18,11 +18,9 @@ const db = {
       })),
     getById: async (id) => (await db.suppliers.getAll()).find((s) => s.id === id),
     getByUserId: async (userId) => (await db.suppliers.getAll()).find((s) => s.userId === userId),
+    getByUserIdAll: async (userId) => (await db.suppliers.getAll()).filter((s) => s.userId === userId),
     create: async (supplierData) => {
       const suppliers = await db.suppliers.getAll();
-      if (suppliers.find((s) => s.userId === supplierData.userId)) {
-        throw new Error("Supplier already exists for this user");
-      }
       const newSupplier = {
         id: 'sup_' + Date.now(),
         createdAt: new Date().toISOString(),
@@ -52,6 +50,13 @@ const db = {
       suppliers[index] = { ...suppliers[index], ...updates, updatedAt: new Date().toISOString() };
       await store.setSuppliers(suppliers);
       return suppliers[index];
+    },
+    deleteById: async (id) => {
+      const suppliers = await db.suppliers.getAll();
+      const filtered = suppliers.filter((s) => s.id !== id);
+      if (filtered.length === suppliers.length) return false;
+      await store.setSuppliers(filtered);
+      return true;
     }
   },
   products: {

@@ -1,11 +1,39 @@
 [
   {
+    "status": "active",
+    "statusUpdatedAt": "2025-12-24T15:24:46.801Z",
+    "statusReason": "",
+    "updatedAt": "2026-01-17T20:59:09.794Z",
     "id": "sup_1766589886801",
     "createdAt": "2025-12-24T15:24:46.801Z",
     "userId": "user_mock_local_dev",
-    "companyName": "Delbari",
+    "companyName": "גושטיין קרמיקה",
     "contactEmail": "meirdelbari@gmail.com",
     "description": "we are selling tiles and hardwood fllors also doint painting",
+    "categories": [
+      "Flooring",
+      "Staging"
+    ],
+    "logoUrl": null,
+    "contactPerson": "",
+    "phone": "",
+    "website": "https://gutstein.co.il/",
+    "address": ""
+  },
+  {
+    "id": "sup_1768687933815",
+    "createdAt": "2026-01-17T22:12:13.815Z",
+    "updatedAt": "2026-01-17T22:12:13.815Z",
+    "status": "active",
+    "statusUpdatedAt": "2026-01-17T22:12:13.815Z",
+    "statusReason": "",
+    "userId": "user_mock_local_dev",
+    "companyName": "עוגן קרמיקה",
+    "contactPerson": "מאיר דלברי",
+    "contactEmail": "meirdelbari@gmail.com",
+    "phone": "0546604276",
+    "website": "https://ogenceramica.co.il",
+    "address": "הרב קוק 14 דירה 4 קומה שניה כניסה ב'",
     "categories": [
       "Flooring",
       "Staging"

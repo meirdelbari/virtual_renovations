@@ -25,7 +25,7 @@
         if (new URLSearchParams(window.location.search).get("mode") === "embed") {
           const style = document.createElement("style");
           style.innerHTML = `
-            .landing-nav, .app-header, .landing-footer { display: none !important; }
+            .landing-nav, .landing-footer { display: none !important; }
             .landing-page { padding-top: 20px !important; }
             .app-main { height: 100vh !important; padding-top: 10px !important; }
           `;
@@ -80,11 +80,57 @@
 
     <script>
       // ==========================================================
+      // Supplier embed context (for supplier-site uploads)
+      // ==========================================================
+      (function () {
+        function getQueryParam(name) {
+          try {
+            const params = new URLSearchParams(window.location.search || "");
+            const v = params.get(name);
+            return v && String(v).trim() ? String(v).trim() : null;
+          } catch (_) {
+            return null;
+          }
+        }
+
+        const supplierId = getQueryParam("supplierId");
+        const supplierHostParam = getQueryParam("supplierHost");
+        const isEmbed = getQueryParam("mode") === "embed";
+        let referrerHost = null;
+        if (isEmbed && !supplierHostParam) {
+          try {
+            if (document.referrer) {
+              referrerHost = new URL(document.referrer).hostname || null;
+            }
+          } catch (_) {}
+        }
+
+        const supplierHost = supplierHostParam || referrerHost;
+        if (supplierId || supplierHost) {
+          window.VR_SUPPLIER_CONTEXT = {
+            supplierId: supplierId || null,
+            supplierHost: supplierHost || null,
+          };
+        }
+      })();
+    </script>
+
+    <script>
+      // ==========================================================
       // i18n init + language selector wiring
       // ==========================================================
       (function () {
         async function init() {
           if (!window.i18n || typeof window.i18n.initI18n !== "function") return;
+
+          // If in supplier context, use the supplier-specific title
+          if (window.VR_SUPPLIER_CONTEXT) {
+            const titleEl = document.querySelector('.app-title');
+            if (titleEl) {
+              titleEl.setAttribute('data-i18n', 'app.supplierAppTitle');
+            }
+          }
+
           await window.i18n.initI18n({ fallbackLocale: "en" });
           // keep <title> translated
           try {

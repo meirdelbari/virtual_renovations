@@ -484,6 +484,7 @@ app.get("/api/demo-proxy", async (req, res) => {
     // This is a naive implementation but works for most static assets in a demo context
     const urlObj = new URL(targetUrl);
     const origin = urlObj.origin;
+    const supplierHostParam = encodeURIComponent(urlObj.hostname || "");
     
     // Replace src="/..." with src="https://site.com/..."
     let modifiedHtml = html.replace(/(src|href|action)="\/(?!\/)/gi, `$1="${origin}/`);
@@ -653,7 +654,7 @@ app.get("/api/demo-proxy", async (req, res) => {
           const iframe = document.createElement("iframe");
           // Use absolute URL to ensure it points to localhost:4000 even if proxy URL structure is weird
           // Also added 'allow' attributes for camera/microphone which might be needed
-          iframe.src = "http://localhost:4000/index.html?mode=embed"; 
+          iframe.src = "http://localhost:4000/index.html?mode=embed&supplierHost=${supplierHostParam}"; 
           iframe.allow = "camera; microphone; clipboard-write";
           iframe.style.width = "100%";
           iframe.style.height = "100%";

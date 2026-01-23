@@ -2,7 +2,8 @@
   "app": {
     "brand": "AlgoreitAI",
     "title": "AlgoreitAI - שיפוץ וירטואלי",
-    "appTitle": "AlgoreitAI-שיפוץ וירטואלי"
+    "appTitle": "AlgoreitAI-שיפוץ וירטואלי",
+    "supplierAppTitle": "בחר והוסף את המוצרים שלנו"
   },
   "lang": {
     "english": "🇺🇸 English",

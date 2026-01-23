@@ -119,6 +119,7 @@ function setTableHead(mode) {
       <th class="text-left p-3">Product</th>
       <th class="text-left p-3">Image</th>
       <th class="text-left p-3">Supplier</th>
+      <th class="text-left p-3">Order</th>
       <th class="text-left p-3">Status</th>
       <th class="text-left p-3">Created</th>
       <th class="text-left p-3">Reason</th>
@@ -226,7 +227,7 @@ async function loadProducts() {
     tbody.innerHTML = "";
 
     if (products.length === 0) {
-      tbody.innerHTML = `<tr><td class="p-4 text-gray-500" colspan="6">No products found.</td></tr>`;
+      tbody.innerHTML = `<tr><td class="p-4 text-gray-500" colspan="8">No products found.</td></tr>`;
       return;
     }
 
@@ -236,6 +237,8 @@ async function loadProducts() {
       const portalHref = `supplier.html?adminSupplierId=${encodeURIComponent(p.supplierId || "")}`;
       const imageUrl = p.imageUrl || "";
       const safeImageUrl = escapeAttr(imageUrl);
+      const orderValue = Number.isFinite(Number(p.displayOrder)) ? String(p.displayOrder) : "";
+      const safeOrderValue = escapeAttr(orderValue);
       const imageCell = imageUrl
         ? `
           <div class="flex items-center gap-2">
@@ -249,6 +252,9 @@ async function loadProducts() {
         <td class="p-3">${imageCell}</td>
         <td class="p-3 text-gray-700">
           ${p.supplierId ? `<a class="text-indigo-600 hover:underline" href="${portalHref}" target="_blank" rel="noopener noreferrer">${p.supplierName || ""}</a>` : (p.supplierName || "")}
+        </td>
+        <td class="p-3">
+          <input class="prod-order-input w-20 border border-gray-200 rounded px-2 py-1 text-sm" type="number" step="1" min="0" value="${safeOrderValue}" data-id="${p.id}">
         </td>
         <td class="p-3"><span class="${badge(p.status || "pending")}">${p.status || "pending"}</span></td>
         <td class="p-3 text-gray-700">${formatDate(p.createdAt)}</td>
@@ -268,6 +274,30 @@ async function loadProducts() {
         const url = btn.dataset.image || "";
         if (!url) return;
         showImageModal(url);
+      });
+    });
+
+    document.querySelectorAll(".prod-order-input").forEach((input) => {
+      input.addEventListener("change", async () => {
+        const id = input.dataset.id;
+        const raw = String(input.value || "").trim();
+        let displayOrder = null;
+        if (raw) {
+          const parsed = Number(raw);
+          if (!Number.isFinite(parsed)) {
+            alert("Order must be a number.");
+            return;
+          }
+          displayOrder = parsed;
+        }
+        input.disabled = true;
+        try {
+          await apiCall(`/admin/products/${encodeURIComponent(id)}/order`, "POST", { displayOrder });
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          input.disabled = false;
+        }
       });
     });
 

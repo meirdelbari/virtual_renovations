@@ -15,13 +15,50 @@ window.productSelector = (function() {
 
     const PRODUCT_STYLES = [
         { id: "modern", label: "Modern" },
-        { id: "traditional", label: "Traditional" },
-        { id: "industrial", label: "Industrial" },
+        { id: "contemporary", label: "Contemporary" },
+        { id: "farmhouse", label: "Farmhouse" },
+        { id: "coastal", label: "Coastal" },
         { id: "minimalist", label: "Minimalist" },
         { id: "scandinavian", label: "Scandinavian" },
-        { id: "bohemian", label: "Bohemian" },
+        { id: "bohemian", label: "Boho" },
+        { id: "industrial", label: "Industrial" },
         { id: "mid_century_modern", label: "Mid-Century Modern" },
+        { id: "traditional", label: "Traditional" },
+        { id: "transitional", label: "Transitional" }
     ];
+
+    const SUB_CATEGORIES = {
+        Flooring: [
+            { id: "Hardwood", label: "Hardwood" },
+            { id: "Laminate", label: "Laminate" },
+            { id: "Ceramics", label: "Ceramics" },
+            { id: "Tiles", label: "Tiles" },
+            { id: "Vinyl", label: "Vinyl" },
+            { id: "Carpet", label: "Carpet" }
+        ],
+        Furniture: [
+            { id: "Sofa", label: "Sofa" },
+            { id: "Chair", label: "Chair" },
+            { id: "Table", label: "Table" },
+            { id: "Bed", label: "Bed" },
+            { id: "Wardrobe", label: "Wardrobe" },
+            { id: "Cabinet", label: "Cabinet" },
+            { id: "Dining Set", label: "Dining Set" },
+            { id: "Rug", label: "Rug" }
+        ],
+        Lighting: [
+            { id: "Chandelier", label: "Chandelier" },
+            { id: "Pendant", label: "Pendant" },
+            { id: "Ceiling", label: "Ceiling Light" },
+            { id: "Wall Sconce", label: "Wall Sconce" },
+            { id: "Table Lamp", label: "Table Lamp" },
+            { id: "Floor Lamp", label: "Floor Lamp" },
+            { id: "Recessed", label: "Recessed" },
+            { id: "Track", label: "Track Lighting" },
+            { id: "Outdoor", label: "Outdoor" },
+            { id: "Smart", label: "Smart Lighting" }
+        ]
+    };
 
     function getStyleLabel(styleId) {
         if (!styleId) return "";
@@ -40,13 +77,40 @@ window.productSelector = (function() {
     async function fetchProducts() {
         try {
             // Add timestamp to prevent caching
-            const res = await fetch(getApiUrl('/api/suppliers/public/catalog?t=' + Date.now()));
+            const params = new URLSearchParams();
+            params.set('t', String(Date.now()));
+            const context = window.VR_SUPPLIER_CONTEXT || {};
+            if (context.supplierId) {
+                params.set('supplierId', String(context.supplierId));
+            } else if (context.supplierHost) {
+                params.set('supplierHost', String(context.supplierHost));
+            }
+            const res = await fetch(getApiUrl('/api/suppliers/public/catalog?' + params.toString()));
             if (res.ok) {
                 allProducts = await res.json();
             }
         } catch (e) {
             console.error("Failed to fetch supplier products:", e);
         }
+    }
+
+    function renderCategoryDropdown(catName) {
+        const subs = SUB_CATEGORIES[catName] || [];
+        const label = tr(`productSelector.categories.${catName.toLowerCase()}`, null, catName);
+        
+        return `
+            <div class="relative group inline-block">
+                <button onclick="window.productSelector.filter('${catName}')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn flex items-center whitespace-nowrap" data-cat="${catName}">
+                    <span class="btn-text">${label}</span> <span class="ml-1 text-xs">▼</span>
+                </button>
+                <div class="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50 border border-gray-100">
+                    <button onclick="window.productSelector.filter('${catName}')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">All ${catName}</button>
+                    ${subs.map(s => `
+                        <button onclick="window.productSelector.filter('${catName} - ${s.id}')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">${s.label}</button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
     }
 
     function createModal() {
@@ -60,24 +124,41 @@ window.productSelector = (function() {
                     <button onclick="window.productSelector.close()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
                 </div>
                 
-                <div class="flex flex-col gap-2 mb-4">
-                    <!-- Category Filters -->
-                    <div class="flex space-x-2 overflow-x-auto pb-1 ps-category-row">
-                        <span class="text-xs font-semibold text-gray-500 uppercase self-center mr-2 ps-category-label">${tr("productSelector.categoryLabel", null, "Category")}:</span>
-                        <button onclick="window.productSelector.filter('All')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn active" data-cat="All">${tr("productSelector.categories.all", null, "All")}</button>
-                        <button onclick="window.productSelector.filter('Flooring')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Flooring">${tr("productSelector.categories.flooring", null, "Flooring")}</button>
-                        <button onclick="window.productSelector.filter('Paint')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Paint">${tr("productSelector.categories.paint", null, "Paint")}</button>
-                        <button onclick="window.productSelector.filter('Furniture')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Furniture">${tr("productSelector.categories.furniture", null, "Furniture")}</button>
-                        <button onclick="window.productSelector.filter('Lighting')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Lighting">${tr("productSelector.categories.lighting", null, "Lighting")}</button>
-                    </div>
+                <div class="flex flex-col gap-4 mb-4">
+                    <!-- Filter Bar -->
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-1 rounded-lg">
+                        <!-- Category Filters -->
+                        <div class="flex flex-wrap gap-2 ps-category-row w-full md:w-auto">
+                            <!-- All -->
+                            <button onclick="window.productSelector.filter('All')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn active" data-cat="All">
+                                <span class="btn-text">${tr("productSelector.categories.all", null, "All")}</span>
+                            </button>
 
-                    <!-- Style Filters -->
-                    <div class="flex space-x-2 overflow-x-auto pb-1 items-center ps-style-row">
-                        <span class="text-xs font-semibold text-gray-500 uppercase self-center mr-2 ps-style-label">${tr("productSelector.styleLabel", null, "Style")}:</span>
-                        <button onclick="window.productSelector.filterStyle(null)" class="px-3 py-1.5 text-sm bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 transition style-btn active" data-style="all">${tr("productSelector.anyStyle", null, "Any Style")}</button>
-                        ${PRODUCT_STYLES.map(s => `
-                            <button onclick="window.productSelector.filterStyle('${s.id}')" class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition style-btn" data-style="${s.id}">${tr(`styles.${s.id}`, null, s.label)}</button>
-                        `).join('')}
+                            <!-- Dropdowns -->
+                            ${renderCategoryDropdown("Flooring")}
+                            ${renderCategoryDropdown("Furniture")}
+                            ${renderCategoryDropdown("Lighting")}
+
+                            <!-- Paint -->
+                            <button onclick="window.productSelector.filter('Paint')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Paint">
+                                <span class="btn-text">${tr("productSelector.categories.paint", null, "Paint")}</span>
+                            </button>
+                            
+                            <!-- Decor -->
+                            <button onclick="window.productSelector.filter('Decor')" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:bg-indigo-600 focus:text-white transition filter-btn" data-cat="Decor">
+                                <span class="btn-text">Decor</span>
+                            </button>
+                        </div>
+
+                        <!-- Style Filters -->
+                        <div class="w-full md:w-48 ps-style-row">
+                            <select onchange="window.productSelector.filterStyle(this.value)" id="ps-style-select" class="block w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">${tr("productSelector.allStyles", null, "All Styles")}</option>
+                                ${PRODUCT_STYLES.map(s => `
+                                    <option value="${s.id}">${tr(`styles.${s.id}`, null, s.label)}</option>
+                                `).join('')}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -207,8 +288,21 @@ window.productSelector = (function() {
         window.currentStyleFilter = style;
         // Update Filter UI
         document.querySelectorAll('.filter-btn').forEach(b => {
-            const isMatch = (cat && b.dataset.cat === cat) || (!cat && b.dataset.cat === 'All');
-            if(isMatch) {
+            const btnCat = b.dataset.cat;
+            let isActive = false;
+            const targetCat = cat || 'All';
+
+            if (btnCat === targetCat) {
+                isActive = true;
+            } else if (targetCat.startsWith('Flooring') && btnCat === 'Flooring') {
+                isActive = true;
+            } else if (targetCat.startsWith('Furniture') && btnCat === 'Furniture') {
+                isActive = true;
+            } else if (targetCat.startsWith('Lighting') && btnCat === 'Lighting') {
+                isActive = true;
+            }
+
+            if(isActive) {
                 b.classList.remove('bg-gray-100', 'text-black');
                 b.classList.add('bg-indigo-600', 'text-white');
                 b.classList.add('active');
@@ -219,19 +313,11 @@ window.productSelector = (function() {
             }
         });
 
-        // Update Style Buttons UI
-        document.querySelectorAll('.style-btn').forEach(b => {
-            const isMatch = (style && b.dataset.style === style) || (!style && b.dataset.style === 'all');
-            if(isMatch) {
-                b.classList.remove('bg-white', 'border-gray-200', 'text-gray-700');
-                b.classList.add('bg-indigo-100', 'border-indigo-300', 'text-indigo-800', 'font-medium');
-                b.classList.add('active');
-            } else {
-                b.classList.add('bg-white', 'border-gray-200', 'text-gray-700');
-                b.classList.remove('bg-indigo-100', 'border-indigo-300', 'text-indigo-800', 'font-medium');
-                b.classList.remove('active');
-            }
-        });
+        // Update Style Select UI
+        const select = document.getElementById("ps-style-select");
+        if (select) {
+            select.value = style || 'all';
+        }
         
         const header = modal.querySelector('h2');
         header.innerHTML = tr("productSelector.title", null, "Select a Product");
@@ -242,10 +328,7 @@ window.productSelector = (function() {
 
     function applyTranslations() {
         if (!modal) return;
-        const categoryLabel = modal.querySelector(".ps-category-label");
-        if (categoryLabel) categoryLabel.textContent = `${tr("productSelector.categoryLabel", null, "Category")}:`;
-        const styleLabel = modal.querySelector(".ps-style-label");
-        if (styleLabel) styleLabel.textContent = `${tr("productSelector.styleLabel", null, "Style")}:`;
+        // removed ps-category-label and ps-style-label
         const selectedLabel = modal.querySelector(".ps-selected-label");
         if (selectedLabel) selectedLabel.textContent = `${tr("productSelector.selectedLabel", null, "Selected")}:`;
         const useProductBtn = modal.querySelector("#ps-use-product-btn");
@@ -256,11 +339,15 @@ window.productSelector = (function() {
             Flooring: tr("productSelector.categories.flooring", null, "Flooring"),
             Paint: tr("productSelector.categories.paint", null, "Paint"),
             Furniture: tr("productSelector.categories.furniture", null, "Furniture"),
-            Lighting: tr("productSelector.categories.lighting", null, "Lighting")
+            Lighting: tr("productSelector.categories.lighting", null, "Lighting"),
+            Decor: "Decor"
         };
         modal.querySelectorAll(".filter-btn").forEach((btn) => {
             const key = btn.dataset.cat;
-            if (key && categoryTextMap[key]) btn.textContent = categoryTextMap[key];
+            if (key && categoryTextMap[key]) {
+                const span = btn.querySelector('.btn-text');
+                if (span) span.textContent = categoryTextMap[key];
+            }
         });
 
         modal.querySelectorAll(".style-btn").forEach((btn) => {
@@ -273,6 +360,21 @@ window.productSelector = (function() {
                 btn.textContent = tr(`styles.${styleId}`, null, fallback);
             }
         });
+
+        // Update Select options
+        const select = modal.querySelector("#ps-style-select");
+        if (select) {
+             const opts = select.options;
+             for (let i = 0; i < opts.length; i++) {
+                 const opt = opts[i];
+                 if (opt.value === 'all') {
+                     opt.text = tr("productSelector.allStyles", null, "All Styles");
+                 } else {
+                     const hit = PRODUCT_STYLES.find(s => s.id === opt.value);
+                     if (hit) opt.text = tr(`styles.${hit.id}`, null, hit.label);
+                 }
+             }
+        }
     }
 
     function clearStyleFilter() {
@@ -296,7 +398,20 @@ window.productSelector = (function() {
     function filter(cat) {
         // UI update
         document.querySelectorAll('.filter-btn').forEach(b => {
-            if(b.dataset.cat === cat) {
+            const btnCat = b.dataset.cat;
+            let isActive = false;
+
+            if (btnCat === cat) {
+                isActive = true;
+            } else if (cat.startsWith('Flooring') && btnCat === 'Flooring') {
+                isActive = true;
+            } else if (cat.startsWith('Furniture') && btnCat === 'Furniture') {
+                isActive = true;
+            } else if (cat.startsWith('Lighting') && btnCat === 'Lighting') {
+                isActive = true;
+            }
+
+            if(isActive) {
                 b.classList.remove('bg-gray-100', 'text-black');
                 b.classList.add('bg-indigo-600', 'text-white');
                 b.classList.add('active');
@@ -310,21 +425,16 @@ window.productSelector = (function() {
     }
 
     function filterStyle(style) {
+        // If "all" string is passed from select, treat as null
+        if (style === 'all') style = null;
+
         window.currentStyleFilter = style;
         
-        // UI Update
-        document.querySelectorAll('.style-btn').forEach(b => {
-            const isMatch = (style && b.dataset.style === style) || (!style && b.dataset.style === 'all');
-            if(isMatch) {
-                b.classList.remove('bg-white', 'border-gray-200', 'text-gray-700');
-                b.classList.add('bg-indigo-100', 'border-indigo-300', 'text-indigo-800', 'font-medium');
-                b.classList.add('active');
-            } else {
-                b.classList.add('bg-white', 'border-gray-200', 'text-gray-700');
-                b.classList.remove('bg-indigo-100', 'border-indigo-300', 'text-indigo-800', 'font-medium');
-                b.classList.remove('active');
-            }
-        });
+        // Update Select UI
+        const select = document.getElementById("ps-style-select");
+        if (select) {
+            select.value = style || 'all';
+        }
 
         // Get current category
         const activeCatBtn = document.querySelector('.filter-btn.active');

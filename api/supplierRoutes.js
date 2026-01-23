@@ -43,16 +43,45 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
+const getSupplierForRequest = async (req, res) => {
+    const supplierId =
+        (req.headers && req.headers["x-supplier-id"]) ||
+        (req.query && req.query.supplierId) ||
+        "";
+    if (supplierId) {
+        const supplier = await db.suppliers.getById(String(supplierId));
+        if (!supplier || supplier.userId !== req.userId) {
+            res.status(404).json({ error: "Supplier not found for this user" });
+            return null;
+        }
+        return supplier;
+    }
+
+    const suppliers = await db.suppliers.getByUserIdAll(req.userId);
+    if (!suppliers || suppliers.length === 0) {
+        res.status(404).json({ error: "Register as a supplier first" });
+        return null;
+    }
+    if (suppliers.length > 1) {
+        res.status(400).json({
+            error: "Multiple suppliers found. Select a supplier.",
+            suppliers: suppliers.map((s) => ({ id: s.id, companyName: s.companyName || "" })),
+        });
+        return null;
+    }
+    return suppliers[0];
+};
+
 const requireSupplier = asyncHandler(async (req, res, next) => {
-    const supplier = await db.suppliers.getByUserId(req.userId);
-    if (!supplier) return res.status(404).json({ error: "Register as a supplier first" });
+    const supplier = await getSupplierForRequest(req, res);
+    if (!supplier) return;
     req.supplier = supplier;
     next();
 });
 
 const requireNotBlockedSupplier = asyncHandler(async (req, res, next) => {
-    const supplier = req.supplier || (await db.suppliers.getByUserId(req.userId));
-    if (!supplier) return res.status(404).json({ error: "Register as a supplier first" });
+    const supplier = req.supplier || (await getSupplierForRequest(req, res));
+    if (!supplier) return;
     if (supplier.status === "blocked") {
         return res.status(403).json({ error: "Supplier account is blocked" });
     }
@@ -60,15 +89,61 @@ const requireNotBlockedSupplier = asyncHandler(async (req, res, next) => {
     next();
 });
 
+function normalizeHost(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    try {
+        const withScheme = raw.startsWith("http://") || raw.startsWith("https://") ? raw : `https://${raw}`;
+        const host = new URL(withScheme).hostname || "";
+        return host.replace(/^www\./i, "").toLowerCase();
+    } catch (_) {
+        return raw.replace(/^www\./i, "").toLowerCase();
+    }
+}
+
+function getDisplayOrder(product) {
+    const n = Number(product && product.displayOrder);
+    return Number.isFinite(n) ? n : null;
+}
+
+function sortByDisplayOrder(a, b) {
+    const ao = getDisplayOrder(a);
+    const bo = getDisplayOrder(b);
+    if (ao !== null && bo !== null) return ao - bo;
+    if (ao !== null) return -1;
+    if (bo !== null) return 1;
+    return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+}
+
 // --- Supplier Profile Routes ---
 
 // Get current supplier profile
-router.get('/me', requireAuth, asyncHandler(async (req, res) => {
-    const supplier = await db.suppliers.getByUserId(req.userId);
-    if (!supplier) {
-        return res.status(404).json({ error: "Supplier profile not found" });
+router.get('/me', requireAuth, requireSupplier, asyncHandler(async (req, res) => {
+    res.json(req.supplier);
+}));
+
+router.get('/mine', requireAuth, asyncHandler(async (req, res) => {
+    const suppliers = await db.suppliers.getByUserIdAll(req.userId);
+    res.json(suppliers);
+}));
+
+router.delete('/mine/:id', requireAuth, asyncHandler(async (req, res) => {
+    const supplierId = String(req.params.id || "");
+    const confirm = (req.body && String(req.body.confirm || "")).trim().toUpperCase();
+    if (confirm !== "DELETE") {
+        return res.status(400).json({ error: "Confirmation required. Send { confirm: \"DELETE\" }." });
     }
-    res.json(supplier);
+
+    const supplier = await db.suppliers.getById(supplierId);
+    if (!supplier || supplier.userId !== req.userId) {
+        return res.status(404).json({ error: "Supplier not found for this user" });
+    }
+
+    const removedProducts = await db.products.deleteAllBySupplierId(supplierId);
+    const removedSupplier = await db.suppliers.deleteById(supplierId);
+    if (!removedSupplier) return res.status(404).json({ error: "Supplier not found" });
+
+    res.json({ success: true, removedProducts: removedProducts.removed || 0 });
 }));
 
 // Register as a supplier
@@ -105,11 +180,11 @@ router.post('/register', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 // Update supplier profile
-router.put('/me', requireAuth, asyncHandler(async (req, res) => {
+router.put('/me', requireAuth, requireSupplier, asyncHandler(async (req, res) => {
     try {
         // Supplier cannot self-approve or change status fields
         const { status, statusUpdatedAt, statusReason, ...safeUpdates } = req.body || {};
-        const updated = await db.suppliers.update(req.userId, safeUpdates);
+        const updated = await db.suppliers.updateById(req.supplier.id, safeUpdates);
         if (!updated) return res.status(404).json({ error: "Supplier not found" });
         res.json(updated);
     } catch (err) {
@@ -351,9 +426,22 @@ router.delete('/products', requireAuth, requireSupplier, requireNotBlockedSuppli
 router.get('/public/catalog', asyncHandler(async (req, res) => {
     const suppliers = await db.suppliers.getAll();
     const activeSupplierIds = new Set(suppliers.filter((s) => s.status !== "blocked").map((s) => s.id));
-    const allProducts = (await db.products.getAll()).filter(
+    const supplierId = req.query && req.query.supplierId ? String(req.query.supplierId) : "";
+    const supplierHost = req.query && req.query.supplierHost ? String(req.query.supplierHost) : "";
+    let requestedSupplierId = supplierId;
+    if (!requestedSupplierId && supplierHost) {
+        const wantedHost = normalizeHost(supplierHost);
+        const hit = suppliers.find((s) => normalizeHost(s.website) === wantedHost);
+        if (hit && hit.id) requestedSupplierId = hit.id;
+    }
+
+    let allProducts = (await db.products.getAll()).filter(
         (p) => activeSupplierIds.has(p.supplierId) && p.status === "approved"
     );
+    if (requestedSupplierId) {
+        allProducts = allProducts.filter((p) => p.supplierId === requestedSupplierId);
+    }
+    allProducts.sort(sortByDisplayOrder);
     res.json(allProducts);
 }));
 
@@ -393,8 +481,26 @@ router.get('/admin/products', requireAuth, requireAdmin, asyncHandler(async (req
     const status = req.query && req.query.status;
     let products = await db.products.getAll();
     if (status) products = products.filter((p) => p.status === status);
-    products.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    products.sort(sortByDisplayOrder);
     res.json(products);
+}));
+
+router.post('/admin/products/:id/order', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    const raw = req.body && req.body.displayOrder;
+    let displayOrder = null;
+    if (raw !== null && raw !== undefined && String(raw).trim() !== "") {
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed)) {
+            return res.status(400).json({ error: "displayOrder must be a number" });
+        }
+        displayOrder = parsed;
+    }
+    const product = await db.products.updateById(req.params.id, {
+        displayOrder,
+        updatedAt: new Date().toISOString(),
+    });
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    res.json(product);
 }));
 
 router.post('/admin/products/:id/approve', requireAuth, requireAdmin, asyncHandler(async (req, res) => {

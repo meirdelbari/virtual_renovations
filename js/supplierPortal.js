@@ -2,6 +2,10 @@
 let clerk;
 let currentUser = null;
 let currentSupplier = null;
+let supplierList = [];
+let currentSupplierId = null;
+let isAddingSupplier = false;
+let supplierSwitcherBound = false;
 let allProducts = []; // Store all products for client-side filtering
 let currentCategory = 'All'; // Track active category filter
 let isAdminView = false;
@@ -204,7 +208,7 @@ async function startClerk(pubKey) {
                 adminSupplierId = sid;
                 loadAdminSupplierView(sid);
             } else {
-                checkSupplierStatus();
+                loadSuppliersAndSelect();
             }
         } else {
             console.log("No user found, showing login.");
@@ -265,7 +269,7 @@ function activateDevMode() {
     currentUser = { id: "user_mock_local_dev", firstName: "Local", lastName: "Dev" };
     const btn = document.getElementById("user-button");
     if(btn) btn.innerHTML = "<div class='bg-gray-200 px-3 py-1 rounded text-sm font-bold'>Dev User</div>";
-    checkSupplierStatus();
+    loadSuppliersAndSelect();
 }
 
 function mountUserButton() {
@@ -282,6 +286,9 @@ async function apiCall(endpoint, method = 'GET', body = null) {
         // Pass user ID strictly for the prototype's simulated auth check
         'x-user-id': currentUser ? currentUser.id : ''
     };
+    if (!isAdminView && currentSupplierId) {
+        headers['x-supplier-id'] = currentSupplierId;
+    }
     
     // Allow GET /me to fail (404) without throwing "Not authenticated" if user just logged in
     // But currentUser must be set for any operation.
@@ -312,6 +319,70 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     
     if (!res.ok) throw new Error(data.error || `API Error ${res.status}`);
     return data;
+}
+
+function getStoredSupplierId() {
+    try {
+        return window.localStorage.getItem("VR_SUPPLIER_ID");
+    } catch (_) {
+        return null;
+    }
+}
+
+function setStoredSupplierId(id) {
+    try {
+        if (id) window.localStorage.setItem("VR_SUPPLIER_ID", id);
+        else window.localStorage.removeItem("VR_SUPPLIER_ID");
+    } catch (_) {}
+}
+
+function renderSupplierSwitcher() {
+    const card = document.getElementById("supplier-switch-card");
+    const select = document.getElementById("supplier-switch");
+    const deleteBtn = document.getElementById("delete-supplier-btn");
+    if (!card || !select) return;
+    if (isAdminView) {
+        card.classList.add("hidden");
+        return;
+    }
+    card.classList.remove("hidden");
+    select.innerHTML = "";
+    supplierList.forEach((s) => {
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = s.companyName || s.id;
+        if (s.id === currentSupplierId) opt.selected = true;
+        select.appendChild(opt);
+    });
+    select.disabled = supplierList.length <= 1;
+    if (deleteBtn) {
+        deleteBtn.disabled = !currentSupplierId;
+    }
+}
+
+async function loadSuppliersAndSelect() {
+    try {
+        supplierList = await apiCall('/mine');
+    } catch (err) {
+        console.warn("Failed to load suppliers list:", err.message);
+        supplierList = [];
+    }
+
+    if (!supplierList.length) {
+        showRegistration();
+        return;
+    }
+
+    isAddingSupplier = false;
+    const params = new URLSearchParams(window.location.search || "");
+    const fromUrl = params.get("supplierId");
+    const stored = getStoredSupplierId();
+    const preferred = fromUrl || stored;
+    const match = supplierList.find((s) => s.id === preferred);
+    currentSupplierId = match ? match.id : supplierList[0].id;
+    setStoredSupplierId(currentSupplierId);
+
+    await checkSupplierStatus();
 }
 
 // Check if user is already a supplier
@@ -356,6 +427,11 @@ function showLoading() {
 function showRegistration() {
     hideAllViews();
     document.getElementById('registration-view').classList.remove('hidden');
+    const wrap = document.getElementById("cancel-registration-wrap");
+    if (wrap) {
+        if (supplierList.length > 0) wrap.classList.remove("hidden");
+        else wrap.classList.add("hidden");
+    }
 }
 
 function showBlocked(reason) {
@@ -397,7 +473,74 @@ function showDashboard() {
         applyFilters(); // uses allProducts already populated
         document.getElementById('stat-products').textContent = String(allProducts.length);
     } else {
+        renderSupplierSwitcher();
+        bindSupplierSwitcher();
         loadProducts();
+    }
+}
+
+function bindSupplierSwitcher() {
+    if (supplierSwitcherBound) return;
+    supplierSwitcherBound = true;
+    const select = document.getElementById("supplier-switch");
+    const addBtn = document.getElementById("add-supplier-btn");
+    const deleteBtn = document.getElementById("delete-supplier-btn");
+    const cancelBtn = document.getElementById("cancel-registration-btn");
+
+    if (select) {
+        select.addEventListener("change", async () => {
+            const nextId = select.value;
+            if (!nextId || nextId === currentSupplierId) return;
+            currentSupplierId = nextId;
+            setStoredSupplierId(currentSupplierId);
+            showLoading();
+            await checkSupplierStatus();
+        });
+    }
+
+    if (addBtn) {
+        addBtn.addEventListener("click", () => {
+            isAddingSupplier = true;
+            showRegistration();
+        });
+    }
+
+    if (deleteBtn) {
+        deleteBtn.addEventListener("click", async () => {
+            if (!currentSupplierId) return;
+            const name = currentSupplier ? currentSupplier.companyName : "";
+            const label = name ? ` (${name})` : "";
+            const confirmed = prompt(
+                `Type DELETE to remove this supplier${label} and all its products.`
+            );
+            if (!confirmed || confirmed.trim().toUpperCase() !== "DELETE") return;
+            deleteBtn.disabled = true;
+            try {
+                await apiCall(`/mine/${encodeURIComponent(currentSupplierId)}`, "DELETE", { confirm: "DELETE" });
+                supplierList = await apiCall('/mine');
+                if (!supplierList.length) {
+                    currentSupplierId = null;
+                    setStoredSupplierId(null);
+                    showRegistration();
+                    return;
+                }
+                currentSupplierId = supplierList[0].id;
+                setStoredSupplierId(currentSupplierId);
+                showLoading();
+                await checkSupplierStatus();
+            } catch (e) {
+                alert(e.message || "Failed to delete supplier.");
+            } finally {
+                deleteBtn.disabled = false;
+            }
+        });
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => {
+            isAddingSupplier = false;
+            showDashboard();
+        });
     }
 }
 
@@ -547,6 +690,13 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     try {
         const res = await apiCall('/register', 'POST', data);
         currentSupplier = res;
+        currentSupplierId = res.id;
+        setStoredSupplierId(currentSupplierId);
+        supplierList = await apiCall('/mine');
+        isAddingSupplier = false;
+        try {
+            e.target.reset();
+        } catch (_) {}
         // Supplier account does not require admin approval
         showDashboard();
     } catch (err) {
