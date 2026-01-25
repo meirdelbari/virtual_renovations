@@ -406,6 +406,18 @@ async function init() {
 
     const refresh = async () => {
       const mode = viewSelect ? viewSelect.value : "products";
+      
+      const approveAllBtn = document.getElementById("approve-all-btn");
+      const rejectAllBtn = document.getElementById("reject-all-btn");
+      
+      if (mode === "products") {
+          if (approveAllBtn) approveAllBtn.classList.remove("hidden");
+          if (rejectAllBtn) rejectAllBtn.classList.remove("hidden");
+      } else {
+          if (approveAllBtn) approveAllBtn.classList.add("hidden");
+          if (rejectAllBtn) rejectAllBtn.classList.add("hidden");
+      }
+
       setTableHead(mode);
       if (mode === "suppliers") {
         await loadSuppliers();
@@ -413,6 +425,70 @@ async function init() {
         await loadProducts();
       }
     };
+
+    const approveAllBtn = document.getElementById("approve-all-btn");
+    if (approveAllBtn) {
+        approveAllBtn.addEventListener("click", async () => {
+            const btns = document.querySelectorAll(".prod-approve-btn");
+            if (btns.length === 0) {
+                alert("No products to approve in current view.");
+                return;
+            }
+            if (!confirm(`Approve all ${btns.length} displayed products?`)) return;
+            
+            approveAllBtn.disabled = true;
+            const originalText = approveAllBtn.textContent;
+            approveAllBtn.textContent = "Processing...";
+
+            try {
+                // Execute in parallel
+                const promises = Array.from(btns).map(btn => {
+                    const id = btn.dataset.id;
+                    return apiCall(`/admin/products/${encodeURIComponent(id)}/approve`, "POST")
+                        .catch(e => console.error(`Failed to approve ${id}`, e));
+                });
+                await Promise.all(promises);
+                await loadProducts();
+            } catch (e) {
+                alert("Batch operation failed: " + e.message);
+            } finally {
+                approveAllBtn.disabled = false;
+                approveAllBtn.textContent = originalText;
+            }
+        });
+    }
+
+    const rejectAllBtn = document.getElementById("reject-all-btn");
+    if (rejectAllBtn) {
+        rejectAllBtn.addEventListener("click", async () => {
+            const btns = document.querySelectorAll(".prod-reject-btn");
+            if (btns.length === 0) {
+                alert("No products to reject in current view.");
+                return;
+            }
+            const reason = prompt("Reject reason for ALL items (optional):") || "";
+            if (!confirm(`Reject all ${btns.length} displayed products?`)) return;
+
+            rejectAllBtn.disabled = true;
+            const originalText = rejectAllBtn.textContent;
+            rejectAllBtn.textContent = "Processing...";
+
+            try {
+                const promises = Array.from(btns).map(btn => {
+                    const id = btn.dataset.id;
+                    return apiCall(`/admin/products/${encodeURIComponent(id)}/reject`, "POST", { reason })
+                         .catch(e => console.error(`Failed to reject ${id}`, e));
+                });
+                await Promise.all(promises);
+                await loadProducts();
+            } catch (e) {
+                 alert("Batch operation failed: " + e.message);
+            } finally {
+                rejectAllBtn.disabled = false;
+                rejectAllBtn.textContent = originalText;
+            }
+        });
+    }
 
     document.getElementById("refresh-btn").addEventListener("click", refresh);
     statusSelect.addEventListener("change", refresh);

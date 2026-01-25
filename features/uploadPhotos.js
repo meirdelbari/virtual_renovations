@@ -657,6 +657,9 @@
             <div style="margin-bottom: 10px; font-weight: 600; color: #4285f4;">${escapeHtml(tr("upload.workingAreaTitle", { name: item.originalName }, `Working Area - ${item.originalName}`))}</div>
             <div style="position: relative; display: inline-block; max-width: 100%;">
                 <img src="${item.url}" style="max-width: 100%; max-height: 60vh; border-radius: 8px; display: block;" />
+                <button onclick="window.openLightbox('${item.url}')" style="position: absolute; bottom: 12px; right: 12px; background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; backdrop-filter: blur(4px); transition: background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.8)'" onmouseout="this.style.background='rgba(0,0,0,0.6)'" title="${escapeHtml(tr("upload.enlarge", null, "Enlarge Image"))}">
+                    ⤢
+                </button>
             </div>
             <div class="working-area-caption" style="margin-top: 10px; color: #6b7280; font-size: 13px;">${escapeHtml(tr("upload.workingAreaReady", null, "Ready to Renovate"))}</div>
         </div>
@@ -1083,4 +1086,59 @@
         );
     }, options && typeof options.duration === "number" ? options.duration : 4500);
   }
+  // Lightbox feature
+  window.openLightbox = function(url) {
+      // If we are in "product merge preview" mode, the image src in the DOM might be different from the 'url' passed here initially.
+      // We should check the current image in the working area first if available.
+      const workingAreaImg = document.querySelector("#photo-working-area img");
+      let targetUrl = url;
+      
+      // If the working area image is visible and has a source (and we are likely clicking the button from there), use its current source.
+      // This ensures we see the collage/merge result if it's currently being previewed.
+      if (workingAreaImg && workingAreaImg.src && workingAreaImg.parentElement && workingAreaImg.parentElement.querySelector("button:hover")) {
+          targetUrl = workingAreaImg.src;
+      }
+
+      const overlay = document.createElement('div');
+      overlay.style.position = 'fixed';
+      overlay.style.inset = '0';
+      overlay.style.backgroundColor = 'rgba(0,0,0,0.9)';
+      overlay.style.zIndex = '9999';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.cursor = 'zoom-out';
+      overlay.onclick = (e) => {
+          if (e.target !== img) document.body.removeChild(overlay);
+      };
+
+      const img = document.createElement('img');
+      img.src = targetUrl;
+      img.style.maxWidth = '95vw';
+      img.style.maxHeight = '95vh';
+      img.style.objectFit = 'contain';
+      img.style.borderRadius = '4px';
+      img.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
+      img.onclick = (e) => e.stopPropagation(); // Click image doesn't close
+
+      overlay.appendChild(img);
+      
+      // Close button
+      const closeBtn = document.createElement('button');
+      closeBtn.innerHTML = '&times;';
+      closeBtn.style.position = 'absolute';
+      closeBtn.style.top = '20px';
+      closeBtn.style.right = '20px';
+      closeBtn.style.background = 'transparent';
+      closeBtn.style.border = 'none';
+      closeBtn.style.color = '#fff';
+      closeBtn.style.fontSize = '40px';
+      closeBtn.style.cursor = 'pointer';
+      closeBtn.style.padding = '10px';
+      closeBtn.onclick = () => document.body.removeChild(overlay);
+      overlay.appendChild(closeBtn);
+
+      document.body.appendChild(overlay);
+  };
+
 })();

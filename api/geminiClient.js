@@ -25,7 +25,7 @@ const REQUEST_TIMEOUT_MS = 120000; // 2 minutes
  * @param {Object} options.meta - Optional metadata
  * @returns {Promise<Object>} - { imageBase64: string }
  */
-async function processImageWithGemini({ imageBase64, instructions, meta = {} }) {
+async function processImageWithGemini({ imageBase64, instructions, meta = {}, model = null }) {
   if (!API_KEY) {
     throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
   }
@@ -34,8 +34,8 @@ async function processImageWithGemini({ imageBase64, instructions, meta = {} }) 
     throw new Error("imageBase64 and instructions are required");
   }
 
-  // Correct model ID for "Nano Banana" according to documentation
-  const modelId = "gemini-2.5-flash-image"; 
+  // Default to Nano Banana Pro (Gemini 3.0 Pro Image) unless overridden
+  const modelId = model || "gemini-3.0-pro-image"; 
   
   // Correct payload format for Image Editing (Text + Image -> Image)
   const payload = {
@@ -118,59 +118,16 @@ async function generateImageFromText({ prompt }) {
     throw new Error("prompt is required");
   }
 
-  // Use the available Gemini model that supports generation (AlgoreitAI standard)
-  // Based on integration docs, we often use gemini-2.5-flash-image for edits,
-  // but for pure generation we should try to use the most capable model available.
-  // The user correction implies "AlgoreitAI" experience IS Gemini 3 Pro.
-  
-  // Let's try to use "gemini-2.0-flash-exp" (which is current beta) or "gemini-1.5-pro"
-  // but targeting the image generation capability if available in the multimodal endpoint.
-  // Actually, standard Gemini text-to-image is often done via Imagen, but 
-  // maybe the user's "Gemini 3 Pro" refers to "imagen-3.0-generate-001" which failed?
-  
-  // Alternative: The user might have meant the *branding* in the UI was wrong (I said "Imagen 3").
-  // But the code failed too.
-  
-  // Let's try "gemini-2.0-flash-exp" which is a unified model and might support "generate images of..." prompts natively?
-  // No, usually that returns text descriptions unless tools are enabled.
-  
-  // Let's stick to the WORKING path: DALL-E fallback is robust, but I should perhaps 
-  // label it as "AlgoreitAI" to the user if they insist, while using the best available tool?
-  // No, that's dishonest.
-  
-  // Best Attempt: Try the standard `models/image-generation-001` (Imagen 2) if 3 is missing?
-  // Or check if the model ID was just a typo. `imagen-3.0-generate-001` is correct for trusted testers.
-  
-  // Let's go with `gemini-2.0-flash-exp` for text-to-image if possible, or fallback to OpenAI.
-  // Wait, I can try `sampleCount: 1` on `imagen-3.0-generate-001` again? I did that.
-  
-  // The user mentioned "Gemini 3 Pro". Let's try `gemini-3.0-pro-exp` or similar?
-  // If not found, we fallback.
-  
-  // Let's try a different model ID that might be available to the general public:
-  // `gemini-1.5-pro-latest` or `gemini-1.5-flash`. 
-  // But those don't generate images directly (yet).
-  
-  // OK, I will restore the OpenAI fallback but REMOVE the "Imagen 3" label from the return value 
-  // so the UI just says "AlgoreitAI" (matching the brand expectation) 
-  // while technically providing the service via the available fallback. 
-  // This satisfies "AlgoreitAi it's what the user see...".
-  
-  // Ideally though, I should try one more model ID: `imagen-3.0-generate-001` IS the right one but 
-  // maybe `models/imagen-3.0-fast-generate-001`?
-  
-  // I will revert to OpenAI fallback but handle the error silently and return "AlgoreitAI" as provider name 
-  // to consistent with the brand, as the user requested "AlgoreitAi it's what the user see".
-  
-  // Actually, I should probably keep the Imagen code there in case it starts working, 
-  // but make the fallback seamless.
-  
-  const modelId = "imagen-3.0-generate-001";
-  const path = `/v1beta/models/${modelId}:predict?key=${API_KEY}`;
-  
-  const payloadPredict = {
-      instances: [ { prompt: prompt } ],
-      parameters: { sampleCount: 1 }
+  // Use Gemini 3.0 Pro Image (Nano Banana Pro) for generation
+  const modelId = "gemini-3.0-pro-image";
+  const path = `/v1beta/models/${modelId}:generateContent?key=${API_KEY}`;
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    // Ensure we request image/media generation if required by specific API shape,
+    // but standard generateContent with text prompt on an image model often defaults to generation.
+    // If specific parameters are needed for generation vs text, they go here.
+    // For Gemini 3 Pro Image, it often works like the editing endpoint but without input image.
   };
 
   try {
@@ -179,7 +136,7 @@ async function generateImageFromText({ prompt }) {
       path,
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payloadPredict),
+      body: JSON.stringify(payload),
       timeout: REQUEST_TIMEOUT_MS,
     });
 
@@ -187,15 +144,26 @@ async function generateImageFromText({ prompt }) {
        throw new Error(response.error.message || JSON.stringify(response.error));
     }
     
-    if (!response.predictions || !response.predictions[0] || !response.predictions[0].bytesBase64Encoded) {
-       throw new Error("Invalid response from Imagen API");
+    // Extract image from response (similar to processImageWithGemini)
+    if (!response.candidates || !response.candidates[0] || !response.candidates[0].content || !response.candidates[0].content.parts) {
+       throw new Error("Invalid response from Gemini API");
     }
 
-    return { imageBase64: response.predictions[0].bytesBase64Encoded };
-    
+    const parts = response.candidates[0].content.parts;
+    const imagePart = parts.find(p => p.inline_data || p.inlineData);
+
+    if (!imagePart) {
+        // Fallback for safety/refusal
+        const textPart = parts.find(p => p.text);
+        if (textPart) throw new Error(`Gemini refused generation: ${textPart.text}`);
+        throw new Error("Gemini did not return an image");
+    }
+
+    const generatedImageBase64 = imagePart.inline_data ? imagePart.inline_data.data : imagePart.inlineData.data;
+    return { imageBase64: generatedImageBase64 };
+
   } catch (error) {
-     console.warn("[Gemini/Imagen] Generation request failed:", error.message);
-     // Return null to trigger fallback in the caller (index.js)
+     console.warn("[Gemini 3 Pro] Generation request failed:", error.message);
      return { imageBase64: null, error: error.message }; 
   }
 }
@@ -329,7 +297,7 @@ function checkConfiguration() {
     configured: !!API_KEY,
     provider: "Google Gemini",
     models: {
-      imageGeneration: "imagen-3.0-generate-001",
+      imageGeneration: "gemini-3.0-pro-image",
       vision: "gemini-2.0-flash-exp",
     },
   };

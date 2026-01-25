@@ -386,40 +386,102 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Category</label>
                         <select id="prod-category" class="mt-1 block w-full border rounded-md p-2">
-                            <option value="Flooring">Flooring (General)</option>
-                            <option value="Flooring - Hardwood">Flooring - Hardwood</option>
-                            <option value="Flooring - Laminate">Flooring - Laminate</option>
-                            <option value="Flooring - Ceramics">Flooring - Ceramics</option>
-                            <option value="Flooring - Tiles">Flooring - Tiles</option>
-                            <option value="Flooring - Vinyl">Flooring - Vinyl</option>
-                            <option value="Flooring - Carpet">Flooring - Carpet</option>
-                            <option value="Furniture">Furniture (General)</option>
-                            <option value="Furniture - Sofa">Furniture - Sofa</option>
-                            <option value="Furniture - Chair">Furniture - Chair</option>
-                            <option value="Furniture - Table">Furniture - Table</option>
-                            <option value="Furniture - Bed">Furniture - Bed</option>
-                            <option value="Furniture - Wardrobe">Furniture - Wardrobe</option>
-                            <option value="Furniture - Cabinet">Furniture - Cabinet</option>
-                            <option value="Furniture - Dining Set">Furniture - Dining Set</option>
-                            <option value="Furniture - Rug">Furniture - Rug</option>
-                            <option value="Lighting">Lighting (General)</option>
-                            <option value="Lighting - Chandelier">Lighting - Chandelier</option>
-                            <option value="Lighting - Pendant">Lighting - Pendant</option>
-                            <option value="Lighting - Ceiling">Lighting - Ceiling Light</option>
-                            <option value="Lighting - Wall Sconce">Lighting - Wall Sconce</option>
-                            <option value="Lighting - Table Lamp">Lighting - Table Lamp</option>
-                            <option value="Lighting - Floor Lamp">Lighting - Floor Lamp</option>
-                            <option value="Lighting - Recessed">Lighting - Recessed</option>
-                            <option value="Lighting - Track">Lighting - Track</option>
-                            <option value="Lighting - Outdoor">Lighting - Outdoor</option>
-                            <option value="Lighting - Smart">Lighting - Smart</option>
-                            <option value="Paint">Paint</option>
-                            <option value="Decor">Decor</option>
+                            <option value="" disabled selected>Select Category</option>
+                            <optgroup label="Flooring">
+                                <option value="Flooring">Flooring - General</option>
+                                <option value="Flooring - Hardwood">Flooring - Hardwood</option>
+                                <option value="Flooring - Laminate">Flooring - Laminate</option>
+                                <option value="Flooring - Ceramics">Flooring - Ceramics</option>
+                                <option value="Flooring - Tiles">Flooring - Tiles</option>
+                                <option value="Flooring - Vinyl">Flooring - Vinyl</option>
+                                <option value="Flooring - Carpet">Flooring - Carpet</option>
+                                <option value="Flooring - Deck">Flooring - Deck (Garden)</option>
+                                <option value="Flooring - Paving">Flooring - Paving (Garden)</option>
+                                <option value="Flooring - Grass">Flooring - Grass (Garden)</option>
+                            </optgroup>
+                            
+                            <optgroup label="Walls">
+                                <option value="Walls - Paint">Walls - Paint</option>
+                                <option value="Walls - Tiles">Walls - Tiles</option>
+                                <option value="Walls - Wallpaper">Walls - Wallpaper</option>
+                                <option value="Walls - Panel">Walls - Panel</option>
+                            </optgroup>
+
+                            <optgroup label="Ceiling">
+                                <option value="Ceiling - Paint">Ceiling - Paint</option>
+                            </optgroup>
+
+                            <optgroup label="Windows">
+                                <option value="Windows - General">Windows - General</option>
+                                <option value="Windows - Aluminum">Windows - Aluminum</option>
+                                <option value="Windows - Paint">Windows - Paint</option>
+                            </optgroup>
+
+                            <optgroup label="Doors">
+                                <option value="Doors - General">Doors - General</option>
+                                <option value="Doors - Paint">Doors - Paint</option>
+                                <option value="Doors - Replacement">Doors - Replacement</option>
+                            </optgroup>
+
+                            <optgroup label="Frameheads">
+                                <option value="Frameheads - Paint">Frameheads - Paint</option>
+                                <option value="Frameheads - Replacement">Frameheads - Replacement</option>
+                            </optgroup>
+
+                            <optgroup label="Bathroom">
+                                <option value="Bathroom - Vanity">Bathroom - Vanity</option>
+                                <option value="Bathroom - Toilet">Bathroom - Toilet</option>
+                                <option value="Bathroom - Shower">Bathroom - Shower</option>
+                                <option value="Bathroom - Bathtub">Bathroom - Bathtub</option>
+                            </optgroup>
+
+                            <optgroup label="Kitchen">
+                                <option value="Kitchen - Cabinets">Kitchen - Cabinets</option>
+                                <option value="Kitchen - Countertop">Kitchen - Countertop</option>
+                                <option value="Kitchen - Backsplash">Kitchen - Backsplash</option>
+                            </optgroup>
+
+                            <optgroup label="Garden">
+                                <option value="Garden - Pool">Garden - Pool</option>
+                                <option value="Garden - Landscaping">Garden - Landscaping</option>
+                                <option value="Garden - Furniture">Garden - Furniture</option>
+                            </optgroup>
+
+                            <optgroup label="Furniture">
+                                <option value="Furniture">Furniture - General</option>
+                                <option value="Furniture - Sofa">Furniture - Sofa</option>
+                                <option value="Furniture - Chair">Furniture - Chair</option>
+                                <option value="Furniture - Table">Furniture - Table</option>
+                                <option value="Furniture - Bed">Furniture - Bed</option>
+                                <option value="Furniture - Wardrobe">Furniture - Wardrobe</option>
+                                <option value="Furniture - Cabinet">Furniture - Cabinet</option>
+                                <option value="Furniture - Dining Set">Furniture - Dining Set</option>
+                                <option value="Furniture - Rug">Furniture - Rug</option>
+                            </optgroup>
+
+                            <optgroup label="Lighting">
+                                <option value="Lighting">Lighting - General</option>
+                                <option value="Lighting - Chandelier">Lighting - Chandelier</option>
+                                <option value="Lighting - Pendant">Lighting - Pendant</option>
+                                <option value="Lighting - Ceiling">Lighting - Ceiling Light</option>
+                                <option value="Lighting - Wall Sconce">Lighting - Wall Sconce</option>
+                                <option value="Lighting - Table Lamp">Lighting - Table Lamp</option>
+                                <option value="Lighting - Floor Lamp">Lighting - Floor Lamp</option>
+                                <option value="Lighting - Recessed">Lighting - Recessed</option>
+                                <option value="Lighting - Track">Lighting - Track</option>
+                                <option value="Lighting - Outdoor">Lighting - Outdoor</option>
+                                <option value="Lighting - Smart">Lighting - Smart</option>
+                            </optgroup>
+
+                            <optgroup label="Other">
+                                <option value="Decor">Decor</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Style</label>
                         <select id="prod-style" class="mt-1 block w-full border rounded-md p-2">
+                            <option value="" disabled selected>Select Style</option>
                             <option value="modern">Modern</option>
                             <option value="contemporary">Contemporary</option>
                             <option value="farmhouse">Farmhouse</option>

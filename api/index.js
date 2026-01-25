@@ -280,11 +280,17 @@ app.post("/api/gemini/process-photo", async (req, res) => {
 
     const imageBase64 = base64Match[1];
 
+    // Determine model based on feature
+    // - Product Merge (Collage) -> gemini-2.5-flash-image (Better at merging/spatial logic for collages)
+    // - Renovations / Other -> gemini-3.0-pro-image (Better quality/details)
+    const model = (meta && meta.isProductMerge) ? "gemini-2.5-flash-image" : "gemini-3.0-pro-image";
+
     // Send to provider
     const result = await geminiClient.processImageWithGemini({
       imageBase64,
       instructions,
       meta: meta || {},
+      model: model
     });
 
     if (!result.imageBase64) {
@@ -386,7 +392,7 @@ app.post("/api/gemini/generate-view", async (req, res) => {
   try {
     const config = geminiClient.checkConfiguration();
     let imageBase64;
-    let provider = "AlgoreitAI (Imagen 3)";
+    let provider = "AlgoreitAI (Gemini 3 Pro)";
 
     // Try Gemini/Imagen First
     if (config.configured) {

@@ -514,6 +514,11 @@ CRITICAL CONSTRAINTS:
 
       // Get metadata from current context
       const meta = buildMetadata();
+      
+      // Add flag for product merge (collage) mode
+      if (window.currentProductSelection && window.currentProductSelection.imageUrl) {
+          meta.isProductMerge = true;
+      }
 
       // Send to backend
       const userId = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
@@ -956,7 +961,30 @@ CRITICAL CONSTRAINTS:
         const price = (p.price || p.price === 0) ? `\n- Price: $${p.price}` : "";
 
         // Dedicated block used by the specific templates below (esp. furniture staging)
-        supplierProductBlock = `\n\nSUPPLIER PRODUCT REFERENCE:\n- The INPUT IMAGE is a COLLAGE.\n- LEFT SIDE: The room to modify.\n- RIGHT SIDE: The Reference Product ("${p.name}") to insert.${desc}${supplier}${price}\n\nINSTRUCTIONS:\n1. IGNORE the right side panel in the final output.\n2. INSERT the product from the RIGHT into the room on the LEFT.\n3. PRESERVE the existing room details (walls, floor, windows, ceiling) and EXISTING FURNITURE as much as possible. Only move/remove items if they physically conflict with the new product's placement.\n4. Make it look photorealistic: match lighting, perspective, and shadows.\n5. The final result must ONLY show the room (left side) with the product integrated.`;
+        let specificInstruction = "";
+        if (p.category) {
+            const catLower = p.category.toLowerCase();
+            const nameLower = (p.name || "").toLowerCase();
+            
+            // Check for Wall Tiles / Wall Ceramics
+            if ((catLower.includes("wall") || nameLower.includes("wall")) && (catLower.includes("tiles") || catLower.includes("ceramics"))) {
+                 specificInstruction = "\n6. Since this is a Wall Tiles/Ceramics product, REPLACE THE WHOLE of the old CERAMICS or TILES on the walls with this material. The floor is NOT related here.";
+            }
+            // Check for Floor Tiles / Ceramics (if not wall)
+            else if (catLower.includes("tiles") || catLower.includes("ceramics")) {
+                specificInstruction = "\n6. Since this is a Tiles/Ceramics product, REPLACE THE WHOLE CERAMICS and COVER THE ENTIRE FLOOR of the room with this material.";
+            } 
+            // Check for Carpet
+            else if (catLower.includes("carpet") || catLower.includes("rug")) {
+                specificInstruction = "\n6. Since this is a carpet/rug product, COVER THE ENTIRE FLOOR of the room with this material.";
+            }
+            // General Flooring fallback (Expanded to catch "floor", "wood", "parquet", "laminate")
+            else if (catLower.includes("floor") || catLower.includes("flooring") || catLower.includes("parquet") || catLower.includes("laminate") || nameLower.includes("floor") || nameLower.includes("flooring")) {
+                specificInstruction = "\n6. Since this is a flooring product, COVER THE ENTIRE FLOOR of the room with this material. Do NOT apply this material to the walls or ceiling.";
+            }
+        }
+
+        supplierProductBlock = `\n\nSUPPLIER PRODUCT REFERENCE:\n- The INPUT IMAGE is a COLLAGE.\n- LEFT SIDE: The room to modify.\n- RIGHT SIDE: The Reference Product ("${p.name}") to insert.${desc}${supplier}${price}\n\nINSTRUCTIONS:\n1. IGNORE the right side panel in the final output.\n2. INSERT the product from the RIGHT into the room on the LEFT.\n3. PRESERVE the existing room details (walls, floor, windows, ceiling) and EXISTING FURNITURE as much as possible. Only move/remove items if they physically conflict with the new product's placement.\n4. Make it look photorealistic: match lighting, perspective, and shadows.\n5. The final result must ONLY show the room (left side) with the product integrated.${specificInstruction}`;
 
         // Also reinforce the generic renovationText so the non-special templates still include it
         renovationText = `Task: ADD the Reference Product shown on the RIGHT side into the room on the LEFT.\nDo not re-stage the entire room. Keep existing elements.\nContext: ${renovationText}`;

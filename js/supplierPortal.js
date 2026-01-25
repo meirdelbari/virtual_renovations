@@ -873,8 +873,8 @@ function showUploadModal(editProduct = null) {
 
         // Populate Form
         document.getElementById('prod-name').value = editProduct.name || "";
-        document.getElementById('prod-category').value = editProduct.category || "Flooring";
-        document.getElementById('prod-style').value = editProduct.style || "modern";
+        document.getElementById('prod-category').value = editProduct.category || "";
+        document.getElementById('prod-style').value = editProduct.style || "";
         document.getElementById('prod-price').value = editProduct.price || "";
         document.getElementById('prod-desc').value = editProduct.description || "";
         document.getElementById('prod-link').value = editProduct.purchaseLink || "";
