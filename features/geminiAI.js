@@ -150,9 +150,16 @@
     const img = container.querySelector("img");
     
     // If state is missing but DOM has an image, use that
-    if (!url && img && img.src && !img.src.startsWith("data:")) {
+    // Allow Data URLs if they are substantial (likely a renovation result), but skip tiny placeholders
+    if (!url && img && img.src && (img.src.startsWith("http") || img.src.length > 5000)) {
         url = img.src;
-        console.log("[GeminiAI] State missing, using DOM URL for collage:", url);
+        console.log("[GeminiAI] State missing, using DOM URL for collage:", url.substring(0, 50) + "...");
+    }
+    
+    // Explicit Fallback for Chaining: If URL is missing, but we have ANY image in DOM, assume it's the valid base.
+    if (!url && img && img.src) {
+         url = img.src;
+         console.log("[GeminiAI] Using generic DOM URL for collage preview fallback.");
     }
     
     if (!url) {
@@ -264,6 +271,11 @@
 
             } else {
                 console.error("[GeminiAI] Collage generation returned null.");
+                // Alert the user if preview fails, so they know why "it's not doing it"
+                // Only alert if we actually have a product selection (to avoid noise)
+                if (window.currentProductSelection) {
+                     // alert(tr("alerts.previewFailed", null, "Failed to generate preview. Please try selecting the product again."));
+                }
             }
         } catch (e) {
             console.error("[GeminiAI] Failed to update working area with collage:", e);
@@ -372,7 +384,6 @@
     }
 
     // Validate that we have photos OR a selected photo context
-    // We allow proceeding if 'last' is valid, even if matches list seems empty (fallback for edge cases)
     if (!matches.length && (!last || !last.url)) {
       alert(
         tr("alerts.noPhotosToProcess", null, "There are no uploaded photos to process. Use 'Upload Photos' first.")
@@ -381,59 +392,39 @@
       return;
     }
 
-    // Validate that user has selected a room/photo
-    // If no explicit 'last focused', but we have photos, default to the last uploaded one
-    if (!last || !last.photoId) {
-        if (matches.length > 0) {
-            // Auto-select the most recent photo
-            const recent = matches[matches.length - 1];
-            last = { 
-                photoId: recent.id, 
-                url: recent.url,
-                roomId: recent.roomId,
-                originalName: recent.originalName
-            };
-            // Also ensure it is open in working area
-            if (typeof window.openInWorkingArea === "function") {
-                window.openInWorkingArea(recent.id);
-            }
-        } else {
-            alert(
-                tr("alerts.selectRoomFirst", null, "Please select a room first by clicking the 'Room' button and choosing a photo to renovate.")
-            );
-            showSummary();
-            return;
-        }
+    // --- REFACTORED MATCH SELECTION LOGIC ---
+    let match = null;
+
+    // 1. Priority: Use the currently focused photo (Active in Working Area)
+    // This supports chaining, where the active photo is a Data URL (result of previous edit) 
+    // and DOES NOT exist in the original 'matches' list.
+    if (last && last.url) {
+        console.log("[GeminiAI] Using active focused photo:", last.originalName);
+        match = {
+            id: last.photoId || Date.now(), // Fallback ID
+            roomId: last.roomId,
+            url: last.url,
+            originalName: last.originalName || "Active Photo",
+            assignedName: last.roomName || ""
+        };
+    } 
+    // 2. Fallback: Look up by ID in the raw uploads list
+    else if (last && last.photoId) {
+        match = matches.find((m) => m.id === last.photoId);
+    }
+    // 3. Fallback: Auto-select first available if single
+    else if (matches.length === 1) {
+        match = matches[0];
     }
 
-    // NEW: Refresh 'match' from the latest state to ensure it points to the currently active photo in Working Area
-    // The previous logic relied on 'matches.find' using last.photoId, which might be stale if the user
-    // clicked a different photo in the gallery but didn't trigger a full focus event, or if chaining updates.
-    // We explicitly re-fetch the photo object corresponding to window.lastFocusedRoomPhoto.photoId
-    if (window.lastFocusedRoomPhoto && window.lastFocusedRoomPhoto.photoId) {
-         const activeId = window.lastFocusedRoomPhoto.photoId;
-         const freshMatch = matches.find(m => m.id === activeId);
-         if (freshMatch) {
-             last = {
-                 photoId: freshMatch.id,
-                 url: freshMatch.url,
-                 roomId: freshMatch.roomId,
-                 originalName: freshMatch.originalName
-             };
-        }
+    if (!match) {
+         console.error("[GeminiAI] No valid photo context found.");
+         alert(tr("alerts.selectRoomFirst", null, "Please select a photo to renovate first."));
+         showSummary();
+         return;
     }
-
-    // Find the photo to process
-    const match =
-      matches.find((m) => m.id === last.photoId) || {
-        id: last.photoId,
-        roomId: last.roomId,
-        url: last.url,
-        originalName: last.originalName || "",
-        assignedName: last.assignedName || "",
-      };
     
-    console.log("[GeminiAI] Processing match:", match);
+    console.log("[GeminiAI] Processing target:", match.originalName, "Is Data URL?", match.url.startsWith("data:"));
 
     let instructions = customInstructions;
 
@@ -473,10 +464,10 @@ CRITICAL CONSTRAINTS:
 
     // Disable button and show processing state
     let thinkingIndicator = null;
-    let originalText = "";
+    let originalHtml = "";
     if (button) {
       button.disabled = true;
-      originalText = button.textContent;
+      originalHtml = button.innerHTML;
       button.textContent = tr("gemini.processingBtn", null, "Processing with AlgoreitAI...");
       thinkingIndicator = showGeminiThinkingIndicator(button);
     }
@@ -490,6 +481,13 @@ CRITICAL CONSTRAINTS:
       if (window.currentProductSelection && window.currentProductSelection.imageUrl) {
         console.log("[GeminiAI] Supplier product selected. Building reference collage for backend...");
         const productUrl = window.currentProductSelection.imageUrl;
+        
+        // Ensure match.url is valid
+        if (!match.url) {
+             alert("Error: The room image is missing. Please select a photo again.");
+             return;
+        }
+
         const collageInfo = await buildRoomAndProductCollage(match.url, productUrl);
         
         if (collageInfo) {
@@ -501,6 +499,12 @@ CRITICAL CONSTRAINTS:
           splitRatio = collageInfo.splitRatio;
           
           console.log("[GeminiAI] Collage generated for processing. Split ratio:", splitRatio);
+        } else {
+             // If collage failed (e.g. CORS error on product image even with proxy), we MUST abort.
+             // Otherwise we send the raw room image + instructions saying "Input is a collage", which confuses the AI.
+             console.error("[GeminiAI] Collage build failed. Room:", match.url.substring(0,50), "Product:", productUrl);
+             alert(tr("alerts.collageFailed", null, "Failed to combine the product with the room photo. Please try a different product or check your connection."));
+             return;
         }
       }
 
@@ -714,7 +718,15 @@ CRITICAL CONSTRAINTS:
     } finally {
       if (button) {
         button.disabled = false;
-        button.textContent = originalText || tr("ops.algoreit", null, "✨ AlgoreitAI");
+        if (originalHtml) {
+          button.innerHTML = originalHtml;
+        } else {
+          button.innerHTML = tr(
+            "ops.algoreit",
+            null,
+            '<span class="algoreit-emoji">✨</span><span>AlgoreitAI</span>'
+          );
+        }
       }
       hideGeminiThinkingIndicator(thinkingIndicator);
       showSummary();
@@ -962,6 +974,9 @@ CRITICAL CONSTRAINTS:
 
         // Dedicated block used by the specific templates below (esp. furniture staging)
         let specificInstruction = "";
+        // Default preservation list - we will remove items from this list if they are being replaced
+        let itemsToPreserve = ["walls", "floor", "windows", "ceiling"];
+        
         if (p.category) {
             const catLower = p.category.toLowerCase();
             const nameLower = (p.name || "").toLowerCase();
@@ -969,27 +984,33 @@ CRITICAL CONSTRAINTS:
             // Check for Wall Tiles / Wall Ceramics
             if ((catLower.includes("wall") || nameLower.includes("wall")) && (catLower.includes("tiles") || catLower.includes("ceramics"))) {
                  specificInstruction = "\n6. Since this is a Wall Tiles/Ceramics product, REPLACE THE WHOLE of the old CERAMICS or TILES on the walls with this material. The floor is NOT related here.";
+                 // User requested to keep 'walls' in preservation list to protect structure, even if tiling.
             }
             // Check for Floor Tiles / Ceramics (if not wall)
             else if (catLower.includes("tiles") || catLower.includes("ceramics")) {
-                specificInstruction = "\n6. Since this is a Tiles/Ceramics product, REPLACE THE WHOLE CERAMICS and COVER THE ENTIRE FLOOR of the room with this material.";
+                specificInstruction = "\n6. Since this is a Tiles/Ceramics product, COMPLETELY REPLACE AND OVERWRITE any existing flooring with this material. Cover the entire floor area.";
+                itemsToPreserve = itemsToPreserve.filter(i => i !== "floor");
             } 
             // Check for Carpet
             else if (catLower.includes("carpet") || catLower.includes("rug")) {
                 specificInstruction = "\n6. Since this is a carpet/rug product, COVER THE ENTIRE FLOOR of the room with this material.";
+                 itemsToPreserve = itemsToPreserve.filter(i => i !== "floor");
             }
             // General Flooring fallback (Expanded to catch "floor", "wood", "parquet", "laminate")
             else if (catLower.includes("floor") || catLower.includes("flooring") || catLower.includes("parquet") || catLower.includes("laminate") || nameLower.includes("floor") || nameLower.includes("flooring")) {
-                specificInstruction = "\n6. Since this is a flooring product, COVER THE ENTIRE FLOOR of the room with this material. Do NOT apply this material to the walls or ceiling.";
+                specificInstruction = "\n6. Since this is a flooring product, COMPLETELY REPLACE AND OVERWRITE any existing flooring with this material. Do NOT apply this material to the walls or ceiling.";
+                 itemsToPreserve = itemsToPreserve.filter(i => i !== "floor");
             }
         }
+        
+        const preservationText = itemsToPreserve.join(", ");
 
-        supplierProductBlock = `\n\nSUPPLIER PRODUCT REFERENCE:\n- The INPUT IMAGE is a COLLAGE.\n- LEFT SIDE: The room to modify.\n- RIGHT SIDE: The Reference Product ("${p.name}") to insert.${desc}${supplier}${price}\n\nINSTRUCTIONS:\n1. IGNORE the right side panel in the final output.\n2. INSERT the product from the RIGHT into the room on the LEFT.\n3. PRESERVE the existing room details (walls, floor, windows, ceiling) and EXISTING FURNITURE as much as possible. Only move/remove items if they physically conflict with the new product's placement.\n4. Make it look photorealistic: match lighting, perspective, and shadows.\n5. The final result must ONLY show the room (left side) with the product integrated.${specificInstruction}`;
+        supplierProductBlock = `\n\nSUPPLIER PRODUCT REFERENCE:\n- The INPUT IMAGE is a COLLAGE.\n- LEFT SIDE: The room to modify.\n- RIGHT SIDE: The Reference Product ("${p.name}") to insert.${desc}${supplier}${price}\n\nINSTRUCTIONS:\n1. IGNORE the right side panel in the final output.\n2. INSERT the product from the RIGHT into the room on the LEFT.\n3. PRESERVE the existing room details (${preservationText}) and EXISTING FURNITURE as much as possible. Only move/remove items if they physically conflict with the new product's placement.\n4. Make it look photorealistic: match lighting, perspective, and shadows.\n5. The final result must ONLY show the room (left side) with the product integrated.${specificInstruction}`;
 
-        // Also reinforce the generic renovationText so the non-special templates still include it
-        renovationText = `Task: ADD the Reference Product shown on the RIGHT side into the room on the LEFT.\nDo not re-stage the entire room. Keep existing elements.\nContext: ${renovationText}`;
+        // OVERRIDE: When a product is selected, we ignore the 'renovationId' task (e.g. "paint walls")
+        // because we want to perform a specific merge action on the *current* image state.
+        renovationText = `ADD the Reference Product shown on the RIGHT side into the room on the LEFT`;
         console.log("Injected Product into prompt (Strong Override):", p.name);
-        console.log("Full Prompt:", renovationText); // Added logging
     }
 
     // Special handling for enhance quality
@@ -1052,7 +1073,8 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
 2. PRESERVATION: ALL other elements (furniture, flooring, ceiling, lighting, windows, doors, decor, exterior landscape) must remain EXACTLY as they are in the original photo.
 3. INTEGRITY: Do NOT change the room layout, camera angle, perspective, or structural lines.
 4. LIGHTING: Maintain the exact original lighting, shadows, and time of day.
-5. PHOTOREALISM: The result must look like a real photo of the same room with only the specified change.`;
+5. PHOTOREALISM: The result must look like a real photo of the same room with only the specified change.
+${supplierProductBlock || ""}`;
   }
 
   function buildMetadata() {
@@ -1108,14 +1130,39 @@ Critical Constraints (STRICT ADHERENCE REQUIRED):
   // Returns { dataUrl, splitRatio } where splitRatio is roomWidth / totalWidth
   async function buildRoomAndProductCollage(roomUrl, productUrl) {
     try {
-        // Fetch both images as blobs
-        const [roomBlob, productBlob] = await Promise.all([
-          fetch(roomUrl).then((r) => r.blob()),
-          fetch(productUrl).then((r) => r.blob()),
+        // Helper to load image with fallback
+        const loadImg = (url) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                // ONLY set crossOrigin for HTTP(S) URLs. Setting it on data: can cause taint issues.
+                if (url && !url.startsWith("data:")) {
+                    img.crossOrigin = "Anonymous";
+                }
+                
+                img.onload = () => resolve(img);
+                img.onerror = () => {
+                    // If simple load fails, try the proxy if it's an HTTP URL
+                    if (url && url.startsWith("http")) {
+                        console.warn(`[GeminiAI] Direct load failed for ${url}, trying proxy...`);
+                        // Retry with proxy
+                        const img2 = new Image();
+                        img2.crossOrigin = "Anonymous";
+                        const proxyUrl = getApiUrl(`/api/proxy-image?url=${encodeURIComponent(url)}`);
+                        img2.onload = () => resolve(img2);
+                        img2.onerror = () => reject(new Error("Image load failed (Direct & Proxy)"));
+                        img2.src = proxyUrl;
+                    } else {
+                        reject(new Error("Image load failed (Data URL or invalid)"));
+                    }
+                };
+                img.src = url;
+            });
+        };
+
+        const [roomImg, productImg] = await Promise.all([
+          loadImg(roomUrl),
+          loadImg(productUrl),
         ]);
-    
-        const roomImg = await loadImageFromBlob(roomBlob);
-        const productImg = await loadImageFromBlob(productBlob);
     
         // Layout: room on left, product on right
         const roomW = roomImg.naturalWidth || roomImg.width;

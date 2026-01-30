@@ -26,18 +26,23 @@ const REQUEST_TIMEOUT_MS = 120000; // 2 minutes
  * @returns {Promise<Object>} - { imageBase64: string }
  */
 async function processImageWithGemini({ imageBase64, instructions, meta = {}, model = null }) {
+  // Check configuration to handle missing Gemini API key properly
   if (!API_KEY) {
     throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
   }
 
-  if (!imageBase64 || !instructions) {
-    throw new Error("imageBase64 and instructions are required");
-  }
-
-  // Default to Nano Banana Pro (Gemini 3.0 Pro Image) unless overridden
-  const modelId = model || "gemini-3.0-pro-image"; 
+  // Default to Nano Banana Pro (Gemini 3 Pro Image) unless overridden
+  // Use the correct preview ID: gemini-3-pro-image-preview
+  const modelId = model || "gemini-3-pro-image-preview"; 
   
-  // Correct payload format for Image Editing (Text + Image -> Image)
+  // NOTE: If using "generateContent" for image editing, ensure the model supports it.
+  // Some versions of Gemini use "predict" or different methods.
+  // The current standard for multimodal generation is via generateContent with specific schema.
+  
+  // Update: To fix "models/AlgoreitAI-3.0-pro-image not found", ensure we use the REAL model ID.
+  // The UI might be sending "AlgoreitAI-..." as a branded string, so we sanitize it here.
+  const realModelId = modelId.replace("AlgoreitAI", "gemini");
+
   const payload = {
     contents: [
       {
@@ -55,7 +60,7 @@ async function processImageWithGemini({ imageBase64, instructions, meta = {}, mo
   };
 
   // Correct endpoint path
-  const path = `/v1beta/models/${modelId}:generateContent?key=${API_KEY}`;
+  const path = `/v1beta/models/${realModelId}:generateContent?key=${API_KEY}`;
 
   try {
     const response = await makeRequest({
@@ -118,8 +123,8 @@ async function generateImageFromText({ prompt }) {
     throw new Error("prompt is required");
   }
 
-  // Use Gemini 3.0 Pro Image (Nano Banana Pro) for generation
-  const modelId = "gemini-3.0-pro-image";
+  // Use Gemini 3 Pro Image (Nano Banana Pro) for generation
+  const modelId = "gemini-3-pro-image-preview";
   const path = `/v1beta/models/${modelId}:generateContent?key=${API_KEY}`;
 
   const payload = {
@@ -297,7 +302,7 @@ function checkConfiguration() {
     configured: !!API_KEY,
     provider: "Google Gemini",
     models: {
-      imageGeneration: "gemini-3.0-pro-image",
+      imageGeneration: "gemini-3-pro-image-preview",
       vision: "gemini-2.0-flash-exp",
     },
   };

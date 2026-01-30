@@ -174,6 +174,11 @@ body.auth-locked > *:not(#auth-modal) {
   letter-spacing: 0.01em;
 }
 
+html[dir="rtl"] .app-title {
+  padding-right: 8px; /* Ensure first letter isn't clipped by emoji overlap */
+  margin-right: 2px;
+}
+
 .app-header-right {
   display: flex;
   align-items: center;

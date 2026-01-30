@@ -398,8 +398,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // FIX: Ensure we have a valid Renovation ID so Style/Gemini flows are unlocked
         if (!window.currentRenovationId) {
-            console.log("Product selected without active renovation. Defaulting to 'furniture_stage_room'.");
-            window.currentRenovationId = "furniture_stage_room";
+            console.log("Product selected without active renovation. Inferring from category:", product.category);
+            const cat = (product.category || "").toLowerCase();
+            
+            if (cat.includes("floor") || cat.includes("hardwood") || cat.includes("laminate") || cat.includes("carpet") || cat.includes("rug") || cat.includes("tile") || cat.includes("ceramic")) {
+                 // Try to map to specific types if possible
+                 if (cat.includes("hardwood")) window.currentRenovationId = "room_floor_hardwood";
+                 else if (cat.includes("laminate")) window.currentRenovationId = "room_floor_laminate";
+                 else if (cat.includes("carpet") || cat.includes("rug")) window.currentRenovationId = "room_floor_carpet";
+                 else if (cat.includes("tile") || cat.includes("ceramic")) window.currentRenovationId = "room_floor_tiles";
+                 else if (cat.includes("vinyl")) window.currentRenovationId = "room_floor_vinyl";
+                 else window.currentRenovationId = "room_floor_tiles"; // Default for generic flooring
+            }
+            else if (cat.includes("paint") || cat.includes("wall")) {
+                 window.currentRenovationId = "room_walls_painting";
+            }
+            else if (cat.includes("light") || cat.includes("lamp") || cat.includes("sconce")) {
+                 window.currentRenovationId = "room_lighting_add";
+            }
+            else {
+                 // Fallback for furniture / other
+                 window.currentRenovationId = "furniture_stage_room";
+            }
+            console.log("Inferred Renovation ID:", window.currentRenovationId);
         }
 
         // UPDATE WORKING AREA WITH PREVIEW COLLAGE

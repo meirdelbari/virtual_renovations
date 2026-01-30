@@ -282,8 +282,11 @@ app.post("/api/gemini/process-photo", async (req, res) => {
 
     // Determine model based on feature
     // - Product Merge (Collage) -> gemini-2.5-flash-image (Better at merging/spatial logic for collages)
-    // - Renovations / Other -> gemini-3.0-pro-image (Better quality/details)
-    const model = (meta && meta.isProductMerge) ? "gemini-2.5-flash-image" : "gemini-3.0-pro-image";
+    // - Renovations / Other -> gemini-3-pro-image-preview (Nano Banana Pro)
+    // Note: If 3-pro-image-preview is unavailable, fallback to gemini-2.0-flash-exp
+    const model = (meta && meta.isProductMerge) ? "gemini-2.5-flash-image" : "gemini-3-pro-image-preview";
+    
+    console.log(`[Gemini Process] Feature: ${meta && meta.isProductMerge ? 'Product Merge' : 'Renovation'}, Model: ${model}`);
 
     // Send to provider
     const result = await geminiClient.processImageWithGemini({
@@ -470,6 +473,30 @@ app.post("/api/gemini/generate-view", async (req, res) => {
 const path = require("path");
 
 // ============================================================================
+// IMAGE PROXY: Fix CORS issues for canvas manipulation
+// ============================================================================
+app.get("/api/proxy-image", async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).send("URL required");
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    res.set("Content-Type", contentType);
+    res.set("Access-Control-Allow-Origin", "*"); // Allow client to read this
+    res.send(buffer);
+  } catch (e) {
+    console.error("Image Proxy Error:", e.message);
+    res.status(500).send(`Proxy Error: ${e.message}`);
+  }
+});
+
+// ============================================================================
 // DEMO PROXY: "Copy" a website and inject our features
 // ============================================================================
 app.get("/api/demo-proxy", async (req, res) => {
@@ -485,15 +512,21 @@ app.get("/api/demo-proxy", async (req, res) => {
       throw new Error(`Failed to fetch ${targetUrl}: ${response.statusText}`);
     }
     const html = await response.text();
+    
+    // Use the final URL (after redirects) for the base tag
+    const finalUrl = response.url || targetUrl;
 
     // 2. Resolve relative URLs to absolute URLs
     // This is a naive implementation but works for most static assets in a demo context
-    const urlObj = new URL(targetUrl);
+    const urlObj = new URL(finalUrl);
     const origin = urlObj.origin;
     const supplierHostParam = encodeURIComponent(urlObj.hostname || "");
     
     // Replace src="/..." with src="https://site.com/..."
-    let modifiedHtml = html.replace(/(src|href|action)="\/(?!\/)/gi, `$1="${origin}/`);
+    // DISABLED: This regex is too aggressive and breaks inline scripts/JSON. 
+    // We rely on the <base> tag instead.
+    // let modifiedHtml = html.replace(/(src|href|action)="\/(?!\/)/gi, `$1="${origin}/`);
+    let modifiedHtml = html;
     
     // Replace src="./..." or src="foo.jpg" (tricky, but let's try basic)
     // A better approach is using the <base> tag, but that breaks hash links often.
@@ -503,7 +536,15 @@ app.get("/api/demo-proxy", async (req, res) => {
     // Note: <base> tag is powerful but can break in-page anchors. 
     // For a visual demo, it's usually the best way to load images/css correctly.
     if (!modifiedHtml.includes("<base")) {
-        modifiedHtml = modifiedHtml.replace("<head>", `<head><base href="${targetUrl}">`);
+        // Inject base tag right after head
+        modifiedHtml = modifiedHtml.replace("<head>", `<head><base href="${finalUrl}">`);
+    } else {
+        // If base tag exists, we might need to update it? 
+        // Usually original site has relative base or none. 
+        // For now, assume if it exists it might be okay, or we replace it?
+        // Let's replace existing base tag if it's there but relative? 
+        // Simpler to just leave it if it exists, or force our own.
+        // But for Gutstein, it doesn't have one initially likely.
     }
 
     // 3. Inject our "Virtual Renovations" Widget
@@ -511,178 +552,184 @@ app.get("/api/demo-proxy", async (req, res) => {
     const widgetScript = `
       <script>
         (function() {
-          console.log("AlgoreitAI Demo Widget Loaded");
+          function initWidget() {
+            if (document.getElementById("algoreit-demo-btn")) return;
+            console.log("AlgoreitAI Demo Widget Initializing...");
 
-          const BUTTON_LABEL = "AlgoreitAI";
-          const BUTTON_HTML = "<span class=\\"algoreit-emoji\\">✨</span><span>AlgoreitAI</span>";
-          
-          // Inject button styles to match the main app
-          const style = document.createElement("style");
-          style.textContent = [
-            ":root {",
-            "  --color-border-subtle: #e0e0ea;",
-            "  --color-text-main: #111827;",
-            "}",
-            ".op-btn {",
-            "  position: relative;",
-            "  display: inline-flex;",
-            "  align-items: center;",
-            "  justify-content: center;",
-            "  padding: 8px 18px;",
-            "  border-radius: 999px;",
-            "  border: 1px solid var(--color-border-subtle);",
-            "  background: #ffffff;",
-            "  color: var(--color-text-main);",
-            "  font-size: 14px;",
-            "  font-weight: 500;",
-            "  cursor: pointer;",
-            "  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease, border-color 0.15s ease;",
-            "  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
-            "}",
-            ".op-btn:hover {",
-            "  background: #f9fafb;",
-            "  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);",
-            "}",
-            ".op-btn:active {",
-            "  transform: translateY(1px);",
-            "  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);",
-            "}",
-            ".op-btn-gemini {",
-            "  background: linear-gradient(135deg, #4285f4, #34a853, #fbbc04, #ea4335);",
-            "  color: #ffffff;",
-            "  border-color: transparent;",
-            "  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);",
-            "  font-weight: 600;",
+            const BUTTON_LABEL = "AlgoreitAI";
+            const BUTTON_HTML = "<span class=\\"algoreit-emoji\\">✨</span><span>AlgoreitAI</span>";
+            
+            // Inject button styles
+            const style = document.createElement("style");
+            style.textContent = [
+              ":root {",
+              "  --color-border-subtle: #e0e0ea;",
+              "  --color-text-main: #111827;",
+              "}",
+              ".op-btn {",
+              "  position: relative;",
+              "  display: inline-flex;",
+              "  align-items: center;",
+              "  justify-content: center;",
+              "  padding: 8px 18px;",
+              "  border-radius: 999px;",
+              "  border: 1px solid var(--color-border-subtle);",
+              "  background: #ffffff;",
+              "  color: var(--color-text-main);",
+              "  font-size: 14px;",
+              "  font-weight: 500;",
+              "  cursor: pointer !important;",
+              "  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease, border-color 0.15s ease;",
+              "  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
+              "  pointer-events: auto !important;",
+              "  z-index: 2147483647 !important;",
+              "  box-sizing: border-box;",
+              "  line-height: 1.5;",
+              "  text-decoration: none;",
+              "}",
+              ".op-btn:hover {",
+              "  background: #f9fafb;",
+              "  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);",
+              "}",
+              ".op-btn:active {",
+              "  transform: translateY(1px);",
+              "  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);",
+              "}",
+              ".op-btn-gemini {",
+              "  background: linear-gradient(135deg, #4285f4, #34a853, #fbbc04, #ea4335);",
+              "  color: #ffffff;",
+              "  border-color: transparent;",
+              "  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);",
+              "  font-weight: 600;",
               "  direction: ltr;",
               "  unicode-bidi: isolate;",
               "  flex-direction: row;",
-            "}",
-            ".op-btn-gemini:hover {",
-            "  background: linear-gradient(135deg, #3367d6, #2d8e47, #f9ab00, #d33b2c);",
-            "  box-shadow: 0 6px 16px rgba(66, 133, 244, 0.4);",
-            "}",
-            ".op-btn-gemini:disabled {",
-            "  opacity: 0.7;",
-            "  cursor: not-allowed;",
-            "  transform: none;",
-            "}",
-            ".algoreit-emoji {",
-            "  display: inline-flex;",
-            "  align-items: center;",
-            "  margin-right: 6px;",
-            "}",
-          ].join("\\n");
-          document.head.appendChild(style);
+              "}",
+              ".op-btn-gemini:hover {",
+              "  background: linear-gradient(135deg, #3367d6, #2d8e47, #f9ab00, #d33b2c);",
+              "  box-shadow: 0 6px 16px rgba(66, 133, 244, 0.4);",
+              "}",
+              ".algoreit-emoji {",
+              "  display: inline-flex;",
+              "  align-items: center;",
+              "  margin-right: 6px;",
+              "}",
+            ].join("\\n");
+            document.head.appendChild(style);
 
-          // Create Button
-          const btn = document.createElement("button");
-          btn.className = "op-btn op-btn-gemini";
-          btn.id = "algoreit-demo-btn";
-          btn.innerHTML = BUTTON_HTML;
-          btn.setAttribute("aria-label", "AlgoreitAI");
-          btn.style.position = "fixed";
-          btn.style.bottom = "20px";
-          btn.style.right = "20px";
-          btn.style.zIndex = "999999";
+            // Create Button
+            const btn = document.createElement("button");
+            btn.className = "op-btn op-btn-gemini";
+            btn.id = "algoreit-demo-btn";
+            btn.innerHTML = BUTTON_HTML;
+            btn.setAttribute("aria-label", "AlgoreitAI");
+            btn.style.position = "fixed";
+            // Moved up to avoid chat widgets (e.g. WhatsApp, Accessibility tools)
+            btn.style.bottom = "100px"; 
+            btn.style.right = "20px";
+            btn.style.zIndex = "2147483647"; 
+            btn.style.cursor = "pointer";
+            btn.style.height = "auto";
+            btn.style.width = "auto";
 
-          // Keep the label consistent if any host scripts mutate it
-          const enforceLabel = () => {
-            if (btn.innerHTML !== BUTTON_HTML) {
-              btn.innerHTML = BUTTON_HTML;
-            }
-          };
-          const observer = new MutationObserver(enforceLabel);
-          observer.observe(btn, { childList: true, characterData: true, subtree: true });
+            // Create Modal Overlay
+            const modal = document.createElement("div");
+            modal.style.position = "fixed";
+            modal.style.top = "0";
+            modal.style.left = "0";
+            modal.style.width = "100vw";
+            modal.style.height = "100vh";
+            modal.style.backgroundColor = "rgba(0,0,0,0.5)";
+            modal.style.zIndex = "2147483646";
+            modal.style.display = "none";
+            modal.style.justifyContent = "center";
+            modal.style.alignItems = "center";
+            modal.style.backdropFilter = "blur(5px)";
+            
+            // Iframe Container
+            const container = document.createElement("div");
+            container.style.width = "90%";
+            container.style.height = "90%";
+            container.style.maxWidth = "1200px";
+            container.style.backgroundColor = "white";
+            container.style.borderRadius = "12px";
+            container.style.overflow = "hidden";
+            container.style.position = "relative";
+            container.style.boxShadow = "0 20px 50px rgba(0,0,0,0.3)";
+            
+            const closeBtn = document.createElement("button");
+            closeBtn.innerHTML = "×";
+            closeBtn.style.position = "absolute";
+            closeBtn.style.top = "10px";
+            closeBtn.style.right = "10px";
+            closeBtn.style.background = "white";
+            closeBtn.style.border = "none";
+            closeBtn.style.fontSize = "24px";
+            closeBtn.style.cursor = "pointer";
+            closeBtn.style.width = "40px";
+            closeBtn.style.height = "40px";
+            closeBtn.style.borderRadius = "50%";
+            closeBtn.style.zIndex = "2147483647";
+            
+            closeBtn.onclick = (e) => {
+               e.preventDefault();
+               e.stopPropagation();
+               modal.style.display = "none";
+            };
 
-          // Replace any legacy "Renovate with AI" labels on the page (demo only)
-          const normalizeLegacyButtons = () => {
-            const nodes = document.querySelectorAll("button, a, span, div");
-            nodes.forEach((el) => {
-              if (el === btn) return;
-              const text = (el.textContent || "").trim();
-              if (!text) return;
-              if (/renovate with ai/i.test(text)) {
-                el.textContent = BUTTON_LABEL;
-                el.classList.add("op-btn", "op-btn-gemini");
-              }
-            });
-          };
-          normalizeLegacyButtons();
-          const legacyObserver = new MutationObserver(normalizeLegacyButtons);
-          legacyObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
-          
-          // Create Modal Overlay
-          const modal = document.createElement("div");
-          modal.style.position = "fixed";
-          modal.style.top = "0";
-          modal.style.left = "0";
-          modal.style.width = "100vw";
-          modal.style.height = "100vh";
-          modal.style.backgroundColor = "rgba(0,0,0,0.5)";
-          modal.style.zIndex = "999998";
-          modal.style.display = "none";
-          modal.style.justifyContent = "center";
-          modal.style.alignItems = "center";
-          modal.style.backdropFilter = "blur(5px)";
-          
-          // Iframe Container
-          const container = document.createElement("div");
-          container.style.width = "90%";
-          container.style.height = "90%";
-          container.style.maxWidth = "1200px";
-          container.style.backgroundColor = "white";
-          container.style.borderRadius = "12px";
-          container.style.overflow = "hidden";
-          container.style.position = "relative";
-          container.style.boxShadow = "0 20px 50px rgba(0,0,0,0.3)";
-          
-          // Close Button
-          const closeBtn = document.createElement("button");
-          closeBtn.innerHTML = "×";
-          closeBtn.style.position = "absolute";
-          closeBtn.style.top = "10px";
-          closeBtn.style.right = "10px";
-          closeBtn.style.background = "white";
-          closeBtn.style.border = "none";
-          closeBtn.style.fontSize = "24px";
-          closeBtn.style.cursor = "pointer";
-          closeBtn.style.width = "40px";
-          closeBtn.style.height = "40px";
-          closeBtn.style.borderRadius = "50%";
-          closeBtn.style.zIndex = "1000001";
-          
-          closeBtn.onclick = () => {
-             modal.style.display = "none";
-             // Optional: reset iframe source to stop video/audio?
-          };
+            const iframe = document.createElement("iframe");
+            iframe.src = "http://localhost:4000/index.html?mode=embed&supplierHost=${supplierHostParam}"; 
+            iframe.allow = "camera; microphone; clipboard-write";
+            iframe.style.width = "100%";
+            iframe.style.height = "100%";
+            iframe.style.border = "none";
+            
+            container.appendChild(closeBtn);
+            container.appendChild(iframe);
+            modal.appendChild(container);
+            
+            document.body.appendChild(btn);
+            document.body.appendChild(modal);
+            
+            btn.addEventListener("click", (e) => {
+              console.log("AlgoreitAI Button Clicked");
+              e.preventDefault();
+              e.stopPropagation();
+              modal.style.display = "flex";
+            }, true);
 
-          // The Iframe (Points to OUR app)
-          const iframe = document.createElement("iframe");
-          // Use absolute URL to ensure it points to localhost:4000 even if proxy URL structure is weird
-          // Also added 'allow' attributes for camera/microphone which might be needed
-          iframe.src = "http://localhost:4000/index.html?mode=embed&supplierHost=${supplierHostParam}"; 
-          iframe.allow = "camera; microphone; clipboard-write";
-          iframe.style.width = "100%";
-          iframe.style.height = "100%";
-          iframe.style.border = "none";
-          
-          container.appendChild(closeBtn);
-          container.appendChild(iframe);
-          modal.appendChild(container);
-          
-          document.body.appendChild(btn);
-          document.body.appendChild(modal);
-          
-          btn.onclick = () => {
-            modal.style.display = "flex";
-          };
-          
+            // Anti-Overlay Check: Ensure nothing covers our button
+            setInterval(() => {
+                const rect = btn.getBoundingClientRect();
+                const x = rect.left + rect.width / 2;
+                const y = rect.top + rect.height / 2;
+                const el = document.elementFromPoint(x, y);
+                
+                if (el && el !== btn && !btn.contains(el) && el !== modal && !modal.contains(el)) {
+                    console.warn("AlgoreitAI Button is covered by:", el);
+                    // Aggressive fix: make the covering element click-through
+                    try {
+                        el.style.pointerEvents = "none";
+                    } catch(e) {}
+                }
+            }, 2500);
+          }
+
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initWidget);
+          } else {
+            initWidget();
+          }
         })();
       </script>
     `;
 
-    // Inject before body close
-    modifiedHtml = modifiedHtml.replace("</body>", `${widgetScript}</body>`);
+    // Inject before head close for earlier parsing, or body close if head missing
+    if (modifiedHtml.includes("</head>")) {
+        modifiedHtml = modifiedHtml.replace("</head>", `${widgetScript}</head>`);
+    } else {
+        modifiedHtml = modifiedHtml.replace("</body>", `${widgetScript}</body>`);
+    }
 
     res.set("Cache-Control", "no-store, max-age=0, must-revalidate");
     res.set("Pragma", "no-cache");

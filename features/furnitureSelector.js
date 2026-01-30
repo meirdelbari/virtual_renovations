@@ -285,7 +285,11 @@
         geminiBtn.textContent = tr("ops.clickToProcess", null, "✨ Click to Process");
         setTimeout(() => {
             geminiBtn.classList.remove('pulse-animation');
-            geminiBtn.textContent = tr("ops.algoreit", null, "✨ AlgoreitAI");
+            geminiBtn.innerHTML = tr(
+              "ops.algoreit",
+              null,
+              '<span class="algoreit-emoji">✨</span><span>AlgoreitAI</span>'
+            );
         }, 3000);
       }
   }
