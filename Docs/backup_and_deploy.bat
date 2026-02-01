@@ -39,7 +39,7 @@ echo [Local Backup Completed at %BACKUP_DIR%]
 echo.
 
 echo ========================================================
-echo  Step 2: Syncing with GitHub (Cloud Backup & Deploy)
+echo  Step 2: Syncing with GitHub (Cloud Backup ^& Deploy)
 echo ========================================================
 
 :: Check git
@@ -93,6 +93,15 @@ if %errorlevel% neq 0 (
 :: Use current branch if possible, fallback to main
 for /f "delims=" %%B in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%B"
 if "%CURRENT_BRANCH%"=="" set "CURRENT_BRANCH=main"
+echo.
+echo Syncing with remote (rebase)...
+git pull --rebase --autostash origin %CURRENT_BRANCH%
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Git Pull (rebase) failed. Resolve conflicts, then re-run.
+    pause
+    exit /b %errorlevel%
+)
 git push -u origin %CURRENT_BRANCH%
 if %errorlevel% neq 0 (
     echo.
