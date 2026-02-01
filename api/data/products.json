@@ -137,25 +137,15 @@
   },
   {
     "status": "approved",
-<<<<<<< HEAD
-    "statusUpdatedAt": "2026-01-25T09:25:18.357Z",
-    "statusReason": "",
-    "updatedAt": "2026-01-25T09:25:18.363Z",
-=======
     "statusUpdatedAt": "2026-01-30T16:25:34.348Z",
     "statusReason": "",
     "updatedAt": "2026-01-30T16:25:34.357Z",
->>>>>>> 5b2bbbb (Restore repo)
     "id": "prod_1769288214609",
     "createdAt": "2026-01-24T20:56:54.609Z",
     "supplierId": "sup_1769190366055",
     "supplierName": "אלוני",
     "name": "Tile 1",
-<<<<<<< HEAD
-    "description": "",
-=======
     "description": "קרמיקה תוצרת איטליה",
->>>>>>> 5b2bbbb (Restore repo)
     "price": "",
     "category": "Walls - Tiles",
     "style": "modern",

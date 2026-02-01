@@ -289,8 +289,6 @@
     "empty": "No products found in this category",
     "emptyStyleMatch": " matching '{{style}}' style",
     "supplierFallback": "Supplier",
-<<<<<<< HEAD
-=======
     "labels": {
       "catalogNo": "Catalog No.",
       "category": "Category",
@@ -301,7 +299,6 @@
       "purchase": "Purchase",
       "noDetails": "No additional details."
     },
->>>>>>> 5b2bbbb (Restore repo)
     "categories": {
       "all": "All",
       "flooring": "Flooring",

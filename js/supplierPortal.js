@@ -843,12 +843,8 @@ function renderProducts(products) {
                      <span class="text-xs text-gray-500 mr-2">Style:</span>
                      <span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">${p.style || 'Any'}</span>
                 </div>
-<<<<<<< HEAD
-                <p class="text-gray-500 text-sm mt-2 line-clamp-2">${p.description}</p>
-=======
                 ${p.catalogNo ? `<p class="text-gray-500 text-xs mt-2">Catalog No.: ${p.catalogNo}</p>` : ''}
                 <p class="text-gray-500 text-sm mt-1 line-clamp-2">${p.description}</p>
->>>>>>> 5b2bbbb (Restore repo)
                 <div class="mt-4 flex justify-between items-center">
                     <span class="font-bold text-gray-900">$${p.price || '0'}</span>
                     <div class="flex gap-2 items-center">
@@ -881,10 +877,7 @@ function showUploadModal(editProduct = null) {
         document.getElementById('prod-category').value = editProduct.category || "";
         document.getElementById('prod-style').value = editProduct.style || "";
         document.getElementById('prod-price').value = editProduct.price || "";
-<<<<<<< HEAD
-=======
         document.getElementById('prod-catalog-no').value = editProduct.catalogNo || "";
->>>>>>> 5b2bbbb (Restore repo)
         document.getElementById('prod-desc').value = editProduct.description || "";
         document.getElementById('prod-link').value = editProduct.purchaseLink || "";
         
@@ -962,10 +955,7 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
             category: document.getElementById('prod-category').value,
             style: document.getElementById('prod-style').value,
             price: document.getElementById('prod-price').value,
-<<<<<<< HEAD
-=======
             catalogNo: document.getElementById('prod-catalog-no').value,
->>>>>>> 5b2bbbb (Restore repo)
             description: document.getElementById('prod-desc').value,
             imageUrl: imageUrl,
             purchaseLink: document.getElementById('prod-link').value

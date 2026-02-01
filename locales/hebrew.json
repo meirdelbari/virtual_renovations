@@ -289,8 +289,6 @@
     "empty": "לא נמצאו מוצרים בקטגוריה הזו",
     "emptyStyleMatch": " בסגנון '{{style}}'",
     "supplierFallback": "ספק",
-<<<<<<< HEAD
-=======
     "labels": {
       "catalogNo": "מספר קטלוג",
       "category": "קטגוריה",
@@ -301,7 +299,6 @@
       "purchase": "רכישה",
       "noDetails": "אין פרטים נוספים."
     },
->>>>>>> 5b2bbbb (Restore repo)
     "categories": {
       "all": "הכול",
       "flooring": "ריצוף",

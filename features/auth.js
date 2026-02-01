@@ -92,6 +92,93 @@
 
     // Local development guard: Clerk custom domain blocks localhost (CORS/404)
     // Removed to allow Google Sign In testing on localhost
+    
+    if (
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+    ) {
+      console.warn("Auth: Localhost Bypass Active");
+
+      // Check if we are "signed out"
+      const isSignedOut = sessionStorage.getItem("dev_mode_signed_out") === "true";
+
+      // Mock a user session for localhost
+      clerk = {
+        // Only provide user if NOT signed out
+        user: isSignedOut
+          ? null
+          : {
+              id: "user_mock_localhost",
+              firstName: "Dev",
+              imageUrl:
+                "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y",
+              primaryEmailAddress: { emailAddress: "dev@localhost" },
+            },
+        // Mock loading
+        load: async () => {},
+        // Mock listener
+        addListener: (cb) => {
+          // Immediately call with current state
+          cb({ user: clerk.user });
+          return () => {};
+        },
+        // Mock Sign Out
+        signOut: async () => {
+          sessionStorage.setItem("dev_mode_signed_out", "true");
+          location.reload();
+        },
+        // Mock User Button
+        mountUserButton: (el) => {
+          el.innerHTML = `
+                           <div style="display:flex;align-items:center;gap:10px;">
+                               <div style='background:#f3f4f6;padding:6px 10px;border-radius:6px;font-weight:600;font-size:12px;color:#374151;border:1px solid #e5e7eb;'>
+                                   Dev Mode
+                               </div>
+                               <button id="dev-sign-out-btn" class="op-btn" style="padding:4px 10px;font-size:12px;height:auto;min-height:0;">
+                                   Sign Out
+                               </button>
+                           </div>
+                       `;
+          const btn = el.querySelector("#dev-sign-out-btn");
+          if (btn) btn.onclick = () => clerk.signOut();
+        },
+        // Mock Sign In (UI mount)
+        mountSignIn: (el) => {
+          el.innerHTML = `
+                           <div style="text-align:center;padding:20px;">
+                               <h3>Dev Mode</h3>
+                               <p>Click below to simulate sign in</p>
+                               <button id="dev-sign-in-btn" class="op-btn op-btn-gemini">
+                                   Sign In as Dev User
+                               </button>
+                           </div>
+                       `;
+          const btn = el.querySelector("#dev-sign-in-btn");
+          if (btn)
+            btn.onclick = () => {
+              sessionStorage.removeItem("dev_mode_signed_out");
+              location.reload();
+            };
+        },
+        // Mock Sign In (Modal)
+        openSignIn: () => {
+          sessionStorage.removeItem("dev_mode_signed_out");
+          location.reload();
+        },
+      };
+
+      // If NOT signed out, we behave as logged in
+      if (!isSignedOut) {
+        mountUserButton();
+        showApp();
+      } else {
+        // If signed out, show landing page
+        // The initAuth function continues... but we returned early in the original code.
+        // We should let the standard flow handle "clerk.user is null" -> showLandingPage
+        showLandingPage();
+      }
+      return;
+    }
     /*
     const isLocalhost =
       window.location.hostname === "localhost" ||

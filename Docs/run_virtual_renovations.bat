@@ -50,25 +50,30 @@ REM Check if node_modules exists
 if not exist "node_modules" (
   echo First time run detected. Installing dependencies...
   call npm install >> "%LOG%" 2>&1
+  if errorlevel 1 (
+    echo ERROR: npm install failed. Check "%LOG%" for details.
+    pause
+    exit /b 1
+  )
 )
 
 REM Start the application (Frontend + Backend API) in a separate window
 echo Starting server on http://localhost:4000...
 echo Starting server window...>> "%LOG%"
-start "Virtual Renovations Server" cmd /k "cd /d "%CD%" && npm start"
+start "Virtual Renovations Server" cmd /k "npm start"
 
 REM Wait for server to be reachable, then open browser.
 echo Waiting for server to become ready...
 set "URL=http://localhost:4000/api/health"
 set "APP=http://localhost:4000"
 
-REM Try for ~30 seconds (30 * 1s)
+REM Try for ~60 seconds (60 * 1s)
 set /a tries=0
 :wait_loop
 set /a tries+=1
 call :http_ok "%URL%"
 if %errorlevel%==0 goto ready
-if %tries% GEQ 30 goto timeout
+if %tries% GEQ 60 goto timeout
 timeout /t 1 /nobreak >nul
 goto wait_loop
 
@@ -118,6 +123,14 @@ exit /b 0
 :http_ok
 set "CHECK_URL=%~1"
 echo http_ok %CHECK_URL%>> "%LOG%"
+
+REM Try curl first (fastest and most reliable)
+where curl >nul 2>nul
+if %errorlevel%==0 (
+  curl -s -f -o nul "%CHECK_URL%"
+  exit /b %errorlevel%
+)
+
 REM Try pwsh first (PowerShell 7), then fall back to Windows PowerShell (powershell.exe)
 where pwsh >nul 2>nul
 if %errorlevel%==0 (

@@ -6,10 +6,7 @@ const geminiClient = require("./geminiClient");
 const paymentService = require("./paymentService");
 const productScraper = require("./productScraper");
 const supplierRoutes = require("./supplierRoutes");
-<<<<<<< HEAD
-=======
 const cheerio = require("cheerio");
->>>>>>> 5b2bbbb (Restore repo)
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -551,9 +548,6 @@ app.get("/api/demo-proxy", async (req, res) => {
         // But for Gutstein, it doesn't have one initially likely.
     }
 
-<<<<<<< HEAD
-    // 3. Inject our "Virtual Renovations" Widget
-=======
     // 3. Rewrite internal links to stay in demo proxy
     try {
         const $ = cheerio.load(modifiedHtml);
@@ -608,7 +602,6 @@ app.get("/api/demo-proxy", async (req, res) => {
     }
 
     // 4. Inject our "Virtual Renovations" Widget
->>>>>>> 5b2bbbb (Restore repo)
     // We inject a script that adds a floating button
     const widgetScript = `
       <script>
@@ -617,10 +610,6 @@ app.get("/api/demo-proxy", async (req, res) => {
             if (document.getElementById("algoreit-demo-btn")) return;
             console.log("AlgoreitAI Demo Widget Initializing...");
 
-<<<<<<< HEAD
-            const BUTTON_LABEL = "AlgoreitAI";
-            const BUTTON_HTML = "<span class=\\"algoreit-emoji\\">✨</span><span>AlgoreitAI</span>";
-=======
             const supplierHost = ${JSON.stringify(urlObj.hostname)};
             const supplierLabel = (function () {
               const host = (supplierHost || "").toLowerCase().replace(/^www\\./, "");
@@ -636,7 +625,6 @@ app.get("/api/demo-proxy", async (req, res) => {
             const SUPPLIER_HOST = ${JSON.stringify(urlObj.hostname)};
             const SUPPLIER_ORIGIN = ${JSON.stringify(origin)};
             const SUPPLIER_BASE = ${JSON.stringify(finalUrl)};
->>>>>>> 5b2bbbb (Restore repo)
             
             // Inject button styles
             const style = document.createElement("style");
@@ -693,14 +681,11 @@ app.get("/api/demo-proxy", async (req, res) => {
               "  align-items: center;",
               "  margin-right: 6px;",
               "}",
-<<<<<<< HEAD
-=======
               "#algoreit-demo-btn {",
               "  position: fixed !important;",
               "  bottom: 15px !important;",
               "  right: 20px !important;",
               "}",
->>>>>>> 5b2bbbb (Restore repo)
             ].join("\\n");
             document.head.appendChild(style);
 
@@ -711,22 +696,14 @@ app.get("/api/demo-proxy", async (req, res) => {
             btn.innerHTML = BUTTON_HTML;
             btn.setAttribute("aria-label", "AlgoreitAI");
             btn.style.position = "fixed";
-<<<<<<< HEAD
-            // Moved up to avoid chat widgets (e.g. WhatsApp, Accessibility tools)
-            btn.style.bottom = "100px"; 
-            btn.style.right = "20px";
-=======
             // Keep it low-right and enforce against host styles
             btn.style.setProperty("bottom", "15px", "important");
             btn.style.setProperty("right", "20px", "important");
->>>>>>> 5b2bbbb (Restore repo)
             btn.style.zIndex = "2147483647"; 
             btn.style.cursor = "pointer";
             btn.style.height = "auto";
             btn.style.width = "auto";
 
-<<<<<<< HEAD
-=======
             function setupProxyNavigation() {
               if (!SUPPLIER_HOST) return;
               const isSafeHref = (href) => {
@@ -852,8 +829,6 @@ app.get("/api/demo-proxy", async (req, res) => {
                 return originalReplaceState(state, title, proxyUrl || url);
               };
             }
-
->>>>>>> 5b2bbbb (Restore repo)
             // Create Modal Overlay
             const modal = document.createElement("div");
             modal.style.position = "fixed";
@@ -920,11 +895,7 @@ app.get("/api/demo-proxy", async (req, res) => {
               modal.style.display = "flex";
             }, true);
 
-<<<<<<< HEAD
-=======
             setupProxyNavigation();
-
->>>>>>> 5b2bbbb (Restore repo)
             // Anti-Overlay Check: Ensure nothing covers our button
             setInterval(() => {
                 const rect = btn.getBoundingClientRect();

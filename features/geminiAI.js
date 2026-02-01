@@ -23,8 +23,6 @@
       .replace(/'/g, "&#039;");
   }
 
-<<<<<<< HEAD
-=======
   function buildProductInfoHtml(p) {
     if (!p || typeof p !== "object") return "";
     const label = (key, fallback) => tr(`productSelector.labels.${key}`, null, fallback);
@@ -55,8 +53,6 @@
     if (p.price || p.price === 0) lines.push(`Price: $${p.price}`);
     return lines.length ? `\n- ${lines.join("\n- ")}` : "";
   }
-
->>>>>>> 5b2bbbb (Restore repo)
   // API base helper:
   // - When opened via file://, relative "/api/..." becomes "file:///api/..." and fails.
   // - The backend serves both UI and API locally on http://localhost:4000
@@ -297,13 +293,9 @@
                                 }
                             </div>
                             <div style="font-weight: 600; color: #4f46e5; margin-top: 4px;">$${p.price}</div>
-<<<<<<< HEAD
-                            ${p.description ? `<div style="color: #6b7280; font-size: 12px; margin-top: 4px; line-height: 1.4; border-top: 1px solid #eee; padding-top: 4px;">${escapeHtml(p.description)}</div>` : ''}
-=======
                             <div style="color: #6b7280; font-size: 12px; margin-top: 4px; line-height: 1.4; border-top: 1px solid #eee; padding-top: 4px;">
                               ${buildProductInfoHtml(p)}
                             </div>
->>>>>>> 5b2bbbb (Restore repo)
                         </div>
                     </div>
                 `;
@@ -721,11 +713,7 @@ CRITICAL CONSTRAINTS:
                     }
                 }
                 
-<<<<<<< HEAD
-                const p = window.currentProductSelection;
-=======
                     const p = window.currentProductSelection;
->>>>>>> 5b2bbbb (Restore repo)
                 detailsPanel.innerHTML = `
                     <div style="display: flex; gap: 12px; align-items: start;">
                         <img src="${p.imageUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
@@ -738,13 +726,9 @@ CRITICAL CONSTRAINTS:
                                 }
                             </div>
                             <div style="font-weight: 600; color: #4f46e5; margin-top: 4px;">$${p.price}</div>
-<<<<<<< HEAD
-                            ${p.description ? `<div style="color: #6b7280; font-size: 12px; margin-top: 4px; line-height: 1.4; border-top: 1px solid #eee; padding-top: 4px;">${escapeHtml(p.description)}</div>` : ''}
-=======
                                 <div style="color: #6b7280; font-size: 12px; margin-top: 4px; line-height: 1.4; border-top: 1px solid #eee; padding-top: 4px;">
                                   ${buildProductInfoHtml(p)}
                                 </div>
->>>>>>> 5b2bbbb (Restore repo)
                         </div>
                     </div>
                 `;
@@ -1018,13 +1002,7 @@ CRITICAL CONSTRAINTS:
     if (window.currentProductSelection) {
         const p = window.currentProductSelection;
         const cat = p.category ? ` (${p.category})` : "";
-<<<<<<< HEAD
-        const desc = p.description ? `\n- Description: ${p.description}` : "";
-        const supplier = p.supplierName ? `\n- Supplier: ${p.supplierName}` : "";
-        const price = (p.price || p.price === 0) ? `\n- Price: $${p.price}` : "";
-=======
         const info = buildProductInfoText(p);
->>>>>>> 5b2bbbb (Restore repo)
 
         // Dedicated block used by the specific templates below (esp. furniture staging)
         let specificInstruction = "";
@@ -1059,11 +1037,7 @@ CRITICAL CONSTRAINTS:
         
         const preservationText = itemsToPreserve.join(", ");
 
-<<<<<<< HEAD
-        supplierProductBlock = `\n\nSUPPLIER PRODUCT REFERENCE:\n- The INPUT IMAGE is a COLLAGE.\n- LEFT SIDE: The room to modify.\n- RIGHT SIDE: The Reference Product ("${p.name}") to insert.${desc}${supplier}${price}\n\nINSTRUCTIONS:\n1. IGNORE the right side panel in the final output.\n2. INSERT the product from the RIGHT into the room on the LEFT.\n3. PRESERVE the existing room details (${preservationText}) and EXISTING FURNITURE as much as possible. Only move/remove items if they physically conflict with the new product's placement.\n4. Make it look photorealistic: match lighting, perspective, and shadows.\n5. The final result must ONLY show the room (left side) with the product integrated.${specificInstruction}`;
-=======
         supplierProductBlock = `\n\nSUPPLIER PRODUCT REFERENCE:\n- The INPUT IMAGE is a COLLAGE.\n- LEFT SIDE: The room to modify.\n- RIGHT SIDE: The Reference Product ("${p.name}") to insert.${info}\n\nINSTRUCTIONS:\n1. IGNORE the right side panel in the final output.\n2. INSERT the product from the RIGHT into the room on the LEFT.\n3. PRESERVE the existing room details (${preservationText}) and EXISTING FURNITURE as much as possible. Only move/remove items if they physically conflict with the new product's placement.\n4. Make it look photorealistic: match lighting, perspective, and shadows.\n5. The final result must ONLY show the room (left side) with the product integrated.${specificInstruction}`;
->>>>>>> 5b2bbbb (Restore repo)
 
         // OVERRIDE: When a product is selected, we ignore the 'renovationId' task (e.g. "paint walls")
         // because we want to perform a specific merge action on the *current* image state.
