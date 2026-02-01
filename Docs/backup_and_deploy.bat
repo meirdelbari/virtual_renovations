@@ -36,7 +36,7 @@ robocopy "%SOURCE_DIR%" "%BACKUP_DIR%" /E ^
 
 :: Check exit code (anything < 8 is success)
 if %errorlevel% gtr 7 (
-    echo [ERROR] Local backup failed with code %errorlevel%!
+    echo [ERROR] Local backup failed with code %errorlevel%
     pause
     exit /b %errorlevel%
 )
@@ -115,7 +115,7 @@ echo Pushing to GitHub...
 git push -u origin %CURRENT_BRANCH%
 if %errorlevel% neq 0 (
     echo.
-    echo [ERROR] Git Push failed!
+    echo [ERROR] Git Push failed
     echo [INFO] Common issues:
     echo         - Check internet connection
     echo         - Verify GitHub credentials
