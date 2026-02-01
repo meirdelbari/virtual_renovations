@@ -85,7 +85,7 @@ echo.
 echo Committing changes...
 git commit -m "%CommitMessage% [Backup %TIMESTAMP%]"
 if %errorlevel% neq 0 (
-    echo [INFO] Git Commit returned code %errorlevel%. (Maybe nothing to commit?)
+    echo [INFO] Git Commit returned code %errorlevel%. Maybe nothing to commit?
 )
 
 echo.
@@ -105,7 +105,7 @@ echo Syncing with remote (rebase)...
 git pull --rebase --autostash origin %CURRENT_BRANCH%
 if %errorlevel% neq 0 (
     echo.
-    echo [ERROR] Git Pull (rebase) failed. Resolve conflicts, then re-run.
+    echo [ERROR] Git Pull rebase failed. Resolve conflicts, then re-run.
     echo [INFO] You may need to run: git rebase --abort
     pause
     exit /b %errorlevel%
