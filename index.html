@@ -123,17 +123,6 @@
         async function init() {
           if (!window.i18n || typeof window.i18n.initI18n !== "function") return;
 
-<<<<<<< HEAD
-          // If in supplier context, use the supplier-specific title
-          if (window.VR_SUPPLIER_CONTEXT) {
-            const titleEl = document.querySelector('.app-title');
-            if (titleEl) {
-              titleEl.setAttribute('data-i18n', 'app.supplierAppTitle');
-            }
-          }
-
-          await window.i18n.initI18n({ fallbackLocale: "en" });
-=======
           function getSupplierDisplayName(host) {
             const normalized = String(host || "").toLowerCase().replace(/^www\./, "");
             const map = {
@@ -160,17 +149,23 @@
           }
 
           function applySupplierTitle() {
-            if (!window.VR_SUPPLIER_CONTEXT || !window.VR_SUPPLIER_CONTEXT.supplierHost) return;
             const titleEl = document.querySelector(".app-title");
             if (!titleEl) return;
-            const supplierName = getSupplierDisplayName(window.VR_SUPPLIER_CONTEXT.supplierHost);
-            const locale = window.i18n && window.i18n.getLocale ? window.i18n.getLocale() : "en";
-            if (String(locale).toLowerCase().startsWith("he")) {
-              titleEl.textContent = "בחר והוסף את המוצרים של " + supplierName;
-            } else {
-              titleEl.textContent = "Select and add " + supplierName + " products";
+            if (window.VR_SUPPLIER_CONTEXT && window.VR_SUPPLIER_CONTEXT.supplierHost) {
+              const supplierName = getSupplierDisplayName(window.VR_SUPPLIER_CONTEXT.supplierHost);
+              const locale = window.i18n && window.i18n.getLocale ? window.i18n.getLocale() : "en";
+              if (String(locale).toLowerCase().startsWith("he")) {
+                titleEl.textContent = "בחר והוסף את המוצרים של " + supplierName;
+              } else {
+                titleEl.textContent = "Select and add " + supplierName + " products";
+              }
+              titleEl.removeAttribute("data-i18n");
+              return;
             }
-            titleEl.removeAttribute("data-i18n");
+
+            if (window.VR_SUPPLIER_CONTEXT) {
+              titleEl.setAttribute("data-i18n", "app.supplierAppTitle");
+            }
           }
 
           function applySupplierButtonLabel() {
@@ -185,20 +180,16 @@
           await window.i18n.initI18n({ fallbackLocale: "en" });
           applySupplierTitle();
           applySupplierButtonLabel();
->>>>>>> 5b2bbbb (Restore repo)
+
           // keep <title> translated
           try {
             document.title = window.t("app.title");
           } catch (_) {}
 
-<<<<<<< HEAD
-=======
           try {
             window.addEventListener("i18n:changed", applySupplierTitle);
             window.addEventListener("i18n:changed", applySupplierButtonLabel);
           } catch (_) {}
-
->>>>>>> 5b2bbbb (Restore repo)
           function localeToSelectValue(localeCode) {
             const code = String(localeCode || "").toLowerCase();
             if (code === "he") return "Hebrew";
