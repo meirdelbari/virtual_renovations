@@ -59,6 +59,13 @@ echo.
 echo [DEBUG] Current Directory: %CD%
 echo.
 
+:: Clear proxy vars that can break git push on Windows
+:: (common when HTTP_PROXY/HTTPS_PROXY point to a dead local port)
+set "HTTP_PROXY="
+set "HTTPS_PROXY="
+set "http_proxy="
+set "https_proxy="
+
 echo Staging files...
 git add .
 if %errorlevel% neq 0 (
@@ -76,7 +83,17 @@ if %errorlevel% neq 0 (
 
 echo.
 echo Pushing to GitHub...
-git push origin main
+git remote get-url origin >nul 2>nul
+if %errorlevel% neq 0 (
+    echo [ERROR] No 'origin' remote configured.
+    echo         Run: git remote add origin https://github.com/USER/REPO.git
+    pause
+    exit /b 1
+)
+:: Use current branch if possible, fallback to main
+for /f "delims=" %%B in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%B"
+if "%CURRENT_BRANCH%"=="" set "CURRENT_BRANCH=main"
+git push -u origin %CURRENT_BRANCH%
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] Git Push failed!
