@@ -1,6 +1,13 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+:: If double-clicked (cmd /c), relaunch with a persistent window
+echo %CMDCMDLINE% | find /I "/c" >nul
+if %errorlevel%==0 (
+    start "" cmd /k "%~f0"
+    exit /b
+)
+
 :: Get current date and time
 for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set datetime=%%I
 set "TIMESTAMP=%datetime:~0,4%-%datetime:~4,2%-%datetime:~6,2%_%datetime:~8,2%-%datetime:~10,2%"
@@ -23,9 +30,9 @@ if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%"
 :: /XF .env -> Excludes sensitive files
 
 robocopy "%SOURCE_DIR%" "%BACKUP_DIR%" /E ^
-    /XD node_modules .git .cursor Backups __pycache__ raw_photos "Renovated Photos" Enhanched_Photos floor_plans ^
-    /XF .env .DS_Store *.log "segmentation\yolov8n-seg.pt" ^
-    /R:0 /W:0
+    /XD node_modules .git Backups __pycache__ raw_photos "Renovated Photos" Enhanched_Photos floor_plans ^
+    /XF .env .DS_Store *.log ^
+    /R:0 /W:0 /NFL /NDL
 
 :: Check exit code (anything < 8 is success)
 if %errorlevel% gtr 7 (
@@ -91,7 +98,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 :: Use current branch if possible, fallback to main
-for /f "delims=" %%B in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%B"
+for /f "delims=" %%B in ('git rev-parse --abbrev-ref HEAD 2^>^&1') do set "CURRENT_BRANCH=%%B"
 if "%CURRENT_BRANCH%"=="" set "CURRENT_BRANCH=main"
 echo.
 echo Syncing with remote (rebase)...
@@ -99,13 +106,20 @@ git pull --rebase --autostash origin %CURRENT_BRANCH%
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] Git Pull (rebase) failed. Resolve conflicts, then re-run.
+    echo [INFO] You may need to run: git rebase --abort
     pause
     exit /b %errorlevel%
 )
+echo.
+echo Pushing to GitHub...
 git push -u origin %CURRENT_BRANCH%
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] Git Push failed!
+    echo [INFO] Common issues:
+    echo         - Check internet connection
+    echo         - Verify GitHub credentials
+    echo         - Try: git push --set-upstream origin %CURRENT_BRANCH%
     pause
     exit /b %errorlevel%
 )
