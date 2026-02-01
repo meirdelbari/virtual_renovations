@@ -98,7 +98,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 :: Use current branch if possible, fallback to main
-for /f "delims=" %%B in ('git rev-parse --abbrev-ref HEAD 2^^^>nul') do set "CURRENT_BRANCH=%%B"
+for /f "delims=" %%B in ('git rev-parse --abbrev-ref HEAD') do set "CURRENT_BRANCH=%%B"
 if "%CURRENT_BRANCH%"=="" set "CURRENT_BRANCH=main"
 echo.
 echo Syncing with remote (rebase)...
