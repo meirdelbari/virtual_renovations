@@ -6,6 +6,10 @@ const geminiClient = require("./geminiClient");
 const paymentService = require("./paymentService");
 const productScraper = require("./productScraper");
 const supplierRoutes = require("./supplierRoutes");
+<<<<<<< HEAD
+=======
+const cheerio = require("cheerio");
+>>>>>>> 5b2bbbb (Restore repo)
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -547,7 +551,64 @@ app.get("/api/demo-proxy", async (req, res) => {
         // But for Gutstein, it doesn't have one initially likely.
     }
 
+<<<<<<< HEAD
     // 3. Inject our "Virtual Renovations" Widget
+=======
+    // 3. Rewrite internal links to stay in demo proxy
+    try {
+        const $ = cheerio.load(modifiedHtml);
+        const isUnsafeHref = (href) => {
+            if (!href) return true;
+            const lowered = href.toLowerCase();
+            return (
+                lowered.startsWith("javascript:") ||
+                lowered.startsWith("mailto:") ||
+                lowered.startsWith("tel:") ||
+                lowered.startsWith("#")
+            );
+        };
+        const normalizeHost = (host) =>
+            (host || "").toLowerCase().replace(/^www\./, "");
+        const isSupplierHost = (host) =>
+            normalizeHost(host) === normalizeHost(urlObj.hostname);
+        const toProxyUrl = (targetUrl) =>
+            "/api/demo-proxy?url=" +
+            encodeURIComponent(targetUrl) +
+            "&t=" +
+            Date.now();
+        const rewriteUrl = (rawUrl) => {
+            if (isUnsafeHref(rawUrl)) return null;
+            let absoluteUrl;
+            try {
+                absoluteUrl = new URL(rawUrl, finalUrl);
+            } catch (e) {
+                return null;
+            }
+            if (!isSupplierHost(absoluteUrl.hostname)) return null;
+            return toProxyUrl(absoluteUrl.toString());
+        };
+
+        $("a[href]").each((_, el) => {
+            const href = $(el).attr("href");
+            const proxied = rewriteUrl(href);
+            if (proxied) $(el).attr("href", proxied);
+        });
+
+        $("form[action]").each((_, el) => {
+            const method = ($(el).attr("method") || "get").toLowerCase();
+            if (method !== "get") return;
+            const action = $(el).attr("action");
+            const proxied = rewriteUrl(action || finalUrl);
+            if (proxied) $(el).attr("action", proxied);
+        });
+
+        modifiedHtml = $.html();
+    } catch (e) {
+        console.warn("Demo proxy link rewrite failed:", e.message);
+    }
+
+    // 4. Inject our "Virtual Renovations" Widget
+>>>>>>> 5b2bbbb (Restore repo)
     // We inject a script that adds a floating button
     const widgetScript = `
       <script>
@@ -556,8 +617,26 @@ app.get("/api/demo-proxy", async (req, res) => {
             if (document.getElementById("algoreit-demo-btn")) return;
             console.log("AlgoreitAI Demo Widget Initializing...");
 
+<<<<<<< HEAD
             const BUTTON_LABEL = "AlgoreitAI";
             const BUTTON_HTML = "<span class=\\"algoreit-emoji\\">✨</span><span>AlgoreitAI</span>";
+=======
+            const supplierHost = ${JSON.stringify(urlObj.hostname)};
+            const supplierLabel = (function () {
+              const host = (supplierHost || "").toLowerCase().replace(/^www\\./, "");
+              const base = host.split(".")[0] || "Supplier";
+              return base
+                .split(/[^a-z0-9]+/i)
+                .filter(Boolean)
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join("") + "AI";
+            })();
+            const BUTTON_LABEL = supplierLabel;
+            const BUTTON_HTML = "<span class=\\"algoreit-emoji\\">✨</span><span>" + supplierLabel + "</span>";
+            const SUPPLIER_HOST = ${JSON.stringify(urlObj.hostname)};
+            const SUPPLIER_ORIGIN = ${JSON.stringify(origin)};
+            const SUPPLIER_BASE = ${JSON.stringify(finalUrl)};
+>>>>>>> 5b2bbbb (Restore repo)
             
             // Inject button styles
             const style = document.createElement("style");
@@ -614,6 +693,14 @@ app.get("/api/demo-proxy", async (req, res) => {
               "  align-items: center;",
               "  margin-right: 6px;",
               "}",
+<<<<<<< HEAD
+=======
+              "#algoreit-demo-btn {",
+              "  position: fixed !important;",
+              "  bottom: 15px !important;",
+              "  right: 20px !important;",
+              "}",
+>>>>>>> 5b2bbbb (Restore repo)
             ].join("\\n");
             document.head.appendChild(style);
 
@@ -624,14 +711,149 @@ app.get("/api/demo-proxy", async (req, res) => {
             btn.innerHTML = BUTTON_HTML;
             btn.setAttribute("aria-label", "AlgoreitAI");
             btn.style.position = "fixed";
+<<<<<<< HEAD
             // Moved up to avoid chat widgets (e.g. WhatsApp, Accessibility tools)
             btn.style.bottom = "100px"; 
             btn.style.right = "20px";
+=======
+            // Keep it low-right and enforce against host styles
+            btn.style.setProperty("bottom", "15px", "important");
+            btn.style.setProperty("right", "20px", "important");
+>>>>>>> 5b2bbbb (Restore repo)
             btn.style.zIndex = "2147483647"; 
             btn.style.cursor = "pointer";
             btn.style.height = "auto";
             btn.style.width = "auto";
 
+<<<<<<< HEAD
+=======
+            function setupProxyNavigation() {
+              if (!SUPPLIER_HOST) return;
+              const isSafeHref = (href) => {
+                if (!href) return false;
+                const lowered = href.toLowerCase();
+                return !(
+                  lowered.startsWith("javascript:") ||
+                  lowered.startsWith("mailto:") ||
+                  lowered.startsWith("tel:")
+                );
+              };
+
+              const toProxyUrl = (targetUrl) =>
+                "/api/demo-proxy?url=" +
+                encodeURIComponent(targetUrl) +
+                "&t=" +
+                Date.now();
+
+              const normalizeHost = (host) =>
+                (host || "").toLowerCase().replace(/^www\./, "");
+
+              const isSupplierHost = (host) =>
+                normalizeHost(host) === normalizeHost(SUPPLIER_HOST);
+
+              const resolveSupplierUrl = (rawUrl) => {
+                if (!rawUrl) return null;
+                const lowered = rawUrl.toLowerCase();
+                let resolved;
+                try {
+                  if (lowered.startsWith("http://") || lowered.startsWith("https://")) {
+                    resolved = new URL(rawUrl);
+                  } else if (lowered.startsWith("//")) {
+                    resolved = new URL(new URL(SUPPLIER_BASE).protocol + rawUrl);
+                  } else if (rawUrl.startsWith("/")) {
+                    resolved = new URL(rawUrl, SUPPLIER_ORIGIN);
+                  } else {
+                    resolved = new URL(rawUrl, SUPPLIER_BASE);
+                  }
+                } catch (e) {
+                  return null;
+                }
+                if (!isSupplierHost(resolved.hostname)) return null;
+                return resolved.toString();
+              };
+
+              const rewriteSupplierUrl = (rawUrl) => {
+                const supplierUrl = resolveSupplierUrl(rawUrl);
+                return supplierUrl ? toProxyUrl(supplierUrl) : null;
+              };
+
+              document.addEventListener(
+                "click",
+                (event) => {
+                  const anchor = event.target.closest && event.target.closest("a");
+                  if (!anchor) return;
+                  const href = anchor.getAttribute("href");
+                  if (!isSafeHref(href)) return;
+
+                  const proxyUrl = rewriteSupplierUrl(href);
+                  if (!proxyUrl) return;
+                  event.preventDefault();
+                  const target = anchor.getAttribute("target");
+                  if (target && target !== "_self") {
+                    window.open(proxyUrl, target);
+                  } else {
+                    window.location.href = proxyUrl;
+                  }
+                },
+                true
+              );
+
+              document.addEventListener(
+                "submit",
+                (event) => {
+                  const form = event.target;
+                  if (!form || !form.action) return;
+                  const proxyUrl = rewriteSupplierUrl(form.action);
+                  if (!proxyUrl) return;
+                  event.preventDefault();
+
+                  const method = (form.method || "get").toLowerCase();
+                  if (method === "get") {
+                    const formData = new FormData(form);
+                    const params = new URLSearchParams(formData);
+                    const joined = proxyUrl + "&" + params.toString();
+                    window.location.href = joined;
+                  } else {
+                    // For non-GET, keep demo context without posting data
+                    window.location.href = proxyUrl;
+                  }
+                },
+                true
+              );
+
+              // Rewrite programmatic navigations
+              const originalOpen = window.open;
+              window.open = function (url, target, features) {
+                const proxyUrl = rewriteSupplierUrl(url);
+                return originalOpen.call(window, proxyUrl || url, target, features);
+              };
+
+              const originalAssign = window.location.assign.bind(window.location);
+              window.location.assign = function (url) {
+                const proxyUrl = rewriteSupplierUrl(url);
+                return originalAssign(proxyUrl || url);
+              };
+
+              const originalReplace = window.location.replace.bind(window.location);
+              window.location.replace = function (url) {
+                const proxyUrl = rewriteSupplierUrl(url);
+                return originalReplace(proxyUrl || url);
+              };
+
+              const originalPushState = history.pushState.bind(history);
+              history.pushState = function (state, title, url) {
+                const proxyUrl = rewriteSupplierUrl(url);
+                return originalPushState(state, title, proxyUrl || url);
+              };
+
+              const originalReplaceState = history.replaceState.bind(history);
+              history.replaceState = function (state, title, url) {
+                const proxyUrl = rewriteSupplierUrl(url);
+                return originalReplaceState(state, title, proxyUrl || url);
+              };
+            }
+
+>>>>>>> 5b2bbbb (Restore repo)
             // Create Modal Overlay
             const modal = document.createElement("div");
             modal.style.position = "fixed";
@@ -698,6 +920,11 @@ app.get("/api/demo-proxy", async (req, res) => {
               modal.style.display = "flex";
             }, true);
 
+<<<<<<< HEAD
+=======
+            setupProxyNavigation();
+
+>>>>>>> 5b2bbbb (Restore repo)
             // Anti-Overlay Check: Ensure nothing covers our button
             setInterval(() => {
                 const rect = btn.getBoundingClientRect();

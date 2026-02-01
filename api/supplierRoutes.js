@@ -205,7 +205,11 @@ router.get('/products', requireAuth, requireSupplier, requireNotBlockedSupplier,
 router.post('/products', requireAuth, requireSupplier, requireNotBlockedSupplier, asyncHandler(async (req, res) => {
     const supplier = req.supplier;
 
+<<<<<<< HEAD
     const { name, description, price, category, style, imageUrl, purchaseLink } = req.body;
+=======
+    const { name, description, price, category, style, imageUrl, purchaseLink, catalogNo } = req.body;
+>>>>>>> 5b2bbbb (Restore repo)
 
     if (!name || !imageUrl) {
         return res.status(400).json({ error: "Name and Image are required" });
@@ -215,6 +219,10 @@ router.post('/products', requireAuth, requireSupplier, requireNotBlockedSupplier
         supplierId: supplier.id,
         supplierName: supplier.companyName,
         name,
+<<<<<<< HEAD
+=======
+        catalogNo,
+>>>>>>> 5b2bbbb (Restore repo)
         description,
         price,
         category,
@@ -377,6 +385,10 @@ router.put('/products/:id', requireAuth, requireSupplier, requireNotBlockedSuppl
     // Prepare safe updates
     const safeUpdates = {
         name: updates.name,
+<<<<<<< HEAD
+=======
+        catalogNo: updates.catalogNo,
+>>>>>>> 5b2bbbb (Restore repo)
         description: updates.description,
         price: updates.price,
         category: updates.category,

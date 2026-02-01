@@ -51,6 +51,14 @@
             "  cursor: not-allowed;",
             "  transform: none;",
             "}",
+<<<<<<< HEAD
+=======
+            "#algoreit-demo-btn {",
+            "  position: fixed !important;",
+            "  bottom: 15px !important;",
+            "  right: 20px !important;",
+            "}",
+>>>>>>> 5b2bbbb (Restore repo)
           ].join("
 ");
           document.head.appendChild(style);
@@ -62,8 +70,13 @@
           btn.innerHTML = BUTTON_TEXT;
           btn.setAttribute("aria-label", "AlgoreitAI");
           btn.style.position = "fixed";
+<<<<<<< HEAD
           btn.style.bottom = "20px";
           btn.style.right = "20px";
+=======
+          btn.style.setProperty("bottom", "15px", "important");
+          btn.style.setProperty("right", "20px", "important");
+>>>>>>> 5b2bbbb (Restore repo)
           btn.style.zIndex = "999999";
 
           // Keep the label consistent if any host scripts mutate it

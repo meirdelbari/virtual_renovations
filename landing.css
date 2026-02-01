@@ -11,7 +11,11 @@
 
 body {
   margin: 0;
+<<<<<<< HEAD
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+=======
+  font-family: 'Tahoma', system-ui, -apple-system, sans-serif;
+>>>>>>> 5b2bbbb (Restore repo)
   color: var(--text-dark);
 }
 

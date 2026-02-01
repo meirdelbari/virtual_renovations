@@ -151,6 +151,14 @@
     var btn = document.createElement('button');
     btn.className = 'algoreit-btn op-btn op-btn-gemini';
     btn.innerHTML = '<span>✨</span> AlgoreitAI';
+<<<<<<< HEAD
+=======
+    // Ensure consistent placement for demos
+    btn.style.position = 'fixed';
+    btn.style.setProperty('bottom', '15px', 'important');
+    btn.style.setProperty('right', '20px', 'important');
+    btn.style.zIndex = '2147483640';
+>>>>>>> 5b2bbbb (Restore repo)
     
     // Modal Container
     var modalOverlay = document.createElement('div');

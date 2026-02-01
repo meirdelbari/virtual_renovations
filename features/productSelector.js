@@ -13,6 +13,24 @@ window.productSelector = (function() {
         return fallback || key;
     }
 
+<<<<<<< HEAD
+=======
+    function escapeHtml(str) {
+        if (typeof str !== "string") return "";
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function isRtlText(text) {
+        if (typeof text !== "string") return false;
+        return /[\u0590-\u08FF]/.test(text);
+    }
+
+>>>>>>> 5b2bbbb (Restore repo)
     const PRODUCT_STYLES = [
         { id: "modern", label: "Modern" },
         { id: "contemporary", label: "Contemporary" },
@@ -224,6 +242,31 @@ window.productSelector = (function() {
             el.className = `border rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition ${selectedProduct?.id === p.id ? 'ring-2 ring-indigo-600' : ''}`;
             el.dataset.prodId = String(p.id || "");
             el.addEventListener("click", () => select(p, el));
+<<<<<<< HEAD
+=======
+            const infoRows = [];
+            if (p.catalogNo) infoRows.push(`<div><span class="font-semibold">${tr("productSelector.labels.catalogNo", null, "Catalog No.")}:</span> ${escapeHtml(p.catalogNo)}</div>`);
+            if (p.category) infoRows.push(`<div><span class="font-semibold">${tr("productSelector.labels.category", null, "Category")}:</span> ${escapeHtml(p.category)}</div>`);
+            if (p.style) infoRows.push(`<div><span class="font-semibold">${tr("productSelector.labels.style", null, "Style")}:</span> ${escapeHtml(p.style)}</div>`);
+            if (p.description) infoRows.push(`<div><span class="font-semibold">${tr("productSelector.labels.description", null, "Description")}:</span> ${escapeHtml(p.description)}</div>`);
+            if (p.supplierName) infoRows.push(`<div><span class="font-semibold">${tr("productSelector.labels.supplier", null, "Supplier")}:</span> ${escapeHtml(p.supplierName)}</div>`);
+            if (p.price || p.price === 0) infoRows.push(`<div><span class="font-semibold">${tr("productSelector.labels.price", null, "Price")}:</span> $${escapeHtml(String(p.price))}</div>`);
+            if (p.purchaseLink) {
+                infoRows.push(`<div><span class="font-semibold">${tr("productSelector.labels.purchase", null, "Purchase")}:</span> <a href="${p.purchaseLink}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 underline">${escapeHtml(p.purchaseLink)}</a></div>`);
+            }
+            const infoText = [
+                p.catalogNo,
+                p.category,
+                p.style,
+                p.description,
+                p.supplierName,
+                p.purchaseLink,
+                p.price
+            ].filter(Boolean).join(" ");
+            const infoDir = isRtlText(infoText) ? "rtl" : "ltr";
+            const infoAlign = infoDir === "rtl" ? "right" : "left";
+
+>>>>>>> 5b2bbbb (Restore repo)
             el.innerHTML = `
                 <div class="h-32 bg-gray-200">
                     <img src="${p.imageUrl}" class="w-full h-full object-cover">
@@ -235,6 +278,12 @@ window.productSelector = (function() {
                         <span class="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 truncate">${p.style || tr("productSelector.anyStyleShort", null, "Any")}</span>
                     </div>
                     <p class="text-indigo-600 font-bold text-sm mt-1">$${p.price}</p>
+<<<<<<< HEAD
+=======
+                    <div class="mt-2 text-[11px] text-gray-600 space-y-1" dir="${infoDir}" style="text-align: ${infoAlign};">
+                        ${infoRows.join("") || `<div class="text-gray-400">${tr("productSelector.labels.noDetails", null, "No additional details.")}</div>`}
+                    </div>
+>>>>>>> 5b2bbbb (Restore repo)
                 </div>
             `;
             grid.appendChild(el);
@@ -266,6 +315,10 @@ window.productSelector = (function() {
         } else {
             styleBadge.classList.add('hidden');
         }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5b2bbbb (Restore repo)
     }
 
     function open(initialCategory, initialStyle) {

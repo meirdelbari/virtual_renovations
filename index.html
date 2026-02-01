@@ -123,6 +123,7 @@
         async function init() {
           if (!window.i18n || typeof window.i18n.initI18n !== "function") return;
 
+<<<<<<< HEAD
           // If in supplier context, use the supplier-specific title
           if (window.VR_SUPPLIER_CONTEXT) {
             const titleEl = document.querySelector('.app-title');
@@ -132,11 +133,72 @@
           }
 
           await window.i18n.initI18n({ fallbackLocale: "en" });
+=======
+          function getSupplierDisplayName(host) {
+            const normalized = String(host || "").toLowerCase().replace(/^www\./, "");
+            const map = {
+              "alony.co.il": "אלוני",
+            };
+            if (map[normalized]) return map[normalized];
+            const base = normalized.split(".")[0] || "Supplier";
+            return base
+              .split(/[^a-z0-9]+/i)
+              .filter(Boolean)
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+              .join("");
+          }
+
+          function getSupplierBrandLabel(host) {
+            const normalized = String(host || "").toLowerCase().replace(/^www\./, "");
+            const base = normalized.split(".")[0] || "Supplier";
+            const brand = base
+              .split(/[^a-z0-9]+/i)
+              .filter(Boolean)
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+              .join("");
+            return brand + "AI";
+          }
+
+          function applySupplierTitle() {
+            if (!window.VR_SUPPLIER_CONTEXT || !window.VR_SUPPLIER_CONTEXT.supplierHost) return;
+            const titleEl = document.querySelector(".app-title");
+            if (!titleEl) return;
+            const supplierName = getSupplierDisplayName(window.VR_SUPPLIER_CONTEXT.supplierHost);
+            const locale = window.i18n && window.i18n.getLocale ? window.i18n.getLocale() : "en";
+            if (String(locale).toLowerCase().startsWith("he")) {
+              titleEl.textContent = "בחר והוסף את המוצרים של " + supplierName;
+            } else {
+              titleEl.textContent = "Select and add " + supplierName + " products";
+            }
+            titleEl.removeAttribute("data-i18n");
+          }
+
+          function applySupplierButtonLabel() {
+            if (!window.VR_SUPPLIER_CONTEXT || !window.VR_SUPPLIER_CONTEXT.supplierHost) return;
+            const btn = document.querySelector('[data-role="gemini-ai"]');
+            if (!btn) return;
+            const label = getSupplierBrandLabel(window.VR_SUPPLIER_CONTEXT.supplierHost);
+            btn.innerHTML = '<span class="algoreit-emoji">✨</span><span>' + label + "</span>";
+            btn.removeAttribute("data-i18n");
+          }
+
+          await window.i18n.initI18n({ fallbackLocale: "en" });
+          applySupplierTitle();
+          applySupplierButtonLabel();
+>>>>>>> 5b2bbbb (Restore repo)
           // keep <title> translated
           try {
             document.title = window.t("app.title");
           } catch (_) {}
 
+<<<<<<< HEAD
+=======
+          try {
+            window.addEventListener("i18n:changed", applySupplierTitle);
+            window.addEventListener("i18n:changed", applySupplierButtonLabel);
+          } catch (_) {}
+
+>>>>>>> 5b2bbbb (Restore repo)
           function localeToSelectValue(localeCode) {
             const code = String(localeCode || "").toLowerCase();
             if (code === "he") return "Hebrew";
